@@ -14,29 +14,31 @@ model User {
   passwordHash String
   require2fa   Boolean      @default(false)
   twoFaSecret  String?
-  backupCodes  String?      // JSON array of hashed backup codes [{hash, used}]
+  backupCodes  String?      // JSON array de codes de secours hashés
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
   userTenants  UserTenant[]
   auditLogs    AuditLog[]
+  consents     ConsentRecord[]
 
   @@map("users")
 }
 
 model Tenant {
-  id             String       @id @default(cuid())
-  name           String
-  regime         String       @default("REEL_NORMAL") // REEL_NORMAL, REEL_SIMPLIFIE, TPU
-  nif            String?
-  exerciceOuvert Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                  String               @id @default(cuid())
+  name                String
+  regime              String               @default("REEL_NORMAL") // REEL_NORMAL, RSI, TPU
+  nif                 String?
+  exerciceOuvert      Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
-  userTenants    UserTenant[]
-  ecritures      Ecriture[]
-  comptes        ComptePlan[]
-  auditLogs      AuditLog[]
+  userTenants         UserTenant[]
+  ecritures           Ecriture[]
+  comptes             ComptePlan[]
+  auditLogs           AuditLog[]
+  calendarObligations CalendarObligation[]
 
   @@map("tenants")
 }
@@ -92,6 +94,7 @@ model ComptePlan {
   code      String
   libelle   String
   classe    Int
+  postable  Boolean  @default(true)
   type      String   @default("STANDARD")
   createdAt DateTime @default(now())
 
@@ -99,6 +102,39 @@ model ComptePlan {
 
   @@unique([tenantId, code])
   @@map("comptes_plan")
+}
+
+model CalendarObligation {
+  id        String   @id @default(cuid())
+  tenantId  String
+  key       String   // "TVA-2026-08"
+  label     String
+  regime    String   // REEL_NORMAL, RSI, TPU
+  freq      String   // MENSUELLE, TRIMESTRIELLE, ANNUELLE
+  dueDate   String   // YYYY-MM-DD
+  legalRef  String   // Réf CGI Togo / LPF
+  status    String   @default("A_JOUR") // A_JOUR, A_PARAMETRER, TRANSMIS
+  alerts    String   @default("{\"j7\":true,\"j3\":true,\"j0\":true}")
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key, dueDate])
+  @@map("calendar_obligations")
+}
+
+model ConsentRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // CGU, CONFIDENTIALITE (Loi n°2018-26 Togo)
+  version   String   @default("1.0")
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("consent_records")
 }
 
 model AuditLog {

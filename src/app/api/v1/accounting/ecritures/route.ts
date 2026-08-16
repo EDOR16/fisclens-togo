@@ -8,7 +8,10 @@ const LineSchema = z.object({
   libelle: z.string().min(1, "Libellé requis"),
   debit: z.coerce.number().int().nonnegative(),
   credit: z.coerce.number().int().nonnegative(),
-});
+}).refine(
+  (l) => (l.debit > 0 && l.credit === 0) || (l.credit > 0 && l.debit === 0),
+  { message: "Une ligne doit comporter soit un débit, soit un crédit, mais pas les deux" }
+);
 
 const EntryFormSchema = z.object({
   journal: z.enum(["ACHATS", "VENTES", "BANQUE", "CAISSE", "OD", "PAIE"]),
@@ -25,9 +28,9 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
       lines: true,
     },
     orderBy: {
-      createdAt: "desc",
+      date: "desc",
     },
-    take: 50,
+    take: 100,
   });
 
   return NextResponse.json({ ecritures });
@@ -47,7 +50,7 @@ export const POST = withGuard(async (req: NextRequest, { tenantId, user }) => {
 
   const { journal, date, piece, lines } = parsed.data;
 
-  // 1. Contrôle d'équilibre comptable SYSCOHADA : Σ Débit = Σ Crédit
+  // 1. Contrôle strict d'équilibre comptable SYSCOHADA : Σ Débit === Σ Crédit
   const totalDebit = lines.reduce((acc, l) => acc + l.debit, 0);
   const totalCredit = lines.reduce((acc, l) => acc + l.credit, 0);
 
@@ -55,7 +58,10 @@ export const POST = withGuard(async (req: NextRequest, { tenantId, user }) => {
     return NextResponse.json(
       {
         error: "UNBALANCED_ENTRY",
-        message: `L'écriture n'est pas équilibrée : Débit (${totalDebit}) ≠ Crédit (${totalCredit})`,
+        message: `Écriture comptable déséquilibrée : Total Débit (${totalDebit} FCFA) ≠ Total Crédit (${totalCredit} FCFA). Écart : ${Math.abs(totalDebit - totalCredit)} FCFA`,
+        totalDebit,
+        totalCredit,
+        diff: Math.abs(totalDebit - totalCredit),
       },
       { status: 422 }
     );

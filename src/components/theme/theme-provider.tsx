@@ -52,8 +52,13 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   function applyThemeToDoc(t: ThemeMode) {
     const root = document.documentElement;
     root.classList.remove("dark", "light", "theme-midnight", "theme-emerald");
-    if (t !== "light") {
+    if (t === "light") {
+      root.classList.add("light");
+    } else {
       root.classList.add(t);
+      if (t !== "dark") {
+        root.classList.add("dark"); // Pour que les styles dark Tailwind s'appliquent aussi aux sous-thèmes
+      }
     }
   }
 

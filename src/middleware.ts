@@ -12,7 +12,7 @@ export function middleware(request: NextRequest) {
 
   // Routes publiques — pas de protection
   const PUBLIC_PATHS = ["/login", "/register", "/2fa", "/api/v1/auth", "/api/v1/health"];
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const isPublic = pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   if (isPublic) return NextResponse.next();
 
   // Vérification token (présence uniquement — validité vérifiée par l'API)

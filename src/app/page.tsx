@@ -1,357 +1,476 @@
-import type { Metadata } from "next";
+"use client";
+
+import React, { useState } from "react";
 import Link from "next/link";
 import { LogoAnimated } from "@/components/ui/logo-animated";
 import { DynamicBackground } from "@/components/landing/dynamic-background";
 import { ThemeWallpaperModal } from "@/components/landing/theme-wallpaper-modal";
-import { TerminalPreview } from "@/components/landing/terminal-preview";
-import { FiscalSimulator } from "@/components/landing/fiscal-simulator";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Search,
+  ChevronDown,
   ArrowRight,
+  TrendingUp,
   ShieldCheck,
   CheckCircle2,
   Sparkles,
-  BookOpen,
-  Receipt,
-  AlertTriangle,
   Layers,
-  Lock,
-  WifiOff,
   Building2,
-  TrendingUp,
+  Calculator,
+  PieChart,
+  BarChart3,
   FileSpreadsheet,
-  FileText,
-  Clock,
-  ChevronRight,
+  Check,
 } from "lucide-react";
-
-export const metadata: Metadata = {
-  title: "FiscLens Togo — Logiciel Comptable SYSCOHADA & Fiscalité OTR",
-  description:
-    "La suite tout-en-un pour la comptabilité générale SYSCOHADA révisé et la conformité fiscale togolaise (TVA, IRPP, IS, IMF, Patente).",
-};
+import { formatFcfa } from "@/lib/utils";
 
 export default function LandingPage() {
+  const [solutionType, setSolutionType] = useState("all");
+  const [companySize, setCompanySize] = useState("all");
+
   return (
-    <div className="relative min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
-      {/* Fond d'écran dynamique personnalisable (Aurora, Cyber Grid, Particules, Minimal) */}
+    <div className="min-h-screen bg-[#070b12] text-white flex flex-col font-sans selection:bg-brand-500 selection:text-white relative overflow-x-hidden">
+      {/* Fond d'écran dynamique (100% optionnel, désactivé par défaut) */}
       <DynamicBackground />
 
-      {/* ========================================================================= */}
-      {/* 1. NAVBAR FLOTTANTE GLASSMORPHIC                                          */}
-      {/* ========================================================================= */}
-      <header className="sticky top-4 z-50 max-w-6xl mx-auto w-[92%] sm:w-full">
-        <nav className="glass-card rounded-2xl px-4 sm:px-6 py-3 flex items-center justify-between shadow-lg shadow-black/5 border border-white/20 dark:border-white/10">
-          {/* Logo animé */}
-          <Link href="/" className="focus:outline-none">
-            <LogoAnimated size="md" />
-          </Link>
+      {/* Lignes d'onde vert néon en arrière-plan (Style Sage officiel) */}
+      <div className="absolute top-[180px] left-0 right-0 h-[480px] pointer-events-none z-0 opacity-80 overflow-hidden">
+        <svg
+          className="w-full h-full"
+          viewBox="0 0 1440 400"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M-100 280 C 300 420, 600 120, 1000 240 C 1250 320, 1400 180, 1600 220"
+            stroke="#16a34a"
+            strokeWidth="14"
+            strokeLinecap="round"
+            className="opacity-90"
+          />
+          <path
+            d="M-100 310 C 320 440, 580 160, 980 260 C 1220 330, 1380 200, 1600 240"
+            stroke="#4ade80"
+            strokeWidth="3"
+            strokeDasharray="12 12"
+            className="opacity-40"
+          />
+        </svg>
+      </div>
 
-          {/* Liens de navigation centraux */}
-          <div className="hidden md:flex items-center gap-6 text-xs font-semibold text-muted-foreground">
-            <a href="#features" className="hover:text-foreground transition-colors">
-              Fonctionnalités
-            </a>
-            <a href="#syscohada" className="hover:text-foreground transition-colors">
-              SYSCOHADA
-            </a>
-            <a href="#fiscalite" className="hover:text-foreground transition-colors">
-              Fiscalité OTR
-            </a>
-            <a href="#simulateur" className="hover:text-foreground transition-colors">
-              Simulateur
-            </a>
-            <a href="#securite" className="hover:text-foreground transition-colors">
-              Sécurité 2FA
-            </a>
+      {/* ========================================================================= */}
+      {/* 1. TOP NAVBAR SAGE-STYLE                                                  */}
+      {/* ========================================================================= */}
+      <header className="relative z-30 border-b border-white/10 bg-[#070b12]/90 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between py-3.5">
+          {/* Logo gauche */}
+          <div className="flex items-center gap-8">
+            <Link href="/" className="focus:outline-none">
+              <LogoAnimated size="md" />
+            </Link>
+
+            {/* Liens de menu horizontaux */}
+            <nav className="hidden lg:flex items-center gap-6 text-[13px] font-medium text-slate-300">
+              <a href="#solutions" className="hover:text-brand-400 transition-colors flex items-center gap-1">
+                Produits & Solutions <ChevronDown className="h-3 w-3 opacity-60" />
+              </a>
+              <a href="#syscohada" className="hover:text-brand-400 transition-colors">
+                SYSCOHADA Révisé
+              </a>
+              <a href="#fiscalite" className="hover:text-brand-400 transition-colors">
+                Fiscalité OTR (18% TVA)
+              </a>
+              <a href="#cabinets" className="hover:text-brand-400 transition-colors">
+                Experts-comptables
+              </a>
+              <a href="#support" className="hover:text-slate-100 transition-colors">
+                Assistance & Guide
+              </a>
+            </nav>
           </div>
 
-          {/* Actions à droite : Thème + Login + Inscription */}
-          <div className="flex items-center gap-2.5">
-            {/* Modal de changement de thème & fond d'écran */}
+          {/* Côté droit : Recherche + Thème + Bouton Connexion */}
+          <div className="flex items-center gap-3">
+            {/* Personnalisation du thème / fond (Optionnel) */}
             <ThemeWallpaperModal />
 
+            {/* Bouton Connexion style pilule Sage */}
             <Link href="/login">
-              <Button variant="ghost" size="sm" className="text-xs font-semibold rounded-xl">
+              <button className="px-5 py-1.5 rounded-full text-xs font-semibold border border-white/40 hover:border-brand-400 hover:text-brand-400 hover:bg-white/5 transition-all text-white">
                 Connexion
-              </Button>
+              </button>
             </Link>
 
-            <Link href="/register">
-              <Button
-                size="sm"
-                className="text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-500 text-white shadow-md shadow-brand-600/25 transition-all hover:scale-105"
-              >
-                Créer un compte <ArrowRight className="h-3.5 w-3.5 ml-1" />
-              </Button>
+            {/* Bouton Essai gratuit */}
+            <Link href="/register" className="hidden sm:inline-block">
+              <button className="px-4 py-1.5 rounded-full text-xs font-bold bg-brand-500 hover:bg-brand-400 text-slate-950 transition-all shadow-md shadow-brand-500/20">
+                S&apos;inscrire
+              </button>
             </Link>
           </div>
-        </nav>
+        </div>
       </header>
 
       {/* ========================================================================= */}
-      {/* 2. HERO SECTION                                                          */}
+      {/* 2. HERO SECTION & SÉLECTEUR INTERACTIF                                    */}
       {/* ========================================================================= */}
-      <section className="pt-16 pb-20 px-4 sm:px-6 max-w-6xl mx-auto flex flex-col items-center text-center relative">
-        {/* Badge d'introduction */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-pill text-xs font-semibold text-foreground mb-6 shadow-sm border border-brand-500/30 animate-in fade-in slide-in-from-top-4 duration-500">
-          <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-          <span className="bg-gradient-to-r from-emerald-500 to-amber-500 bg-clip-text text-transparent font-bold">
-            Conforme Loi de Finances Togo & SYSCOHADA Révisé 2025
-          </span>
-          <span className="text-muted-foreground hidden sm:inline">|</span>
-          <span className="text-muted-foreground hidden sm:inline">OTR Prêt</span>
-        </div>
-
-        {/* Titre Principal Hero */}
-        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight max-w-4xl leading-[1.15] mb-6">
-          La Puissance Comptable & Fiscale{" "}
-          <span className="bg-gradient-to-r from-brand-500 via-emerald-400 to-amber-400 bg-clip-text text-transparent text-glow">
-            Réinventée pour le Togo.
-          </span>
+      <section className="relative z-10 pt-16 pb-12 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-6">
+        {/* Titre Principal */}
+        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight max-w-4xl mx-auto">
+          Pour chaque étape de votre activité
         </h1>
 
         {/* Sous-titre */}
-        <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mb-8 leading-relaxed">
-          Gérez vos journaux, balances, états financiers SYSCOHADA et générez automatiquement vos déclarations de{" "}
-          <strong className="text-foreground font-semibold">TVA (18%)</strong>,{" "}
-          <strong className="text-foreground font-semibold">IRPP / Paie</strong> et{" "}
-          <strong className="text-foreground font-semibold">IS / IMF</strong> en quelques clics.
+        <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
+          FiscLens Togo fournit la technologie certifiée <strong className="text-white">SYSCOHADA révisé</strong> et
+          l&apos;automatisation fiscale indispensables au bon fonctionnement et à la conformité de votre entreprise (OTR & CNSS).
         </p>
 
-        {/* Call To Actions */}
-        <div className="flex flex-col sm:flex-row items-center gap-3.5 mb-14">
-          <Link href="/register">
-            <Button
-              size="lg"
-              className="h-12 px-7 rounded-2xl bg-gradient-to-r from-brand-600 to-emerald-600 hover:from-brand-500 hover:to-emerald-500 text-white font-bold text-sm shadow-xl shadow-brand-600/30 hover:scale-105 transition-all"
+        {/* Barre de recherche / Sélecteur interactif style Sage (exactement comme le screenshot) */}
+        <div className="pt-4 flex flex-wrap items-center justify-center gap-3 text-sm sm:text-base font-semibold text-slate-200">
+          <span>Je recherche une solution de</span>
+
+          {/* Select 1 : Solution */}
+          <div className="relative inline-block">
+            <select
+              value={solutionType}
+              onChange={(e) => setSolutionType(e.target.value)}
+              className="appearance-none bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs sm:text-sm px-4 py-2 pr-8 rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-400 transition-colors shadow-lg shadow-brand-600/30"
             >
-              Démarrer Gratuitement <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </Link>
+              <option value="all">Comptabilité & Fiscalité OTR</option>
+              <option value="compta">Comptabilité Générale SYSCOHADA</option>
+              <option value="fiscal">Déclarations Fiscales (TVA 18%, IS, IRPP)</option>
+              <option value="cabinet">Gestion Multi-Dossiers Cabinet</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-white" />
+          </div>
 
-          <Link href="/login">
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-12 px-7 rounded-2xl glass-card font-semibold text-sm hover:border-brand-500/50 hover:bg-muted/50 transition-all"
+          <span>pour une entreprise de</span>
+
+          {/* Select 2 : Taille */}
+          <div className="relative inline-block">
+            <select
+              value={companySize}
+              onChange={(e) => setCompanySize(e.target.value)}
+              className="appearance-none bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs sm:text-sm px-4 py-2 pr-8 rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-400 transition-colors shadow-lg shadow-brand-600/30"
             >
-              Accéder à l&apos;Espace Client
-            </Button>
-          </Link>
-        </div>
-
-        {/* Preview Interactive Terminal */}
-        <div className="w-full relative max-w-4xl">
-          <div className="absolute -inset-1 bg-gradient-to-r from-brand-500/30 via-amber-500/20 to-emerald-500/30 rounded-3xl blur-2xl opacity-50" />
-          <TerminalPreview />
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 3. CHIFFRES & POINTS FORTS                                               */}
-      {/* ========================================================================= */}
-      <section className="py-12 border-y border-border/50 bg-muted/20 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          <div className="space-y-1">
-            <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">100%</div>
-            <p className="text-xs text-muted-foreground font-medium">Conforme SYSCOHADA Révisé</p>
-          </div>
-          <div className="space-y-1">
-            <div className="text-2xl sm:text-3xl font-extrabold text-brand-500 font-mono">18% TVA</div>
-            <p className="text-xs text-muted-foreground font-medium">Calcul automatique OTR</p>
-          </div>
-          <div className="space-y-1">
-            <div className="text-2xl sm:text-3xl font-extrabold text-amber-500 font-mono">2FA TOTP</div>
-            <p className="text-xs text-muted-foreground font-medium">Sécurité bancaire & codes secours</p>
-          </div>
-          <div className="space-y-1">
-            <div className="text-2xl sm:text-3xl font-extrabold text-cyan-500 font-mono">Offline-First</div>
-            <p className="text-xs text-muted-foreground font-medium">Saisie active sans internet</p>
+              <option value="all">Toutes les tailles d&apos;entreprise</option>
+              <option value="tpe">Artisans & TPE (1 à 9 salariés)</option>
+              <option value="pme">PME & Moyenne entreprise (10 à 99)</option>
+              <option value="cabinet">Cabinet d&apos;Expertise & Grande Ent.</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-white" />
           </div>
         </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* 4. LES 4 PILIERS DE FISCLENS TOGO                                        */}
+      {/* 3. LES 3 CARTES DE PRODUITS PRINCIPALES (Style Sage exact du screenshot) */}
       {/* ========================================================================= */}
-      <section id="features" className="py-20 px-4 sm:px-6 max-w-6xl mx-auto space-y-12">
-        <div className="text-center space-y-3 max-w-2xl mx-auto">
-          <Badge variant="success" className="text-xs uppercase tracking-wider font-bold">
-            Conçu pour le Togo
-          </Badge>
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground">
-            Une Suite Complète pour Entreprises & Cabinets
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Fini les calculs manuels sur tableurs et les risques d&apos;erreurs déclaratives auprès de l&apos;OTR.
-          </p>
-        </div>
+      <section id="solutions" className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <div className="grid md:grid-cols-3 gap-6 items-stretch">
+          {/* --------------------------------------------------------------------- */}
+          {/* CARTE 1 : FiscLens Active (Artisans & TPE)                             */}
+          {/* --------------------------------------------------------------------- */}
+          <div className="bg-white text-slate-900 rounded-3xl p-6 flex flex-col justify-between shadow-2xl border border-slate-200 hover:translate-y-[-4px] transition-transform duration-300">
+            <div>
+              {/* Badge offre */}
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-3">
+                OFFRE FLASH ! 50 % de réduction les 3 premiers mois.
+              </span>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Pilier 1 : SYSCOHADA */}
-          <div id="syscohada" className="glass-card rounded-2xl p-7 space-y-4 border border-border/80 hover:border-brand-500/50 transition-all hover:shadow-xl group">
-            <div className="p-3 rounded-xl bg-brand-500/15 text-brand-500 w-fit group-hover:scale-110 transition-transform">
-              <BookOpen className="h-6 w-6" />
+              {/* Titre */}
+              <h2 className="text-2xl font-extrabold text-slate-900 mb-2">FiscLens Active</h2>
+
+              {/* Description */}
+              <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                Gérez les devis, factures normalisées et la comptabilité, ainsi que la TVA (18%), avec une solution cloud tout-en-un.
+                Pour les artisans, commerçants et TPE.
+              </p>
+
+              {/* Tarif */}
+              <p className="text-xs font-bold text-slate-800 mb-5">
+                Dès 15 000 FCFA/mois
+              </p>
+
+              {/* Bouton CTA */}
+              <Link href="/register">
+                <button className="w-fit px-5 py-2.5 rounded-full bg-black text-white text-xs font-bold hover:bg-slate-800 transition-colors mb-6 shadow-md">
+                  Découvrez FiscLens Active
+                </button>
+              </Link>
             </div>
-            <h3 className="text-lg font-bold text-foreground">Comptabilité Générale SYSCOHADA</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Plan de comptes officiel révisé (Classes 1 à 8), journaux auxiliaires (Achats, Ventes, Banque, Caisse, OD, Paie), Balance 6 colonnes et Grand Livre en temps réel.
-            </p>
-            <ul className="space-y-2 text-xs text-muted-foreground pt-2">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-brand-500" /> Équilibre strict Débit = Crédit avec contrôle bloquant
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-brand-500" /> Clôture d&apos;exercice sécurisée et génération des états financiers
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-brand-500" /> Rapprochement bancaire et lettrage automatique des comptes
-              </li>
-            </ul>
+
+            {/* Widget Mockup UI en bas de carte : Suivi des encours */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3 shadow-inner">
+              <h4 className="text-xs font-bold text-slate-800">Suivi des encours</h4>
+
+              {/* Encours clients */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-[11px] text-slate-600 font-medium">
+                  <span>Encours clients</span>
+                  <span className="font-bold text-slate-900">3 565 670 FCFA Total</span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden flex">
+                  <div className="h-full bg-brand-500 w-3/4 rounded-full" />
+                </div>
+                <span className="text-[9px] text-slate-400">Suivi des échéances par tiers · Balance âgée</span>
+              </div>
+
+              {/* Encours fournisseurs */}
+              <div className="space-y-1 pt-1">
+                <div className="flex justify-between text-[11px] text-slate-600 font-medium">
+                  <span>Encours fournisseurs</span>
+                  <span className="font-bold text-slate-900">865 670 FCFA Total</span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden flex">
+                  <div className="h-full bg-slate-700 w-1/3 rounded-full" />
+                </div>
+                <span className="text-[9px] text-slate-400">Suivi des règlements par tiers</span>
+              </div>
+            </div>
           </div>
 
-          {/* Pilier 2 : Fiscalité OTR */}
-          <div id="fiscalite" className="glass-card rounded-2xl p-7 space-y-4 border border-border/80 hover:border-amber-500/50 transition-all hover:shadow-xl group">
-            <div className="p-3 rounded-xl bg-amber-500/15 text-amber-500 w-fit group-hover:scale-110 transition-transform">
-              <Receipt className="h-6 w-6" />
+          {/* --------------------------------------------------------------------- */}
+          {/* CARTE 2 : FiscLens 50 Pro (PME & Entreprises)                          */}
+          {/* --------------------------------------------------------------------- */}
+          <div className="bg-white text-slate-900 rounded-3xl p-6 flex flex-col justify-between shadow-2xl border-2 border-brand-500 hover:translate-y-[-4px] transition-transform duration-300 relative">
+            {/* Tag recommandé */}
+            <div className="absolute -top-3.5 right-6 px-3 py-0.5 rounded-full bg-brand-600 text-white text-[10px] font-extrabold uppercase tracking-wider shadow">
+              Plus Populaire
             </div>
-            <h3 className="text-lg font-bold text-foreground">Moteur Fiscal & Déclarations OTR</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Calcul automatique de vos obligations fiscales selon le Code Général des Impôts (CGI) du Togo et export prêt pour télé-déclaration.
-            </p>
-            <ul className="space-y-2 text-xs text-muted-foreground pt-2">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-amber-500" /> TVA 18% (Collectée, Déductible, Crédit de TVA, Déclaration mensuelle)
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-amber-500" /> Impôt sur les Sociétés (IS 27% vs IMF 1% de plancher OTR)
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-amber-500" /> IRPP / Retenues sur salaires et cotisations CNSS Togo
-              </li>
-            </ul>
+
+            <div>
+              <span className="text-[11px] font-bold text-brand-600 uppercase tracking-wide block mb-3">
+                Conforme CGI Togo & SYSCOHADA Révisé
+              </span>
+
+              <h2 className="text-2xl font-extrabold text-slate-900 mb-2">FiscLens 50 Pro</h2>
+
+              <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                Boostez votre gestion avec FiscLens 50 : écritures comptables (Classes 1 à 8), journaux, balance 6 colonnes, IS (27%), IMF (1%) et déclarations OTR. Une solution puissante et fiable.
+              </p>
+
+              <p className="text-xs font-bold text-slate-800 mb-5">
+                Pour les PME, dès 45 000 FCFA/mois
+              </p>
+
+              <Link href="/register">
+                <button className="w-fit px-5 py-2.5 rounded-full bg-black text-white text-xs font-bold hover:bg-slate-800 transition-colors mb-6 shadow-md">
+                  Découvrez FiscLens 50 Pro
+                </button>
+              </Link>
+            </div>
+
+            {/* Widget Mockup UI en bas de carte : Répartition des charges */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2 shadow-inner">
+              <h4 className="text-xs font-bold text-slate-800">Répartition des charges SYSCOHADA</h4>
+
+              <div className="flex items-center justify-center py-2 relative">
+                {/* Anneau / Donut SVG interactif */}
+                <svg className="w-28 h-28 transform -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="38" stroke="#e2e8f0" strokeWidth="12" fill="none" />
+                  {/* Part 1 : 601000 Achats (45%) */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    stroke="#16a34a"
+                    strokeWidth="12"
+                    strokeDasharray="108 240"
+                    strokeDashoffset="0"
+                    fill="none"
+                  />
+                  {/* Part 2 : 615000 Services (30%) */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    stroke="#0284c7"
+                    strokeWidth="12"
+                    strokeDasharray="72 240"
+                    strokeDashoffset="-108"
+                    fill="none"
+                  />
+                  {/* Part 3 : 606300 & Autres (25%) */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    stroke="#eab308"
+                    strokeWidth="12"
+                    strokeDasharray="60 240"
+                    strokeDashoffset="-180"
+                    fill="none"
+                  />
+                </svg>
+
+                <div className="absolute text-center">
+                  <span className="text-[10px] font-bold text-slate-700 font-mono">100%</span>
+                  <p className="text-[8px] text-slate-400">Équilibré</p>
+                </div>
+              </div>
+
+              <div className="flex justify-between text-[9px] text-slate-500 font-mono pt-1 border-t border-slate-200">
+                <span className="text-green-700 font-bold">● 601000 : 45%</span>
+                <span className="text-sky-700 font-bold">● 615000 : 30%</span>
+                <span className="text-amber-700 font-bold">● 606300 : 25%</span>
+              </div>
+            </div>
           </div>
 
-          {/* Pilier 3 : Audit & Contrôle d'Anomalies */}
-          <div className="glass-card rounded-2xl p-7 space-y-4 border border-border/80 hover:border-cyan-500/50 transition-all hover:shadow-xl group">
-            <div className="p-3 rounded-xl bg-cyan-500/15 text-cyan-500 w-fit group-hover:scale-110 transition-transform">
-              <AlertTriangle className="h-6 w-6" />
-            </div>
-            <h3 className="text-lg font-bold text-foreground">Contrôle & Détection d&apos;Anomalies</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Algorithmes de détection proactive des incohérences comptables avant tout contrôle fiscal ou audit de commissariat aux comptes.
-            </p>
-            <ul className="space-y-2 text-xs text-muted-foreground pt-2">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-cyan-500" /> Analyse des soldes anormaux (comptes de caisse négatifs, etc.)
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-cyan-500" /> Journal d&apos;audit légal immuable avec traçabilité par utilisateur
-              </li>
-            </ul>
-          </div>
+          {/* --------------------------------------------------------------------- */}
+          {/* CARTE 3 : FiscLens Intacct (Experts-Comptables & Multi-Entités)        */}
+          {/* --------------------------------------------------------------------- */}
+          <div className="bg-white text-slate-900 rounded-3xl p-6 flex flex-col justify-between shadow-2xl border border-slate-200 hover:translate-y-[-4px] transition-transform duration-300">
+            <div>
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block mb-3">
+                Pour les cabinets et entreprises en croissance
+              </span>
 
-          {/* Pilier 4 : Mode Cabinet & Hors-Ligne */}
-          <div id="securite" className="glass-card rounded-2xl p-7 space-y-4 border border-border/80 hover:border-emerald-500/50 transition-all hover:shadow-xl group">
-            <div className="p-3 rounded-xl bg-emerald-500/15 text-emerald-500 w-fit group-hover:scale-110 transition-transform">
-              <Building2 className="h-6 w-6" />
+              <h2 className="text-2xl font-extrabold text-slate-900 mb-2">FiscLens Cabinet</h2>
+
+              <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                Accélérez votre croissance grâce à une solution financière cloud complète : automatisation comptable, gestion multi-dossiers clients, liasses fiscales OTR et reporting en temps réel.
+              </p>
+
+              <p className="text-xs font-bold text-slate-800 mb-5">
+                Multi-dossiers illimités · Mode Expert
+              </p>
+
+              <Link href="/register">
+                <button className="w-fit px-5 py-2.5 rounded-full bg-black text-white text-xs font-bold hover:bg-slate-800 transition-colors mb-6 shadow-md">
+                  Découvrez FiscLens Cabinet
+                </button>
+              </Link>
             </div>
-            <h3 className="text-lg font-bold text-foreground">Multi-Dossiers Cabinet & Mode Hors-Ligne</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Passez d&apos;un dossier client à l&apos;autre instantanément. Continuez à saisir vos écritures même lors des coupures de connexion internet.
-            </p>
-            <ul className="space-y-2 text-xs text-muted-foreground pt-2">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" /> File d&apos;attente locale synchronisée dès le retour du réseau
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Sécurité renforcée avec Authentification 2FA TOTP & Codes de secours
-              </li>
-            </ul>
+
+            {/* Widget Mockup UI en bas de carte : KPIs & Bar Chart par filiale */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3 shadow-inner">
+              {/* 3 mini KPI pills */}
+              <div className="grid grid-cols-3 gap-1.5 text-center">
+                <div className="p-1.5 bg-white rounded-lg border border-slate-200">
+                  <span className="text-[8px] text-slate-400 block uppercase">Actifs</span>
+                  <span className="text-[10px] font-bold text-slate-900 font-mono">14,445K ↗</span>
+                </div>
+                <div className="p-1.5 bg-white rounded-lg border border-slate-200">
+                  <span className="text-[8px] text-slate-400 block uppercase">Recettes</span>
+                  <span className="text-[10px] font-bold text-brand-600 font-mono">74,472K ↗</span>
+                </div>
+                <div className="p-1.5 bg-white rounded-lg border border-slate-200">
+                  <span className="text-[8px] text-slate-400 block uppercase">Revenu net</span>
+                  <span className="text-[10px] font-bold text-amber-600 font-mono">27,475K ↗</span>
+                </div>
+              </div>
+
+              {/* Bar Chart par dossier */}
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[10px] font-bold text-slate-700 block">Nouveau net par dossier</span>
+                <div className="space-y-1 text-[9px] font-medium text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <span className="w-14 truncate">Lomé Port</span>
+                    <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-teal-500 w-[85%]" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-14 truncate">Zone Franche</span>
+                    <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-500 w-[65%]" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-14 truncate">Kara Filiale</span>
+                    <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-orange-500 w-[45%]" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* 5. SIMULATEUR INTERACTIF EN DIRECT                                       */}
+      {/* 4. CONFORMITÉ & GARANTIES FISCALES TOGOLAISES                             */}
       {/* ========================================================================= */}
-      <section id="simulateur" className="py-16 px-4 sm:px-6 max-w-6xl mx-auto space-y-8">
-        <div className="text-center space-y-2 max-w-2xl mx-auto">
-          <Badge variant="warning" className="text-xs uppercase tracking-wider font-bold">
-            Simulateur en Ligne
-          </Badge>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground">
-            Estimez Vos Impôts et Cotisations au Togo
-          </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Testez la précision du moteur de calcul FiscLens Togo directement ci-dessous.
-          </p>
-        </div>
+      <section id="fiscalite" className="relative z-10 py-16 px-4 sm:px-6 max-w-6xl mx-auto space-y-8">
+        <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-md p-8 sm:p-12 grid md:grid-cols-2 gap-8 items-center">
+          <div className="space-y-4">
+            <Badge variant="success" className="font-bold text-xs uppercase tracking-wider">
+              Conformité OTR & CNSS Togo
+            </Badge>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-white">
+              Une automatisation fiscale sans risque de redressement
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              FiscLens Togo intègre les règles du Code Général des Impôts (CGI) togolais en vigueur pour calculer avec exactitude la TVA (18%), l&apos;Impôt sur les Sociétés (27%), le Minimum Forfaitaire (1%) et les retenues d&apos;IRPP sur les salaires.
+            </p>
+            <div className="space-y-2 pt-2 text-xs text-slate-300">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-brand-400" /> Export direct des liasses déclaratives au format OTR
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-brand-400" /> Sécurité renforcée avec Authentification 2FA TOTP
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-brand-400" /> Mode hors-ligne avec synchronisation automatique
+              </div>
+            </div>
+          </div>
 
-        <FiscalSimulator />
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 6. CALL TO ACTION FINAL                                                  */}
-      {/* ========================================================================= */}
-      <section className="py-20 px-4 sm:px-6 max-w-6xl mx-auto w-full">
-        <div className="rounded-3xl glass-card border border-brand-500/40 p-8 sm:p-14 text-center relative overflow-hidden shadow-2xl space-y-6">
-          <div className="absolute -right-20 -top-20 w-80 h-80 bg-brand-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
-
-          <LogoAnimated size="lg" className="mx-auto" />
-
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground max-w-2xl mx-auto">
-            Prêt à simplifier votre comptabilité et votre fiscalité togolaise ?
-          </h2>
-
-          <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-            Rejoignez les entreprises et cabinets qui automatisent leur conformité SYSCOHADA et OTR avec FiscLens Togo.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <Link href="/register">
-              <Button
-                size="lg"
-                className="h-12 px-8 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm shadow-xl shadow-brand-600/30 hover:scale-105 transition-all"
-              >
-                Créer un Compte Gratuit <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
-
-            <Link href="/login">
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-12 px-8 rounded-2xl font-semibold text-sm"
-              >
-                Se Connecter
-              </Button>
-            </Link>
+          <div className="rounded-2xl border border-white/10 bg-[#0d1424] p-6 space-y-4 shadow-xl">
+            <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider">
+              Moteur Fiscal Certifié FiscLens
+            </h4>
+            <div className="space-y-2.5 text-xs font-mono">
+              <div className="flex justify-between p-2.5 rounded-lg bg-white/5 border border-white/5">
+                <span className="text-slate-300">TVA Déductible & Facturée</span>
+                <span className="text-brand-400 font-bold">18.00 %</span>
+              </div>
+              <div className="flex justify-between p-2.5 rounded-lg bg-white/5 border border-white/5">
+                <span className="text-slate-300">Taux Impôt sur les Sociétés (IS)</span>
+                <span className="text-amber-400 font-bold">27.00 %</span>
+              </div>
+              <div className="flex justify-between p-2.5 rounded-lg bg-white/5 border border-white/5">
+                <span className="text-slate-300">Impôt Minimum Forfaitaire (IMF)</span>
+                <span className="text-amber-400 font-bold">1.00 % (Min 200 000 F)</span>
+              </div>
+              <div className="flex justify-between p-2.5 rounded-lg bg-white/5 border border-white/5">
+                <span className="text-slate-300">Cotisations CNSS Patronales</span>
+                <span className="text-teal-400 font-bold">17.50 %</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* 7. FOOTER ÉLÉGANT                                                        */}
+      {/* 5. FOOTER SAGE-STYLE                                                     */}
       {/* ========================================================================= */}
-      <footer className="mt-auto border-t border-border/50 py-10 bg-background/80 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <LogoAnimated size="sm" />
+      <footer className="relative z-10 border-t border-white/10 bg-[#05080e] py-12 px-4 sm:px-6 mt-auto text-xs text-slate-400">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <LogoAnimated size="sm" />
+            <span className="text-slate-500">|</span>
+            <span className="text-[11px] text-slate-400">
+              Logiciel Comptable & Fiscal SYSCOHADA (République Togolaise)
+            </span>
+          </div>
 
-          <p className="text-xs text-muted-foreground text-center">
-            © {new Date().getFullYear()} FiscLens Togo. Conforme aux normes SYSCOHADA révisé & République Togolaise (OTR / CNSS).
-          </p>
-
-          <div className="flex items-center gap-4 text-xs text-muted-foreground font-medium">
-            <Link href="/login" className="hover:text-foreground transition-colors">
-              Espace Client
+          <div className="flex items-center gap-6 font-medium">
+            <Link href="/login" className="hover:text-white transition-colors">
+              Espace Connexion
             </Link>
-            <Link href="/register" className="hover:text-foreground transition-colors">
-              Inscription
+            <Link href="/register" className="hover:text-white transition-colors">
+              Créer un Compte
             </Link>
+            <a href="#support" className="hover:text-white transition-colors">
+              Support & Documentation
+            </a>
           </div>
         </div>
       </footer>

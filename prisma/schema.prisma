@@ -1,0 +1,117 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String
+  passwordHash String
+  require2fa   Boolean      @default(false)
+  twoFaSecret  String?
+  backupCodes  String?      // JSON array of hashed backup codes [{hash, used}]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  userTenants  UserTenant[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Tenant {
+  id             String       @id @default(cuid())
+  name           String
+  regime         String       @default("REEL_NORMAL") // REEL_NORMAL, REEL_SIMPLIFIE, TPU
+  nif            String?
+  exerciceOuvert Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  userTenants    UserTenant[]
+  ecritures      Ecriture[]
+  comptes        ComptePlan[]
+  auditLogs      AuditLog[]
+
+  @@map("tenants")
+}
+
+model UserTenant {
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String
+  role      String   @default("GERANT") // GERANT, COMPTABLE, LECTURE, CABINET, ADMIN_SYS
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@map("user_tenants")
+}
+
+model Ecriture {
+  id        String         @id @default(cuid())
+  tenantId  String
+  journal   String         // ACHATS, VENTES, BANQUE, CAISSE, OD, PAIE
+  date      String         // YYYY-MM-DD
+  piece     String
+  libelle   String?
+  status    String         @default("VALIDE") // BROUILLON, VALIDE, CLOTURE
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lines     EcritureLine[]
+
+  @@map("ecritures")
+}
+
+model EcritureLine {
+  id          String   @id @default(cuid())
+  ecritureId  String
+  accountCode String
+  libelle     String
+  debit       Int      @default(0) // Montants entiers FCFA
+  credit      Int      @default(0) // Montants entiers FCFA
+  createdAt   DateTime @default(now())
+
+  ecriture    Ecriture @relation(fields: [ecritureId], references: [id], onDelete: Cascade)
+
+  @@map("ecriture_lines")
+}
+
+model ComptePlan {
+  id        String   @id @default(cuid())
+  tenantId  String
+  code      String
+  libelle   String
+  classe    Int
+  type      String   @default("STANDARD")
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@map("comptes_plan")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  userId    String?
+  action    String
+  entity    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}

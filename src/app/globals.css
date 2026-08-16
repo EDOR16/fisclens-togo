@@ -53,20 +53,116 @@
     --foreground: 210 40% 98%;
     --card: 226 60% 8%;
     --card-foreground: 210 40% 98%;
+    --card-foreground: 210 90% 5%;
     --border: 226 40% 16%;
     --primary: 199 89% 48%;
     --primary-foreground: 220 90% 5%;
   }
 
   .theme-emerald {
-    --background: 160 50% 3%;
-    --foreground: 150 40% 98%;
-    --card: 160 45% 6%;
-    --card-foreground: 150 40% 98%;
-    --border: 160 30% 14%;
-    --primary: 150 85% 42%;
+    --background: 160 50% 6%;
+    --foreground: 140 40% 98%;
+    --card: 160 45% 9%;
+    --card-foreground: 140 40% 98%;
+    --border: 160 30% 18%;
+    --primary: 152 76% 45%;
     --primary-foreground: 160 90% 5%;
   }
+}
+
+/* ========================================================================= */
+/* NOUVELLE IDENTITÉ : "LE GRAND LIVRE COMPTABLE TOGOLAIS"                  */
+/* ========================================================================= */
+
+.font-hand {
+  font-family: var(--font-hand), cursive, sans-serif;
+}
+
+.font-mono-ledger {
+  font-family: var(--font-mono), monospace;
+  font-feature-settings: "tnum" on, "lnum" on;
+}
+
+.paper-ruled {
+  background-color: #FBF7EC;
+  background-image:
+    linear-gradient(90deg, transparent 72px, #B3261E 72px, #B3261E 74px, transparent 74px),
+    repeating-linear-gradient(transparent, transparent 31px, #E6DEC8 31px, #E6DEC8 32px);
+  color: #0B3D2E;
+}
+
+.receipt-card {
+  position: relative;
+  background: #FDFAF1;
+  border: 1px solid #E2D9C2;
+  box-shadow: 0 16px 32px -12px rgba(11, 61, 46, 0.18), 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.receipt-perforated {
+  position: relative;
+  background: #FDFAF1;
+  box-shadow: 0 20px 34px -16px rgba(11, 61, 46, 0.25);
+  border: 1px solid #E2D9C2;
+}
+
+.receipt-perforated::before,
+.receipt-perforated::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  background-image: radial-gradient(circle at 7px 12px, #FBF7EC 5px, transparent 5.5px);
+  background-size: 14px 24px;
+  background-repeat: repeat-y;
+  z-index: 10;
+}
+
+.receipt-perforated::before {
+  left: -7px;
+}
+
+.receipt-perforated::after {
+  right: -7px;
+}
+
+.stamp-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px double currentColor;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  transform: rotate(-5deg);
+  user-select: none;
+}
+
+.stamp-circle {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border: 3px double currentColor;
+  border-radius: 50%;
+  font-family: var(--font-mono), monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  transform: rotate(-8deg);
+  user-select: none;
+}
+
+.highlight-togo {
+  background: linear-gradient(104deg, rgba(252, 209, 22, 0.15) 1%, #FCD116 3%, #FCD116 97%, rgba(252, 209, 22, 0.2) 99%);
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  color: #0B3D2E;
+  font-weight: 700;
 }
 
 @layer base {

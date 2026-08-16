@@ -3,159 +3,176 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { LogoAnimated } from "@/components/ui/logo-animated";
-import { DynamicBackground } from "@/components/landing/dynamic-background";
-import { ThemeWallpaperModal } from "@/components/landing/theme-wallpaper-modal";
-import { useAppTheme } from "@/components/theme/theme-provider";
 import {
   ShieldCheck,
-  Zap,
-  Sparkles,
-  ArrowRight,
-  Sun,
-  Moon,
-  TrendingUp,
-  Receipt,
-  FileCheck2,
-  Lock,
   Calculator,
+  ArrowRight,
+  Check,
+  FileText,
+  Building2,
+  Users,
+  Calendar,
+  Lock,
   Layers,
-  Building,
-  CheckCircle,
-  HelpCircle,
-  BarChart3,
+  Sparkles,
+  ExternalLink,
+  Receipt,
   Scale,
   Clock,
-  Laptop,
-  Check,
-  ChevronRight,
-  Play,
-  FileSpreadsheet,
-  Globe2,
-  Award,
-  Users2,
+  Briefcase,
   Sliders,
+  CheckCircle2,
 } from "lucide-react";
 import { formatFcfa } from "@/lib/utils";
 
-export default function UniqueLandingPage() {
-  const { theme, toggleTheme } = useAppTheme();
+// Badge de référence légale (Principe 6.5)
+function LegalRef({ children, warn }: { children: React.ReactNode; warn?: boolean }) {
+  return (
+    <span
+      className={`inline-block ml-1.5 px-1.5 py-0.5 rounded border text-[10px] font-mono tracking-tight ${
+        warn
+          ? "border-amber-600/50 text-amber-700 bg-amber-50"
+          : "border-[#0B3D2E]/30 text-[#33604C] bg-white/60"
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
 
-  // Simulateur Fiscal Interactif Togo en direct
-  const [simulatorCa, setSimulatorCa] = useState(15_000_000);
-  const [simulatorCharges, setSimulatorCharges] = useState(9_000_000);
-  const [activeTab, setActiveTab] = useState<"compta" | "fiscal" | "cabinet" | "rh">("compta");
+// Tampon Comptable
+function Stamp({
+  children,
+  color = "#157A46",
+  variant = "badge",
+}: {
+  children: React.ReactNode;
+  color?: string;
+  variant?: "badge" | "circle";
+}) {
+  if (variant === "circle") {
+    return (
+      <div
+        className="stamp-circle"
+        style={{ borderColor: color, color }}
+      >
+        <span className="text-[10px] font-extrabold leading-tight text-center">
+          {children}
+        </span>
+      </div>
+    );
+  }
+  return (
+    <span
+      className="stamp-badge"
+      style={{ borderColor: color, color }}
+    >
+      {children}
+    </span>
+  );
+}
 
-  // Calculs fiscaux Togo en direct
-  const fiscalCalculations = useMemo(() => {
-    const tvaCollectee = Math.round(simulatorCa * 0.18);
-    const tvaDeductible = Math.round(simulatorCharges * 0.18 * 0.7); // Hypothèse 70% charges avec TVA
-    const tvaNette = Math.max(0, tvaCollectee - tvaDeductible);
+// Surligneur Jaune Togo
+function Highlight({ children }: { children: React.ReactNode }) {
+  return <span className="highlight-togo">{children}</span>;
+}
 
-    const resultatComptable = Math.max(0, simulatorCa - simulatorCharges);
-    const isTheorique = Math.round(resultatComptable * 0.27);
-    const imf = Math.max(200_000, Math.round(simulatorCa * 0.01)); // IMF 1% plancher 200 000 FCFA
+// Calcul de la prochaine échéance réelle OTR
+function getProchaineEcheance() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const le15 = new Date(year, month, 15);
+  const due = now.getTime() <= le15.getTime() ? le15 : new Date(year, month + 1, 15);
+  const diffDays = Math.max(0, Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  const dueFormatted = due.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return { dueFormatted, diffDays };
+}
+
+export default function GrandLivreLandingPage() {
+  // Simulateur Fiscal Interactif
+  const [caMensuel, setCaMensuel] = useState(5_000_000); // 5 000 000 FCFA
+  const [margeEstimee, setMargeEstimee] = useState(30); // 30%
+  const [activePersona, setActivePersona] = useState<"gerant" | "expert" | "artisan" | "daf">("gerant");
+
+  // Calculs fiscaux rigoureux (CGI Togo / SYSCOHADA)
+  const calc = useMemo(() => {
+    const caAnnuel = caMensuel * 12;
+    const tvaCollectee = Math.round(caMensuel * 0.18); // 18% standard
+    const beneficeEstime = Math.max(0, caAnnuel * (margeEstimee / 100));
+    const isTheorique = Math.round(beneficeEstime * 0.27); // IS 27%
+    const imf = Math.max(200_000, Math.round(caAnnuel * 0.01)); // IMF 1% plancher 200 000 F
     const impotDu = Math.max(isTheorique, imf);
-
-    const cnssPatronale = Math.round(simulatorCharges * 0.25 * 0.175); // Estimation 25% masse salariale
-    const amuPatronale = Math.round(simulatorCharges * 0.25 * 0.025);
-
-    const resultatNet = Math.max(0, resultatComptable - impotDu);
+    const regleRetenue = isTheorique >= imf ? "IS (27%)" : "IMF (1% plancher)";
 
     return {
+      caAnnuel,
       tvaCollectee,
-      tvaDeductible,
-      tvaNette,
-      resultatComptable,
+      beneficeEstime,
       isTheorique,
       imf,
       impotDu,
-      cnssPatronale,
-      amuPatronale,
-      resultatNet,
+      regleRetenue,
     };
-  }, [simulatorCa, simulatorCharges]);
+  }, [caMensuel, margeEstimee]);
+
+  const echeance = useMemo(() => getProchaineEcheance(), []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-emerald-500 selection:text-white relative overflow-x-hidden transition-colors duration-300">
-      {/* Fond Dynamique Optionnel */}
-      <DynamicBackground />
-
+    <div className="min-h-screen paper-ruled flex flex-col font-sans selection:bg-[#FCD116] selection:text-[#0B3D2E]">
       {/* ========================================================================= */}
-      {/* 1. TOP ANNOUNCEMENT TICKER                                                */}
+      {/* 1. TOP BAR : RÉFÉRENCES RÉGLEMENTAIRES SOURCÉES                         */}
       {/* ========================================================================= */}
-      <div className="relative z-40 bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 text-white text-xs py-2 px-4 border-b border-emerald-500/20">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span className="font-semibold text-emerald-300">Loi de Finances Togo 2025/2026 :</span>
-            <span className="text-slate-300 hidden sm:inline">
-              Télé-déclaration OTR, Moteur TVA 18%, et génération automatique de liasse SYSCOHADA.
+      <div className="bg-[#0B3D2E] text-[#FBF7EC] text-xs py-2.5 px-4 border-b border-[#0B3D2E]/40 z-30">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-2 font-mono text-[11px]">
+            <span className="h-2 w-2 rounded-full bg-[#FCD116] animate-pulse" />
+            <span>RÉFÉRENTIEL TOGO :</span>
+            <span className="opacity-90">
+              SYSCOHADA Révisé · CGI Togo (IS 27%, TVA 18%, IRPP art. 74) · OTR Formulaires CA3
             </span>
           </div>
-          <Link
-            href="/register"
-            className="shrink-0 text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 text-[11px] underline"
-          >
-            Créer un espace réel <ArrowRight className="h-3 w-3" />
-          </Link>
+          <div className="font-mono text-[11px]">
+            <span>Lomé, République Togolaise</span>
+          </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. NAVIGATION BAR UNIQUE & ÉPURÉE                                         */}
+      {/* 2. NAVBAR GRAND LIVRE                                                     */}
       {/* ========================================================================= */}
-      <header className="sticky top-0 z-30 border-b border-border/80 bg-background/80 backdrop-blur-xl">
+      <header className="border-b border-[#E2D9C2] bg-[#FBF7EC]/90 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-10">
-            <Link href="/" className="focus:outline-none flex items-center gap-2">
+          <div className="flex items-center gap-8">
+            <Link href="/" className="focus:outline-none">
               <LogoAnimated size="md" />
             </Link>
 
-            <nav className="hidden lg:flex items-center gap-7 text-xs font-semibold tracking-wide text-muted-foreground">
-              <a href="#plateforme" className="hover:text-foreground transition-colors">
-                Plateforme
+            <nav className="hidden md:flex items-center gap-6 text-xs font-bold uppercase tracking-wider text-[#33604C]">
+              <a href="#simulateur" className="hover:text-[#0B3D2E] transition-colors">
+                Simulateur Sourcé
               </a>
-              <a href="#simulateur" className="hover:text-foreground transition-colors flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                <Calculator className="h-3.5 w-3.5" /> Simulateur Fiscal
+              <a href="#preuve" className="hover:text-[#0B3D2E] transition-colors">
+                Preuve par l&apos;Article
               </a>
-              <a href="#modules" className="hover:text-foreground transition-colors">
-                SYSCOHADA & OTR
+              <a href="#tarifs" className="hover:text-[#0B3D2E] transition-colors">
+                Tarifs en Reçus
               </a>
-              <a href="#cabinets" className="hover:text-foreground transition-colors">
-                Cabinets & Experts
-              </a>
-              <a href="#securite" className="hover:text-foreground transition-colors">
-                Sécurité & Conformité
+              <a href="#cabinets" className="hover:text-[#0B3D2E] transition-colors">
+                Espace Cabinets
               </a>
             </nav>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Toggle Thème */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-xl border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              title={theme === "light" ? "Activer le mode sombre" : "Activer le mode clair"}
-            >
-              {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4 text-amber-400" />}
-            </button>
-
-            {/* Modal personnalisation */}
-            <ThemeWallpaperModal />
-
-            {/* Bouton Connexion */}
             <Link href="/login">
-              <button className="px-4 py-2 rounded-xl text-xs font-bold text-foreground hover:bg-muted transition-colors">
+              <button className="px-5 py-2 rounded-full text-xs font-mono font-bold text-[#0B3D2E] border border-[#0B3D2E]/30 hover:bg-[#0B3D2E]/5 transition-colors">
                 Connexion
               </button>
             </Link>
-
-            {/* Bouton CTA Primaire avec lueur dorée/émeraude */}
             <Link href="/register">
-              <button className="relative group px-5 py-2.5 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-600/30 transition-all hover:scale-105 active:scale-95">
-                <span className="flex items-center gap-1.5">
-                  Démarrer Gratuitement <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </span>
+              <button className="px-5 py-2 rounded-full text-xs font-mono font-bold text-[#FBF7EC] bg-[#0B3D2E] hover:bg-[#157A46] shadow-md transition-colors">
+                Ouvrir un Dossier
               </button>
             </Link>
           </div>
@@ -163,260 +180,170 @@ export default function UniqueLandingPage() {
       </header>
 
       {/* ========================================================================= */}
-      {/* 3. HERO SECTION : IDENTITÉ AUDACIEUSE FINTECH TOGO                        */}
+      {/* 3. HERO SECTION : "CHAQUE CHIFFRE A SA LOI" & SIMULATEUR REÇU PERFORÉ     */}
       {/* ========================================================================= */}
       <section className="relative z-10 pt-16 pb-20 px-4 sm:px-6 max-w-7xl mx-auto">
-        <div className="text-center space-y-6 max-w-4xl mx-auto">
-          {/* Badge de certification */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold tracking-wide">
-            <ShieldCheck className="h-4 w-4" /> Conforme CGI Togo & Plan SYSCOHADA Révisé 2.0
-          </div>
-
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] text-foreground">
-            La comptabilité togolaise{" "}
-            <span className="bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 bg-clip-text text-transparent">
-              réinventée.
-            </span>
-          </h1>
-
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            FiscLens Togo automatise les écritures en partie double, sécurise vos déclarations <strong>TVA (18%)</strong>, et génère vos bilans et liasses fiscales OTR en temps réel avec une rigueur mathématique absolue.
-          </p>
-
-          {/* Boutons d'action */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-            <Link href="/register">
-              <button className="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm shadow-xl shadow-emerald-600/30 hover:scale-105 transition-all flex items-center gap-2">
-                Ouvrir un Espace Entreprise <ArrowRight className="h-4 w-4" />
-              </button>
-            </Link>
-            <a href="#simulateur">
-              <button className="px-6 py-4 rounded-2xl border border-border bg-card/80 hover:bg-card text-foreground font-bold text-sm transition-colors flex items-center gap-2 shadow-sm">
-                <Calculator className="h-4 w-4 text-emerald-500" /> Tester le Simulateur Fiscal
-              </button>
-            </a>
-          </div>
-
-          {/* Garanties */}
-          <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs font-semibold text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <Check className="h-4 w-4 text-emerald-500" /> Zéro saisie simulée en PROD
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Check className="h-4 w-4 text-emerald-500" /> Équilibre strict Débit = Crédit (422)
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Check className="h-4 w-4 text-emerald-500" /> Conforme Loi n°2018-26 Togo
-            </span>
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* HERO TERMINAL / FINANCIAL HUD COCKPIT                                     */}
-        {/* ========================================================================= */}
-        <div id="plateforme" className="mt-14 relative rounded-3xl border border-border/80 bg-card/90 shadow-2xl p-4 sm:p-6 backdrop-blur-2xl overflow-hidden">
-          {/* Barre supérieure style macOS / terminal */}
-          <div className="flex items-center justify-between pb-4 border-b border-border/60">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-rose-500/80" />
-              <div className="h-3 w-3 rounded-full bg-amber-500/80" />
-              <div className="h-3 w-3 rounded-full bg-emerald-500/80" />
-              <span className="text-xs font-mono text-muted-foreground ml-2">
-                fisclens-cockpit.tg · SYSCOHADA Live Engine
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-              Exercice Ouvert · NIF 100123456789
-            </div>
-          </div>
-
-          {/* Grille de métriques réelles du terminal */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-            <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-1">
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Chiffre d&apos;Affaires (701 + 706)
-              </span>
-              <p className="text-2xl font-extrabold text-foreground font-mono">15 000 000 FCFA</p>
-              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" /> +18.4% vs N-1
-              </p>
+        <div className="grid lg:grid-cols-12 gap-12 items-center">
+          {/* Colonne gauche : Titre & Positionnement */}
+          <div className="lg:col-span-6 space-y-6">
+            <div className="font-mono text-xs uppercase tracking-[0.25em] text-[#33604C] flex items-center gap-2 flex-wrap">
+              <span>SYSCOHADA</span>
+              <LegalRef>Acte uniforme OHADA</LegalRef>
+              <span>CGI</span>
+              <LegalRef>art. 74</LegalRef>
+              <span>OTR</span>
+              <LegalRef>CA3</LegalRef>
             </div>
 
-            <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-1">
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Trésorerie Disponible (521 + 571)
-              </span>
-              <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">8 240 500 FCFA</p>
-              <p className="text-[10px] text-muted-foreground">Ecobank Lomé & Caisse</p>
-            </div>
+            <h1 className="font-hand text-6xl sm:text-7xl lg:text-8xl text-[#0B3D2E] leading-[0.95] tracking-tight">
+              Chaque chiffre<br />a sa loi.
+            </h1>
 
-            <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-1">
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                TVA Nette OTR à Reverser (18%)
-              </span>
-              <p className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 font-mono">1 530 000 FCFA</p>
-              <p className="text-[10px] text-muted-foreground">Échéance : 15 du mois prochain</p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-1">
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Contrôle d&apos;Équilibre
-              </span>
-              <p className="text-2xl font-extrabold text-emerald-500 font-mono">0.00 FCFA</p>
-              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                ✓ Balance 6 colonnes équilibrée
-              </p>
-            </div>
-          </div>
-
-          {/* Extrait d'écriture en partie double animée */}
-          <div className="mt-4 p-4 rounded-2xl bg-slate-950 text-slate-200 font-mono text-xs overflow-x-auto border border-slate-800">
-            <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-800 text-[11px] text-slate-400">
-              <span>JOURNAL DES VENTES — PIÈCE FAC-2025-001 (Facture Normalisée OTR)</span>
-              <span className="text-emerald-400 font-bold">STATUS: VALIDE</span>
-            </div>
-            <div className="grid grid-cols-12 gap-2 text-slate-300 py-1 font-semibold text-[11px]">
-              <span className="col-span-2 text-emerald-400">411100</span>
-              <span className="col-span-6 truncate">Client TOGO DISTRIBUTION (TTC)</span>
-              <span className="col-span-2 text-right text-emerald-300">11 800 000</span>
-              <span className="col-span-2 text-right text-slate-500">0</span>
-            </div>
-            <div className="grid grid-cols-12 gap-2 text-slate-300 py-1 font-semibold text-[11px]">
-              <span className="col-span-2 text-sky-400">701100</span>
-              <span className="col-span-6 truncate">Ventes de marchandises au Togo (HT)</span>
-              <span className="col-span-2 text-right text-slate-500">0</span>
-              <span className="col-span-2 text-right text-sky-300">10 000 000</span>
-            </div>
-            <div className="grid grid-cols-12 gap-2 text-slate-300 py-1 font-semibold text-[11px]">
-              <span className="col-span-2 text-amber-400">443100</span>
-              <span className="col-span-6 truncate">État, TVA facturée sur ventes (18%)</span>
-              <span className="col-span-2 text-right text-slate-500">0</span>
-              <span className="col-span-2 text-right text-amber-300">1 800 000</span>
-            </div>
-            <div className="flex justify-between pt-2 mt-2 border-t border-slate-800 text-[11px] font-bold">
-              <span className="text-emerald-400">TOTAL CONTRÔLÉ :</span>
-              <span className="text-slate-100 font-mono">DÉBIT : 11 800 000 FCFA | CRÉDIT : 11 800 000 FCFA (ÉCART = 0 FCFA)</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 4. SIMULATEUR FISCAL INTERACTIF TOGO (FONCTIONNALITÉ UNIQUE)             */}
-      {/* ========================================================================= */}
-      <section id="simulateur" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto">
-        <div className="rounded-3xl border-2 border-emerald-500/40 bg-card p-6 sm:p-12 shadow-2xl space-y-10 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-            <Calculator className="h-64 w-64 text-emerald-500" />
-          </div>
-
-          <div className="space-y-3 max-w-3xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold uppercase tracking-wide">
-              <Sliders className="h-3.5 w-3.5" /> Simulateur Temps Réel
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">
-              Estimez vos impôts et charges sociales au Togo en direct
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Glissez les curseurs ci-dessous pour voir comment FiscLens calcule instantanément votre TVA (18%), l&apos;Impôt sur les Sociétés (27%), le Minimum Forfaitaire (IMF 1%) et les cotisations CNSS & AMU.
+            <p className="text-base sm:text-lg text-[#33604C] leading-relaxed max-w-lg">
+              Comptabilité SYSCOHADA, TVA 18 %, IRPP barème art. 74, IS vs IMF : FiscLens Togo calcule,{" "}
+              <strong className="text-[#0B3D2E]">cite l&apos;article de loi</strong>, et prépare vos déclarations OTR sans approximation.
             </p>
-          </div>
 
-          <div className="grid lg:grid-cols-2 gap-10 items-center">
-            {/* Colonne gauche : Curseurs */}
-            <div className="space-y-6 bg-muted/30 p-6 rounded-2xl border border-border">
-              {/* Slider CA */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-foreground">Chiffre d&apos;Affaires Mensuel (HT)</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-mono text-sm">
-                    {formatFcfa(simulatorCa)}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={1_000_000}
-                  max={100_000_000}
-                  step={500_000}
-                  value={simulatorCa}
-                  onChange={(e) => setSimulatorCa(Number(e.target.value))}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-                  <span>1 000 000 FCFA</span>
-                  <span>50 000 000 FCFA</span>
-                  <span>100 000 000 FCFA</span>
-                </div>
-              </div>
-
-              {/* Slider Charges */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-foreground">Charges d&apos;Exploitation Mensuelles</span>
-                  <span className="text-sky-600 dark:text-sky-400 font-mono text-sm">
-                    {formatFcfa(simulatorCharges)}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={500_000}
-                  max={80_000_000}
-                  step={500_000}
-                  value={simulatorCharges}
-                  onChange={(e) => setSimulatorCharges(Number(e.target.value))}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-sky-500"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-                  <span>500 000 FCFA</span>
-                  <span>40 000 000 FCFA</span>
-                  <span>80 000 000 FCFA</span>
-                </div>
-              </div>
-
-              <div className="pt-2 text-[11px] text-muted-foreground space-y-1 border-t border-border">
-                <p>💡 <strong>Règle CGI Togo :</strong> L&apos;IS est de 27% sur le bénéfice fiscal, avec un plancher minimal (IMF) de 1% du CA (min. 200 000 FCFA).</p>
-              </div>
+            <div className="flex flex-wrap gap-4 pt-2">
+              <Link href="/register">
+                <button className="px-7 py-3.5 rounded-full font-mono text-xs font-bold text-[#FBF7EC] bg-[#0B3D2E] hover:bg-[#157A46] shadow-xl hover:scale-105 transition-all">
+                  Créer mon espace réel →
+                </button>
+              </Link>
+              <a href="#preuve">
+                <button className="px-7 py-3.5 rounded-full font-mono text-xs font-bold text-[#0B3D2E] border-2 border-[#0B3D2E] hover:bg-[#0B3D2E] hover:text-[#FBF7EC] transition-all">
+                  Voir un calcul sourcé
+                </button>
+              </a>
             </div>
 
-            {/* Colonne droite : Résultats calculés instantanés */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-card border border-border shadow-sm space-y-1">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase">TVA Nette à Payer (18%)</span>
-                <p className="text-xl font-extrabold text-amber-600 dark:text-amber-400 font-mono">
-                  {formatFcfa(fiscalCalculations.tvaNette)}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  Collectée: {formatFcfa(fiscalCalculations.tvaCollectee)}
-                </p>
+            <div className="pt-4 flex items-center gap-6 font-mono text-[11px] text-[#33604C]">
+              <span className="flex items-center gap-1.5">
+                <Check className="h-4 w-4 text-[#157A46]" /> Zéro donnée simulée en PROD
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Check className="h-4 w-4 text-[#157A46]" /> Équilibre strict Débit = Crédit
+              </span>
+            </div>
+          </div>
+
+          {/* Colonne droite : LE SIMULATEUR-REÇU PERFORÉ (Mockup 1) */}
+          <div id="simulateur" className="lg:col-span-6 relative">
+            <div className="receipt-perforated p-6 sm:p-8 rounded-lg text-[#0B3D2E] transform sm:rotate-1 hover:rotate-0 transition-transform duration-300">
+              {/* En-tête du reçu avec tampon circulaire vert "ÉQUILIBRÉ" */}
+              <div className="flex items-start justify-between border-b-2 border-dashed border-[#0B3D2E]/20 pb-4">
+                <div>
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-[#33604C] block">
+                    QUITTANCE D&apos;ESTIMATION FISCALE
+                  </span>
+                  <span className="font-mono text-xs font-bold text-[#0B3D2E]">
+                    FiscLens Togo · Moteur SYSCOHADA v1.0
+                  </span>
+                </div>
+                <Stamp variant="circle" color="#157A46">
+                  ÉQUILIBRÉ
+                </Stamp>
               </div>
 
-              <div className="p-4 rounded-2xl bg-card border border-border shadow-sm space-y-1">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase">Impôt sur les Sociétés (IS)</span>
-                <p className="text-xl font-extrabold text-foreground font-mono">
-                  {formatFcfa(fiscalCalculations.impotDu)}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {fiscalCalculations.isTheorique >= fiscalCalculations.imf ? "27% du Bénéfice" : "IMF 1% Plancher"}
-                </p>
+              {/* Saisie interactive du Chiffre d'Affaires */}
+              <div className="mt-6 space-y-4 font-mono">
+                <div>
+                  <label className="block text-xs uppercase tracking-wider text-[#33604C]">
+                    Chiffre d&apos;Affaires Mensuel HT (FCFA)
+                  </label>
+                  <input
+                    type="number"
+                    step={500_000}
+                    value={caMensuel}
+                    onChange={(e) => setCaMensuel(Math.max(0, Number(e.target.value) || 0))}
+                    className="mt-1 w-full border-b-2 border-dashed border-[#0B3D2E] bg-transparent py-1 font-mono text-3xl font-bold text-[#0B3D2E] outline-none focus:border-[#157A46]"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs text-[#33604C]">
+                    <span>Marge bénéficiaire estimée :</span>
+                    <span className="font-bold text-[#0B3D2E]">{margeEstimee}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={5}
+                    max={70}
+                    step={5}
+                    value={margeEstimee}
+                    onChange={(e) => setMargeEstimee(Number(e.target.value))}
+                    className="mt-2 w-full accent-[#0B3D2E] cursor-pointer"
+                  />
+                </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-card border border-border shadow-sm space-y-1">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase">CNSS Patronale (17.5%)</span>
-                <p className="text-xl font-extrabold text-teal-600 dark:text-teal-400 font-mono">
-                  {formatFcfa(fiscalCalculations.cnssPatronale)}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  + AMU (2.5%): {formatFcfa(fiscalCalculations.amuPatronale)}
-                </p>
+              {/* Lignes du Reçu avec Surligneur Jaune Togo */}
+              <div className="mt-6 space-y-3 font-mono text-xs border-t-2 border-dashed border-[#0B3D2E]/20 pt-4">
+                <div className="flex items-center justify-between">
+                  <span>
+                    TVA Collectée (18%)
+                    <LegalRef>CGI Togo standard</LegalRef>
+                  </span>
+                  <span className="font-bold text-sm">
+                    {formatFcfa(calc.tvaCollectee)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span>
+                    IS Estimé (27% du bénéfice)
+                    <LegalRef>CGI IS</LegalRef>
+                  </span>
+                  <span className="font-bold text-sm">
+                    {formatFcfa(calc.isTheorique)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span>
+                    IMF (1% du CA annuel)
+                    <LegalRef warn>plancher 200k F</LegalRef>
+                  </span>
+                  <span className="font-bold text-sm">
+                    {formatFcfa(calc.imf)}
+                  </span>
+                </div>
+
+                {/* Résultat Règle du Max */}
+                <div className="border-t-2 border-dashed border-[#0B3D2E] pt-3 bg-[#FCD116]/15 p-3 rounded">
+                  <div className="flex justify-between items-baseline">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-[#33604C] font-bold">
+                        Impôt annuel dû — règle du <Highlight>max(IS, IMF)</Highlight>
+                      </p>
+                      <span className="text-[10px] text-[#33604C]">
+                        Application de la règle : {calc.regleRetenue}
+                      </span>
+                    </div>
+                    <span className="font-mono text-xl font-extrabold text-[#0B3D2E]">
+                      {formatFcfa(calc.impotDu)}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-600/10 to-teal-600/20 border border-emerald-500/30 shadow-sm space-y-1">
-                <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 uppercase">Résultat Net Estimé</span>
-                <p className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
-                  {formatFcfa(fiscalCalculations.resultatNet)}
-                </p>
-                <p className="text-[10px] text-muted-foreground">Bénéfice net après impôts</p>
+              {/* Compte à rebours échéance réelle */}
+              <div className="mt-6 pt-4 border-t border-[#0B3D2E]/20 font-mono text-xs flex items-center justify-between">
+                <div>
+                  <span className="text-[#33604C] block text-[10px] uppercase tracking-wider">
+                    PROCHAINE ÉCHÉANCE OTR RÉELLE :
+                  </span>
+                  <span className="font-bold text-[#0B3D2E]">
+                    15 du mois — TVA · IRPP · CNSS ({echeance.dueFormatted})
+                  </span>
+                </div>
+                <div className="px-2.5 py-1 rounded bg-[#0B3D2E] text-[#FBF7EC] font-bold text-xs">
+                  J-{echeance.diffDays}
+                </div>
+              </div>
+
+              <div className="mt-4 text-[10px] text-[#33604C] font-mono leading-tight">
+                * Calcul automatique selon les règles en vigueur en République Togolaise. Dans votre espace, le moteur applique le barème progressif IRPP [CGI art. 74] et les déductions réelles.
               </div>
             </div>
           </div>
@@ -424,216 +351,387 @@ export default function UniqueLandingPage() {
       </section>
 
       {/* ========================================================================= */}
-      {/* 5. LES 4 PILIERS TECHNOLOGIQUES DE FISCLENS TOGO (ONGLETS INTERACTIFS)    */}
+      {/* 4. BANDEAU "CE MOIS-CI AU TOGO" (ÉCHÉANCIER VIVANT EN TEMPS RÉEL)         */}
       {/* ========================================================================= */}
-      <section id="modules" className="py-16 px-4 sm:px-6 max-w-7xl mx-auto space-y-10">
-        <div className="text-center space-y-3 max-w-2xl mx-auto">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-            Conception Sur-Mesure Togo
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">
-            Quatre moteurs spécialisés pour votre gestion
+      <section className="border-y-2 border-dashed border-[#0B3D2E]/20 bg-[#FDFAF1] py-8 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-1">
+              <span className="font-mono text-xs uppercase tracking-widest text-[#157A46] font-bold flex items-center gap-2">
+                <Clock className="h-4 w-4" /> CALENDRIER FISCAL TOGO EN TEMPS RÉEL
+              </span>
+              <h3 className="font-mono text-lg font-bold text-[#0B3D2E]">
+                Ce mois-ci : Télé-déclarations & Cotisations exigibles
+              </h3>
+            </div>
+
+            {/* 3 Cartes d'échéances réelles */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full md:w-auto">
+              <div className="p-3.5 rounded-lg border border-[#E2D9C2] bg-white font-mono text-xs space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-[#0B3D2E]">TVA & IRPP / CNSS</span>
+                  <span className="px-1.5 py-0.5 rounded bg-[#FCD116] text-[#0B3D2E] font-bold text-[10px]">
+                    J-{echeance.diffDays}
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#33604C]">Exigible le 15 du mois prochain</p>
+                <LegalRef>CGI / LPF Togo</LegalRef>
+              </div>
+
+              <div className="p-3.5 rounded-lg border border-[#E2D9C2] bg-white font-mono text-xs space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-[#0B3D2E]">Taxe Patente</span>
+                  <span className="px-1.5 py-0.5 rounded bg-[#E2D9C2] text-[#0B3D2E] font-bold text-[10px]">
+                    31 Mars
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#33604C]">Paiement annuel obligatoire</p>
+                <LegalRef>CGI Section 10</LegalRef>
+              </div>
+
+              <div className="p-3.5 rounded-lg border border-[#E2D9C2] bg-white font-mono text-xs space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-[#0B3D2E]">Liasse SYSCOHADA</span>
+                  <span className="px-1.5 py-0.5 rounded bg-[#E2D9C2] text-[#0B3D2E] font-bold text-[10px]">
+                    30 Avril
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#33604C]">Bilan & États financiers OTR</p>
+                <LegalRef>OHADA / CGI</LegalRef>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 5. "LA PREUVE PAR L'ARTICLE" : LE MOTEUR FISCAL TOGOLAIS EXPOSÉ           */}
+      {/* ========================================================================= */}
+      <section id="preuve" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto space-y-12">
+        <div className="text-center space-y-3 max-w-3xl mx-auto">
+          <Stamp>ARGUMENT DE VENTE N°1</Stamp>
+          <h2 className="font-hand text-5xl sm:text-6xl text-[#0B3D2E] tracking-tight">
+            La preuve par l&apos;article de loi.
           </h2>
+          <p className="text-sm text-[#33604C] leading-relaxed">
+            FiscLens ne cache aucun calcul derrière une boîte noire. Voici comment le moteur décompose un bulletin de paie et la retenue IRPP ligne par ligne, avec chaque source juridique.
+          </p>
         </div>
 
-        {/* Sélecteur d'onglets */}
-        <div className="flex flex-wrap justify-center gap-2 p-1.5 bg-muted/50 rounded-2xl max-w-2xl mx-auto border border-border">
-          <button
-            onClick={() => setActiveTab("compta")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === "compta"
-                ? "bg-background text-foreground shadow-md"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            SYSCOHADA Révisé
-          </button>
-          <button
-            onClick={() => setActiveTab("fiscal")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === "fiscal"
-                ? "bg-background text-foreground shadow-md"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Moteur Fiscal OTR
-          </button>
-          <button
-            onClick={() => setActiveTab("cabinet")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === "cabinet"
-                ? "bg-background text-foreground shadow-md"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Experts & Multi-Dossiers
-          </button>
-          <button
-            onClick={() => setActiveTab("rh")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === "rh"
-                ? "bg-background text-foreground shadow-md"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Paie, CNSS & AMU
-          </button>
-        </div>
+        {/* Tableau style Grand Livre avec marge rouge et annotations */}
+        <div className="receipt-card p-6 sm:p-10 rounded-2xl max-w-4xl mx-auto font-mono text-xs space-y-4">
+          <div className="border-b-2 border-[#0B3D2E] pb-3 flex justify-between items-center">
+            <span className="font-bold uppercase tracking-wider text-[#0B3D2E]">
+              CHAÎNE DE DÉCOMPOSITION SOCIALE & FISCALE (EXEMPLE 500 000 FCFA BRUT)
+            </span>
+            <span className="text-[11px] text-[#33604C]">RÉGIME GÉNÉRAL TOGO</span>
+          </div>
 
-        {/* Contenu dynamique de l'onglet sélectionné */}
-        <div className="rounded-3xl border border-border bg-card p-8 sm:p-12 shadow-xl">
-          {activeTab === "compta" && (
-            <div className="grid lg:grid-cols-2 gap-8 items-center">
-              <div className="space-y-4">
-                <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
-                  01
-                </div>
-                <h3 className="text-2xl font-extrabold text-foreground">
-                  Comptabilité Générale en Partie Double SYSCOHADA
-                </h3>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                  Toutes les écritures sont rigoureusement validées : Classes 1 à 8, 6 journaux auxiliaires (Achats, Ventes, Banque, Caisse, OD, Paie), Balance à 6 colonnes et Grand Livre instantané.
-                </p>
-                <ul className="space-y-2 text-xs text-foreground font-medium">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500" /> Rejet serveur 422 en cas de déséquilibre au centime près
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500" /> Clôture d&apos;exercice sécurisée et génération du Bilan & Compte de Résultat
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500" /> Rapprochement bancaire simplifié (Ecobank, Orabank, BTCI)
-                  </li>
-                </ul>
+          <div className="space-y-2.5 divide-y divide-[#E2D9C2]/60">
+            <div className="pt-2 flex justify-between items-baseline">
+              <div>
+                <span className="font-bold text-[#0B3D2E]">1. SALAIRE BRUT CONTRACTUEL</span>
+                <LegalRef>Contrat de travail</LegalRef>
               </div>
-              <div className="p-6 rounded-2xl bg-muted/40 border border-border font-mono text-xs space-y-2">
-                <p className="text-emerald-600 dark:text-emerald-400 font-bold">// Source de vérité unique consolidée</p>
-                <p className="text-muted-foreground">Balance Générale : 8 500 000 FCFA Débit = 8 500 000 FCFA Crédit</p>
-                <p className="text-muted-foreground">Grand Livre : 100% des lignes tracées avec pièce justificative</p>
-                <p className="text-foreground font-bold">Statut de conformité : 10/10 tests intégrité validés</p>
-              </div>
+              <span className="font-bold text-sm">500 000 F</span>
             </div>
-          )}
 
-          {activeTab === "fiscal" && (
-            <div className="grid lg:grid-cols-2 gap-8 items-center">
-              <div className="space-y-4">
-                <div className="h-10 w-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
-                  02
-                </div>
-                <h3 className="text-2xl font-extrabold text-foreground">
-                  Conformité Fiscale OTR & Télé-déclarations
-                </h3>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                  FiscLens intègre le calendrier fiscal de la République Togolaise et calcule vos déclarations mensuelles et annuelles sans risque de pénalités.
-                </p>
-                <ul className="space-y-2 text-xs text-foreground font-medium">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-amber-500" /> Déclaration mensuelle de TVA (18%) avant le 15 du mois
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-amber-500" /> Patente professionnelle (avant le 31 Mars) et Liasse OTR (avant le 30 Avril)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-amber-500" /> Suivi de l&apos;Impôt sur les Sociétés (27%) et Taxe Professionnelle Unique (TPU)
-                  </li>
-                </ul>
+            <div className="pt-2 flex justify-between items-baseline text-[#33604C]">
+              <div>
+                <span>2. Déduction Cotisation CNSS Ouvrière (4%)</span>
+                <LegalRef>Code Sécurité Sociale Togo</LegalRef>
               </div>
-              <div className="p-6 rounded-2xl bg-muted/40 border border-border font-mono text-xs space-y-2">
-                <p className="text-amber-600 dark:text-amber-400 font-bold">// Calendrier des obligations OTR</p>
-                <p className="text-muted-foreground">📅 15 de chaque mois : TVA + IRPP + CNSS</p>
-                <p className="text-muted-foreground">📅 31 Mars : Patente annuelle & Déclaration DAS</p>
-                <p className="text-muted-foreground">📅 30 Avril : Liasse fiscale SYSCOHADA</p>
-              </div>
+              <span>- 20 000 F</span>
             </div>
-          )}
 
-          {activeTab === "cabinet" && (
-            <div className="grid lg:grid-cols-2 gap-8 items-center">
-              <div className="space-y-4">
-                <div className="h-10 w-10 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center font-bold">
-                  03
-                </div>
-                <h3 className="text-2xl font-extrabold text-foreground">
-                  Espace Cabinets & Experts-Comptables
-                </h3>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                  Gérez l&apos;intégralité de votre portefeuille client depuis un tableau de bord unifié avec bascule instantanée entre vos dossiers.
-                </p>
-                <ul className="space-y-2 text-xs text-foreground font-medium">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-sky-500" /> Sécurité renforcée avec 2FA obligatoire (TOTP & Codes de secours)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-sky-500" /> Piste d&apos;audit immuable de chaque écriture saisie par collaborateur
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-sky-500" /> Export direct des liasses au format exigé par l&apos;OTR
-                  </li>
-                </ul>
+            <div className="pt-2 flex justify-between items-baseline text-[#33604C]">
+              <div>
+                <span>3. Déduction Cotisation AMU Ouvrière (2.5%)</span>
+                <LegalRef>Décret 2023-096/PR</LegalRef>
               </div>
-              <div className="p-6 rounded-2xl bg-muted/40 border border-border font-mono text-xs space-y-2">
-                <p className="text-sky-600 dark:text-sky-400 font-bold">// Mode Expert Multi-Tenants</p>
-                <p className="text-muted-foreground">Dossiers illimités · Contrôles anti-fraude</p>
-                <p className="text-muted-foreground">Authentification 2FA renforcée</p>
-                <p className="text-foreground font-bold">Conçu pour les membres de l&apos;ONET Togo</p>
-              </div>
+              <span>- 12 500 F</span>
             </div>
-          )}
 
-          {activeTab === "rh" && (
-            <div className="grid lg:grid-cols-2 gap-8 items-center">
-              <div className="space-y-4">
-                <div className="h-10 w-10 rounded-xl bg-teal-500/10 text-teal-600 flex items-center justify-center font-bold">
-                  04
-                </div>
-                <h3 className="text-2xl font-extrabold text-foreground">
-                  Gestion Sociale, Paie & AMU Togo
-                </h3>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                  Éditez vos bulletins de paie et calculez les cotisations sociales togolaises avec prise en compte automatique de la nouvelle Assurance Maladie Universelle (AMU).
-                </p>
-                <ul className="space-y-2 text-xs text-foreground font-medium">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-teal-500" /> CNSS Part Patronale (17.5%) et Part Salariale (4%)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-teal-500" /> Retenues à la source IRPP selon le barème progressif togolais
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-teal-500" /> Écriture automatique dans le journal de paie (Comptes 661 / 664 / 421 / 431)
-                  </li>
-                </ul>
+            <div className="pt-2 flex justify-between items-baseline font-semibold text-[#0B3D2E]">
+              <div>
+                <span>= SALAIRE BRUT IMPOSABLE (SBI)</span>
+                <span className="text-[10px] text-[#33604C] block">Base de calcul de l&apos;impôt sur le revenu</span>
               </div>
-              <div className="p-6 rounded-2xl bg-muted/40 border border-border font-mono text-xs space-y-2">
-                <p className="text-teal-600 dark:text-teal-400 font-bold">// Barème Paie Togo</p>
-                <p className="text-muted-foreground">CNSS Totale : 21.5% (17.5% Patronale + 4% Ouvrière)</p>
-                <p className="text-muted-foreground">AMU : Conforme aux dispositions en vigueur</p>
-                <p className="text-foreground font-bold">Journalisation comptable en 1 clic</p>
-              </div>
+              <span>467 500 F</span>
             </div>
-          )}
+
+            <div className="pt-2 flex justify-between items-baseline text-[#33604C]">
+              <div>
+                <span>4. Abattement forfaitaire pour frais professionnels (28%)</span>
+                <LegalRef>CGI Togo art. 26</LegalRef>
+              </div>
+              <span>- 130 900 F</span>
+            </div>
+
+            <div className="pt-2 flex justify-between items-baseline font-bold text-[#0B3D2E]">
+              <div>
+                <span>= REVENU NET IMPOSABLE SOUMIS AU BARÈME PROGRESSIF</span>
+                <LegalRef>CGI Togo art. 74</LegalRef>
+              </div>
+              <span>336 600 F</span>
+            </div>
+
+            <div className="pt-2 flex justify-between items-baseline text-[#157A46] font-bold">
+              <div>
+                <span>5. Application du Barème Progressif IRPP (Tranches 0% à 35%)</span>
+                <span className="text-[10px] block text-[#33604C]">Avec déductions pour charges de famille [CGI art. 72-73]</span>
+              </div>
+              <span>Retenue calculée : 34 250 F</span>
+            </div>
+
+            <div className="pt-3 flex justify-between items-baseline bg-[#FCD116]/20 p-3 rounded-lg border border-[#FCD116]">
+              <div>
+                <span className="font-extrabold text-sm text-[#0B3D2E]">SALAIRE NET À PAYER AU SALARIÉ</span>
+                <span className="text-[10px] text-[#33604C] block">Brut − CNSS − AMU − Retenue IRPP</span>
+              </div>
+              <span className="font-mono text-xl font-black text-[#0B3D2E]">433 250 FCFA</span>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* 6. CALL TO ACTION FINAL                                                   */}
+      {/* 6. "CONÇU POUR LE RÉEL TOGOLAIS" (4 QUITTANCES DE CONCEPTION)             */}
       {/* ========================================================================= */}
-      <section className="py-20 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-6">
-        <div className="p-10 sm:p-14 rounded-3xl bg-gradient-to-tr from-emerald-950 via-slate-900 to-teal-950 text-white border border-emerald-500/30 shadow-2xl space-y-6 relative overflow-hidden">
-          <div className="space-y-3 relative z-10">
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight">
-              Prêt à simplifier votre fiscalité au Togo ?
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
-              Ouvrez votre espace professionnel en 1 minute. Bénéficiez immédiatement du plan comptable SYSCOHADA complet et de votre calendrier fiscal configuré.
+      <section className="py-16 px-4 sm:px-6 max-w-7xl mx-auto space-y-10">
+        <div className="text-center space-y-2 max-w-2xl mx-auto">
+          <h2 className="font-hand text-5xl text-[#0B3D2E]">
+            Conçu pour le réel togolais.
+          </h2>
+          <p className="text-xs sm:text-sm text-[#33604C]">
+            Pas une adaptation superficielle d&apos;un logiciel européen : FiscLens répond aux réalités quotidiennes de Lomé, Kara et de l&apos;intérieur.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="receipt-card p-6 rounded-xl font-mono space-y-3">
+            <div className="h-8 w-8 rounded-full bg-[#157A46]/10 text-[#157A46] flex items-center justify-center font-bold">
+              01
+            </div>
+            <h3 className="font-bold text-sm text-[#0B3D2E]">Saisie Hors-Ligne Résiliente</h3>
+            <p className="text-xs text-[#33604C] leading-relaxed">
+              Continuez à saisir vos pièces et factures même en cas de coupure internet. Synchronisation automatique dès le retour de la connexion.
             </p>
           </div>
 
-          <div className="pt-2 relative z-10">
+          <div className="receipt-card p-6 rounded-xl font-mono space-y-3">
+            <div className="h-8 w-8 rounded-full bg-[#FCD116]/30 text-[#0B3D2E] flex items-center justify-center font-bold">
+              02
+            </div>
+            <h3 className="font-bold text-sm text-[#0B3D2E]">T-Money & Flooz Intégrés</h3>
+            <p className="text-xs text-[#33604C] leading-relaxed">
+              Rapprochement automatisé des encaissements et paiements mobiles avec génération de la quittance comptable conforme.
+            </p>
+          </div>
+
+          <div className="receipt-card p-6 rounded-xl font-mono space-y-3">
+            <div className="h-8 w-8 rounded-full bg-[#0B3D2E]/10 text-[#0B3D2E] flex items-center justify-center font-bold">
+              03
+            </div>
+            <h3 className="font-bold text-sm text-[#0B3D2E]">Monnaie XOF au Franc Près</h3>
+            <p className="text-xs text-[#33604C] leading-relaxed">
+              Zéro centime flottant, calculs entiers stricts en Francs CFA (XOF) conformément aux normes bancaires de l&apos;UEMOA.
+            </p>
+          </div>
+
+          <div className="receipt-card p-6 rounded-xl font-mono space-y-3">
+            <div className="h-8 w-8 rounded-full bg-[#157A46]/10 text-[#157A46] flex items-center justify-center font-bold">
+              04
+            </div>
+            <h3 className="font-bold text-sm text-[#0B3D2E]">Télétransmission CA3-OTR</h3>
+            <p className="text-xs text-[#33604C] leading-relaxed">
+              Export prêt pour la télé-déclaration OTR avec contrôle de cohérence entre CA déclaré et écritures de classe 7.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 7. TARIFS EN 3 REÇUS PERFORÉS (MOCKUP 2 EXACT)                           */}
+      {/* ========================================================================= */}
+      <section id="tarifs" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto space-y-12">
+        <div className="text-center space-y-3 max-w-2xl mx-auto">
+          <Stamp>FORFAITS TRANSPARENTS</Stamp>
+          <h2 className="font-hand text-5xl sm:text-6xl text-[#0B3D2E]">
+            Tarifs clairs, quittance en main.
+          </h2>
+          <p className="text-xs sm:text-sm text-[#33604C]">
+            Aucun frais caché. Choisissez l&apos;offre adaptée à la taille de votre structure.
+          </p>
+        </div>
+
+        {/* Grille des 3 reçus (Mockup 2) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-5xl mx-auto">
+          {/* REÇU 1 : ACTIVE (10 000 F /mois) */}
+          <div className="receipt-perforated p-6 sm:p-8 rounded-lg font-mono flex flex-col justify-between hover:translate-y-[-4px] transition-transform shadow-xl">
+            <div>
+              <div className="border-b-2 border-dashed border-[#0B3D2E]/30 pb-4">
+                <span className="text-xs text-[#33604C] uppercase tracking-wider block">FORFAIT TPE & ARTISANS</span>
+                <h3 className="text-2xl font-bold text-[#0B3D2E] mt-1">Active</h3>
+              </div>
+
+              <div className="py-6">
+                <p className="text-3xl font-extrabold text-[#0B3D2E]">
+                  10 000 F <span className="text-xs font-normal text-[#33604C]">/mois</span>
+                </p>
+                <p className="text-[11px] text-[#33604C] mt-2">
+                  Idéal pour indépendants, artisans et micro-entreprises assujettis à la TPU ou au RSI.
+                </p>
+              </div>
+
+              <div className="border-t border-dashed border-[#0B3D2E]/20 pt-4 space-y-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Devis & Factures Normalisées
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Livre-journal des recettes
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Suivi des encours clients
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-8">
+              <Link href="/register">
+                <button className="w-full py-3 rounded-full font-bold text-xs text-[#0B3D2E] border-2 border-[#0B3D2E] hover:bg-[#0B3D2E] hover:text-[#FBF7EC] transition-colors">
+                  Choisir Active
+                </button>
+              </Link>
+              {/* Code-barres stylisé */}
+              <div className="mt-4 flex justify-center opacity-40">
+                <div className="h-6 w-36 bg-[repeating-linear-gradient(90deg,#0B3D2E,#0B3D2E_2px,transparent_2px,transparent_4px)]" />
+              </div>
+            </div>
+          </div>
+
+          {/* REÇU 2 : PRO (25 000 F /mois) — TAMPON "MEILLEUR CHOIX" */}
+          <div className="receipt-perforated p-6 sm:p-8 rounded-lg font-mono flex flex-col justify-between hover:translate-y-[-4px] transition-transform shadow-2xl border-2 border-[#157A46] relative">
+            <div className="absolute top-4 right-4">
+              <Stamp color="#D4AF37" variant="circle">
+                MEILLEUR CHOIX
+              </Stamp>
+            </div>
+
+            <div>
+              <div className="border-b-2 border-dashed border-[#0B3D2E]/30 pb-4">
+                <span className="text-xs text-[#157A46] font-bold uppercase tracking-wider block">
+                  POUR LES PME CONFORMES
+                </span>
+                <h3 className="text-2xl font-bold text-[#0B3D2E] mt-1">Pro</h3>
+              </div>
+
+              <div className="py-6">
+                <p className="text-3xl font-extrabold text-[#0B3D2E]">
+                  25 000 F <span className="text-xs font-normal text-[#33604C]">/mois</span>
+                </p>
+                <p className="text-[11px] text-[#33604C] mt-2">
+                  La solution complète pour entreprises au Réel Normal : comptabilité SYSCOHADA et déclarations OTR.
+                </p>
+              </div>
+
+              <div className="border-t border-dashed border-[#0B3D2E]/20 pt-4 space-y-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Comptabilité Classes 1 à 8
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Déclaration TVA 18% automatique
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Bilan, Résultat & Liasse OTR
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Balance 6 colonnes & Grand Livre
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-8">
+              <Link href="/register">
+                <button className="w-full py-3 rounded-full font-bold text-xs text-[#FBF7EC] bg-[#0B3D2E] hover:bg-[#157A46] shadow-lg transition-colors">
+                  Choisir Pro →
+                </button>
+              </Link>
+              <div className="mt-4 flex justify-center opacity-40">
+                <div className="h-6 w-36 bg-[repeating-linear-gradient(90deg,#0B3D2E,#0B3D2E_3px,transparent_3px,transparent_5px)]" />
+              </div>
+            </div>
+          </div>
+
+          {/* REÇU 3 : CABINET (SUR DEVIS) */}
+          <div className="receipt-perforated p-6 sm:p-8 rounded-lg font-mono flex flex-col justify-between hover:translate-y-[-4px] transition-transform shadow-xl">
+            <div>
+              <div className="border-b-2 border-dashed border-[#0B3D2E]/30 pb-4">
+                <span className="text-xs text-[#33604C] uppercase tracking-wider block">EXPERTS-COMPTABLES</span>
+                <h3 className="text-2xl font-bold text-[#0B3D2E] mt-1">Cabinet</h3>
+              </div>
+
+              <div className="py-6">
+                <p className="text-3xl font-extrabold text-[#0B3D2E]">
+                  sur devis
+                </p>
+                <p className="text-[11px] text-[#33604C] mt-2">
+                  Pour cabinets d&apos;expertise comptable, commissaires aux comptes et groupes multi-filiales.
+                </p>
+              </div>
+
+              <div className="border-t border-dashed border-[#0B3D2E]/20 pt-4 space-y-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Portefeuille Multi-Dossiers illimité
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Sécurité 2FA Obligatoire & Audit
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Portail de collaboration client
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Support dédié & formation Lomé
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-8">
+              <Link href="/register">
+                <button className="w-full py-3 rounded-full font-bold text-xs text-[#0B3D2E] border-2 border-[#0B3D2E] hover:bg-[#0B3D2E] hover:text-[#FBF7EC] transition-colors">
+                  Contacter l&apos;Équipe
+                </button>
+              </Link>
+              <div className="mt-4 flex justify-center opacity-40">
+                <div className="h-6 w-36 bg-[repeating-linear-gradient(90deg,#0B3D2E,#0B3D2E_2px,transparent_2px,transparent_4px)]" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 8. SECTION CABINETS : "VOUS GARDEZ LA SIGNATURE..."                       */}
+      {/* ========================================================================= */}
+      <section id="cabinets" className="py-16 px-4 sm:px-6 max-w-6xl mx-auto">
+        <div className="rounded-3xl bg-[#0B3D2E] text-[#FBF7EC] p-8 sm:p-14 shadow-2xl space-y-6 relative overflow-hidden">
+          <div className="max-w-2xl space-y-4">
+            <span className="font-mono text-xs text-[#FCD116] uppercase tracking-widest font-bold">
+              POUR LES PROFESSIONNELS DU CHIFFRE
+            </span>
+            <h2 className="font-hand text-5xl sm:text-6xl text-[#FBF7EC] leading-tight">
+              Vous gardez la signature et le jugement.<br />
+              <span className="text-[#FCD116]">FiscLens prend le clavier et les échéances.</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
+              Libérez vos collaborateurs de la ressaisie manuelle. FiscLens sécurise les écritures d&apos;équilibrage, applique les proratas de déduction et prépare vos états financiers SYSCOHADA prêts à être certifiés.
+            </p>
+          </div>
+
+          <div className="pt-4">
             <Link href="/register">
-              <button className="px-8 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/30 hover:scale-105 transition-all">
-                Créer Mon Espace de Travail Réel →
+              <button className="px-8 py-3.5 rounded-full font-mono text-xs font-bold text-[#0B3D2E] bg-[#FCD116] hover:bg-amber-300 shadow-xl transition-all">
+                Rejoindre le Programme Cabinets Togo →
               </button>
             </Link>
           </div>
@@ -641,32 +739,33 @@ export default function UniqueLandingPage() {
       </section>
 
       {/* ========================================================================= */}
-      {/* 7. FOOTER ÉPURÉ & UNIQUE FISCLENS TOGO                                    */}
+      {/* 9. FOOTER "LE GRAND LIVRE"                                                */}
       {/* ========================================================================= */}
-      <footer className="border-t border-border bg-card py-12 px-4 sm:px-6 text-xs text-muted-foreground">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="space-y-2 text-center md:text-left">
+      <footer className="border-t-2 border-[#0B3D2E]/20 bg-[#FDFAF1] py-14 px-4 sm:px-6 text-xs text-[#33604C] font-mono">
+        <div className="max-w-7xl mx-auto space-y-10">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+            <div className="space-y-2">
               <LogoAnimated size="sm" />
-              <p className="text-[11px] max-w-md">
-                Logiciel de comptabilité et de conformité fiscale conçu pour les entreprises et cabinets d&apos;expertise de la République Togolaise.
+              <p className="text-[11px] max-w-md text-[#33604C]">
+                Le Grand Livre Comptable & Moteur de Conformité Fiscale de la République Togolaise.
               </p>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-6 text-xs font-semibold text-foreground">
-              <Link href="/login" className="hover:text-emerald-500 transition-colors">Connexion Espace Pro</Link>
-              <Link href="/register" className="hover:text-emerald-500 transition-colors">Créer un Compte</Link>
-              <a href="#simulateur" className="hover:text-emerald-500 transition-colors">Simulateur Fiscal</a>
-              <a href="#modules" className="hover:text-emerald-500 transition-colors">SYSCOHADA & OTR</a>
+            <div className="flex flex-wrap gap-6 text-xs font-bold text-[#0B3D2E]">
+              <Link href="/login" className="hover:underline">Espace Connexion</Link>
+              <Link href="/register" className="hover:underline">Créer un Dossier Réel</Link>
+              <a href="#simulateur" className="hover:underline">Simulateur Fiscal</a>
+              <a href="#preuve" className="hover:underline">Moteur IRPP</a>
+              <a href="#tarifs" className="hover:underline">Tarifs</a>
             </div>
           </div>
 
-          <div className="pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px]">
+          <div className="pt-6 border-t border-[#E2D9C2] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px]">
             <p>
-              © {new Date().getFullYear()} FiscLens Togo. Conçu conformément aux dispositions du Code Général des Impôts (CGI) Togo et du SYSCOHADA Révisé.
+              © {new Date().getFullYear()} FiscLens Togo. Conçu conformément aux référentiels <strong>SYSCOHADA Révisé</strong>, <strong>CGI Togo</strong> et formulaires OTR.
             </p>
-            <p className="text-emerald-600 dark:text-emerald-400 font-bold">
-              Traitement des données protégé · Loi n°2018-26 (Togo)
+            <p className="font-bold text-[#0B3D2E]">
+              Protection des Données Financières · Loi n°2018-26 (Togo)
             </p>
           </div>
         </div>

@@ -3,13 +3,15 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 export type ThemeMode = "dark" | "light" | "theme-midnight" | "theme-emerald";
-export type WallpaperPreset = "aurora" | "grid" | "particles" | "minimal";
+export type WallpaperPreset = "none" | "aurora" | "grid" | "particles" | "minimal";
 
 type ThemeContextType = {
   theme: ThemeMode;
   wallpaper: WallpaperPreset;
+  wallpaperEnabled: boolean;
   setTheme: (t: ThemeMode) => void;
   setWallpaper: (w: WallpaperPreset) => void;
+  setWallpaperEnabled: (enabled: boolean) => void;
   toggleTheme: () => void;
 };
 
@@ -17,13 +19,15 @@ const ThemeContext = createContext<ThemeContextType | null>(null);
 
 export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>("dark");
-  const [wallpaper, setWallpaperState] = useState<WallpaperPreset>("aurora");
+  const [wallpaper, setWallpaperState] = useState<WallpaperPreset>("none");
+  const [wallpaperEnabled, setWallpaperEnabledState] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const savedTheme = localStorage.getItem("fl_theme_mode") as ThemeMode | null;
     const savedWallpaper = localStorage.getItem("fl_wallpaper") as WallpaperPreset | null;
+    const savedEnabled = localStorage.getItem("fl_wallpaper_enabled");
 
     if (savedTheme) {
       setThemeState(savedTheme);
@@ -32,8 +36,16 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
       applyThemeToDoc("dark");
     }
 
-    if (savedWallpaper) {
-      setWallpaperState(savedWallpaper);
+    if (savedEnabled === "true") {
+      setWallpaperEnabledState(true);
+      if (savedWallpaper && savedWallpaper !== "none") {
+        setWallpaperState(savedWallpaper);
+      } else {
+        setWallpaperState("aurora");
+      }
+    } else {
+      setWallpaperEnabledState(false);
+      setWallpaperState("none");
     }
   }, []);
 
@@ -54,6 +66,27 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   function setWallpaper(w: WallpaperPreset) {
     setWallpaperState(w);
     localStorage.setItem("fl_wallpaper", w);
+    if (w !== "none") {
+      setWallpaperEnabledState(true);
+      localStorage.setItem("fl_wallpaper_enabled", "true");
+    } else {
+      setWallpaperEnabledState(false);
+      localStorage.setItem("fl_wallpaper_enabled", "false");
+    }
+  }
+
+  function setWallpaperEnabled(enabled: boolean) {
+    setWallpaperEnabledState(enabled);
+    localStorage.setItem("fl_wallpaper_enabled", String(enabled));
+    if (enabled) {
+      if (wallpaper === "none") {
+        setWallpaperState("aurora");
+        localStorage.setItem("fl_wallpaper", "aurora");
+      }
+    } else {
+      setWallpaperState("none");
+      localStorage.setItem("fl_wallpaper", "none");
+    }
   }
 
   function toggleTheme() {
@@ -62,7 +95,17 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, wallpaper, setTheme, setWallpaper, toggleTheme }}>
+    <ThemeContext.Provider
+      value={{
+        theme,
+        wallpaper,
+        wallpaperEnabled,
+        setTheme,
+        setWallpaper,
+        setWallpaperEnabled,
+        toggleTheme,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );

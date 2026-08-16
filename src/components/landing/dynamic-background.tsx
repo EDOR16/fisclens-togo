@@ -4,12 +4,12 @@ import React, { useEffect, useRef } from "react";
 import { useAppTheme } from "@/components/theme/theme-provider";
 
 export function DynamicBackground() {
-  const { wallpaper, theme } = useAppTheme();
+  const { wallpaper, wallpaperEnabled } = useAppTheme();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Animation pour le mode Particules
+  // Animation pour le mode Particules (uniquement si activé)
   useEffect(() => {
-    if (wallpaper !== "particles") return;
+    if (!wallpaperEnabled || wallpaper !== "particles") return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -26,13 +26,13 @@ export function DynamicBackground() {
     };
     window.addEventListener("resize", handleResize);
 
-    const numParticles = Math.min(60, Math.floor((width * height) / 25000));
+    const numParticles = Math.min(50, Math.floor((width * height) / 30000));
     const particles = Array.from({ length: numParticles }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
       radius: Math.random() * 2 + 1,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
+      vx: (Math.random() - 0.5) * 0.35,
+      vy: (Math.random() - 0.5) * 0.35,
       alpha: Math.random() * 0.5 + 0.2,
       color: Math.random() > 0.4 ? "#22c55e" : "#eab308",
     }));
@@ -55,19 +55,18 @@ export function DynamicBackground() {
         ctx.globalAlpha = p.alpha;
         ctx.fill();
 
-        // Relier les particules proches par des lignes fines
         for (let j = idx + 1; j < particles.length; j++) {
           const p2 = particles[j];
           if (!p2) continue;
           const dx = p.x - p2.x;
           const dy = p.y - p2.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 120) {
+          if (dist < 110) {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
             ctx.strokeStyle = p.color;
-            ctx.globalAlpha = (1 - dist / 120) * 0.15;
+            ctx.globalAlpha = (1 - dist / 110) * 0.12;
             ctx.stroke();
           }
         }
@@ -82,11 +81,16 @@ export function DynamicBackground() {
       window.removeEventListener("resize", handleResize);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [wallpaper]);
+  }, [wallpaper, wallpaperEnabled]);
+
+  // Si le fond d'écran dynamique est désactivé (comportement par défaut)
+  if (!wallpaperEnabled || wallpaper === "none") {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
-      {/* 1. Mode Aurora (Par défaut - Très fluide & moderne) */}
+      {/* 1. Mode Aurora */}
       {wallpaper === "aurora" && (
         <div className="absolute inset-0">
           <div className="absolute -top-[20%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-br from-brand-600/20 via-emerald-500/15 to-transparent blur-[120px] animate-float opacity-70" />
@@ -127,15 +131,6 @@ export function DynamicBackground() {
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-brand-500/10 to-transparent rounded-full blur-[120px]" />
         </div>
       )}
-
-      {/* Grain / Noise subtil de luxe */}
-      <div
-        className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04] mix-blend-overlay"
-        style={{
-          backgroundImage: `radial-gradient(rgba(255,255,255,0.8) 1px, transparent 0)`,
-          backgroundSize: "24px 24px",
-        }}
-      />
     </div>
   );
 }

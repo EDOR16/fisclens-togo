@@ -23,29 +23,49 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 142.1 76.2% 36.3%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 224 71% 4%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 224 65% 6%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 224 65% 6%;
     --popover-foreground: 210 40% 98%;
     --primary: 142.1 70.6% 45.3%;
     --primary-foreground: 144.9 80.4% 10%;
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 217.2 32.6% 14%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
+    --muted: 217.2 32.6% 14%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 217.2 32.6% 14%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 62.8% 40%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 142.4 71.8% 29.2%;
+    --border: 217.2 32.6% 15%;
+    --input: 217.2 32.6% 15%;
+    --ring: 142.4 71.8% 35%;
+  }
+
+  .theme-midnight {
+    --background: 226 70% 5%;
+    --foreground: 210 40% 98%;
+    --card: 226 60% 8%;
+    --card-foreground: 210 40% 98%;
+    --border: 226 40% 16%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 220 90% 5%;
+  }
+
+  .theme-emerald {
+    --background: 160 50% 3%;
+    --foreground: 150 40% 98%;
+    --card: 160 45% 6%;
+    --card-foreground: 150 40% 98%;
+    --border: 160 30% 14%;
+    --primary: 150 85% 42%;
+    --primary-foreground: 160 90% 5%;
   }
 }
 
@@ -54,41 +74,104 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
     font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden;
   }
 
-  /* Montants FCFA — tabular numbers pour l'alignement */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
 
-  /* Focus visible accessible */
   *:focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2;
   }
 }
 
-@layer components {
-  /* Badge statut exercice */
-  .badge-open {
-    @apply inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800;
+@layer utilities {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
   }
-  .badge-locked {
-    @apply inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800;
-  }
-  .badge-draft {
-    @apply inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800;
+  .dark .glass-card,
+  .theme-midnight .glass-card,
+  .theme-emerald .glass-card {
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  /* Tableau comptable */
-  .accounting-table th {
-    @apply bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+  .glass-pill {
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
   }
-  .accounting-table td.amount {
-    @apply tabular-nums text-right font-mono text-sm;
+  .dark .glass-pill {
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
-  .accounting-table tr.total-row {
-    @apply border-t-2 border-foreground font-bold;
+
+  .text-glow {
+    text-shadow: 0 0 25px rgba(34, 197, 94, 0.45);
   }
+  .text-glow-gold {
+    text-shadow: 0 0 25px rgba(234, 179, 8, 0.45);
+  }
+
+  .glow-box-emerald {
+    box-shadow: 0 0 50px -10px rgba(34, 197, 94, 0.25);
+  }
+  .glow-box-primary {
+    box-shadow: 0 10px 40px -10px rgba(22, 163, 74, 0.3);
+  }
+}
+
+/* Animations personnalisées */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
+}
+
+@keyframes pulseSlow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.08); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 7s ease-in-out 2s infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 8s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 25s linear infinite;
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, #16a34a 0%, #eab308 50%, #16a34a 100%);
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
 }

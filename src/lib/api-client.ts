@@ -16,10 +16,12 @@ export class ApiException extends Error {
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
+  queueOffline?: boolean;
+  idempotencyKey?: string;
 }
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const { params, ...fetchOptions } = options;
+  const { params, queueOffline, idempotencyKey, ...fetchOptions } = options;
   let url = endpoint;
   if (params) {
     const searchParams = new URLSearchParams();
@@ -34,10 +36,18 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     }
   }
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (idempotencyKey) {
+    headers["Idempotency-Key"] = idempotencyKey;
+  }
+
   const response = await fetch(url, {
     ...fetchOptions,
     headers: {
-      "Content-Type": "application/json",
+      ...headers,
       ...fetchOptions.headers,
     },
   });
@@ -58,28 +68,32 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 }
 
 export const api = {
-  get: <T>(endpoint: string, params?: Record<string, string | number | boolean | undefined>) =>
-    request<T>(endpoint, { method: "GET", params }),
+  get: <T>(endpoint: string, options?: RequestOptions) =>
+    request<T>(endpoint, { method: "GET", ...options }),
 
-  post: <T>(endpoint: string, body?: unknown) =>
+  post: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     request<T>(endpoint, {
       method: "POST",
       body: body ? JSON.stringify(body) : undefined,
+      ...options,
     }),
 
-  put: <T>(endpoint: string, body?: unknown) =>
+  put: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     request<T>(endpoint, {
       method: "PUT",
       body: body ? JSON.stringify(body) : undefined,
+      ...options,
     }),
 
-  patch: <T>(endpoint: string, body?: unknown) =>
+  patch: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     request<T>(endpoint, {
       method: "PATCH",
       body: body ? JSON.stringify(body) : undefined,
+      ...options,
     }),
 
-  delete: <T>(endpoint: string) => request<T>(endpoint, { method: "DELETE" }),
+  delete: <T>(endpoint: string, options?: RequestOptions) =>
+    request<T>(endpoint, { method: "DELETE", ...options }),
 };
 
 // Aliases pour compatibilité

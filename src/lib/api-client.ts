@@ -1,49 +1,86 @@
-interface ApiClientOptions extends RequestInit {
-  params?: Record<string, string | number | boolean>;
+/**
+ * Client HTTP + classe d'erreur pour l'appel aux API routes Next.js
+ */
+
+export class ApiException extends Error {
+  status: number;
+  code?: string;
+
+  constructor(message: string, status: number = 500, code?: string) {
+    super(message);
+    this.name = "ApiException";
+    this.status = status;
+    this.code = code;
+  }
 }
 
-class ApiClient {
-  private baseUrl: string = "";
+interface RequestOptions extends RequestInit {
+  params?: Record<string, string | number | boolean | undefined>;
+}
 
-  private async request<T>(endpoint: string, options: ApiClientOptions = {}): Promise<T> {
-    const { params, ...fetchOptions } = options;
-    let url = endpoint;
-    if (params) {
-      const searchParams = new URLSearchParams();
-      Object.entries(params).forEach(([key, value]) => {
+async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  const { params, ...fetchOptions } = options;
+  let url = endpoint;
+  if (params) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
         searchParams.append(key, String(value));
-      });
-      url += "?" + searchParams.toString();
-    }
-    const response = await fetch(url, {
-      ...fetchOptions,
-      headers: { "Content-Type": "application/json", ...fetchOptions.headers },
+      }
     });
-    if (!response.ok) throw new Error("HTTP " + response.status);
-    return response.json();
+    const qs = searchParams.toString();
+    if (qs) {
+      url += "?" + qs;
+    }
   }
 
-  async get<T>(endpoint: string, params?: Record<string, string | number | boolean>): Promise<T> {
-    return this.request<T>(endpoint, { method: "GET", params });
+  const response = await fetch(url, {
+    ...fetchOptions,
+    headers: {
+      "Content-Type": "application/json",
+      ...fetchOptions.headers,
+    },
+  });
+
+  let body: any = null;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
   }
 
-  async post<T>(endpoint: string, body?: unknown): Promise<T> {
-    return this.request<T>(endpoint, {
+  if (!response.ok) {
+    const message = body?.error || body?.message || "HTTP " + response.status;
+    throw new ApiException(message, response.status, body?.code);
+  }
+
+  return body as T;
+}
+
+export const api = {
+  get: <T>(endpoint: string, params?: Record<string, string | number | boolean | undefined>) =>
+    request<T>(endpoint, { method: "GET", params }),
+
+  post: <T>(endpoint: string, body?: unknown) =>
+    request<T>(endpoint, {
       method: "POST",
       body: body ? JSON.stringify(body) : undefined,
-    });
-  }
+    }),
 
-  async put<T>(endpoint: string, body?: unknown): Promise<T> {
-    return this.request<T>(endpoint, {
+  put: <T>(endpoint: string, body?: unknown) =>
+    request<T>(endpoint, {
       method: "PUT",
       body: body ? JSON.stringify(body) : undefined,
-    });
-  }
+    }),
 
-  async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: "DELETE" });
-  }
-}
+  patch: <T>(endpoint: string, body?: unknown) =>
+    request<T>(endpoint, {
+      method: "PATCH",
+      body: body ? JSON.stringify(body) : undefined,
+    }),
 
-export const apiClient = new ApiClient();
+  delete: <T>(endpoint: string) => request<T>(endpoint, { method: "DELETE" }),
+};
+
+// Aliases pour compatibilité
+export const apiClient = api;

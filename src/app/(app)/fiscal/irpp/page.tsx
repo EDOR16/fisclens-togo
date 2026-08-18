@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,14 +10,12 @@ import { formatAmount, formatFcfa, formatDate } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Users, Calculator, Download, Play, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api-client";
+import { exportPayrollPdf } from "@/lib/export/pdf-generator";
 
 type TabType = "runs" | "simulation" | "annuelle";
 
-const MOCK_RUNS = [
-  { id: "1", periode: "2025-07", dateRun: "2025-07-28", nbEmployes: 12, masseSalarialeBrute: 4_800_000, cnssSalariale: 192_000, cnssPatronale: 840_000, irppTotal: 420_000, netAPayer: 4_188_000 },
-  { id: "2", periode: "2025-06", dateRun: "2025-06-27", nbEmployes: 12, masseSalarialeBrute: 4_800_000, cnssSalariale: 192_000, cnssPatronale: 840_000, irppTotal: 420_000, netAPayer: 4_188_000 },
-  { id: "3", periode: "2025-05", dateRun: "2025-05-28", nbEmployes: 11, masseSalarialeBrute: 4_450_000, cnssSalariale: 178_000, cnssPatronale: 778_750, irppTotal: 385_000, netAPayer: 3_887_000 },
-];
+const EMPTY_RUNS: Array<Record<string, string | number>> = [];
 
 export default function IrppPage() {
   const [tab, setTab] = useState<TabType>("runs");
@@ -30,6 +29,16 @@ export default function IrppPage() {
   // Barème progressif mensuel estimé
   const irppEstime = baseImposable > 75000 ? Math.floor((baseImposable - 75000) * 0.15 / 10) * 10 : 0;
   const netEstime = simuBrut - cnssSal - irppEstime;
+
+  const exportPayroll = async () => {
+    try {
+      const data = await api.get<any>("/fiscal/irpp");
+      exportPayrollPdf(data.tenant.name, new Date().toISOString().slice(0, 7), data.employees);
+      toast.success("État récapitulatif téléchargé.");
+    } catch {
+      toast.error("Impossible de générer l'état récapitulatif.");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -48,10 +57,10 @@ export default function IrppPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => void exportPayroll()}>
             <Download className="h-4 w-4" /> État récapitulatif
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setTab("simulation")}>
             <Play className="h-4 w-4" /> Nouveau run de paie
           </Button>
         </div>
@@ -92,41 +101,15 @@ export default function IrppPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Runs de paie enregistrés</CardTitle>
-            <CardDescription>Écritures de paie générées automatiquement dans le journal PAIE</CardDescription>
+            <CardDescription>Aucun run de paie n’a encore été généré dans cet environnement.</CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Période</TableHead>
-                  <TableHead>Date du run</TableHead>
-                  <TableHead className="text-right">Effectif</TableHead>
-                  <TableHead className="text-right">Masse Brute</TableHead>
-                  <TableHead className="text-right">CNSS Salarié (4%)</TableHead>
-                  <TableHead className="text-right">IRPP Retenu</TableHead>
-                  <TableHead className="text-right font-semibold">Net à Payer</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {MOCK_RUNS.map((run) => (
-                  <TableRow key={run.id}>
-                    <TableCell className="font-semibold text-primary">{run.periode}</TableCell>
-                    <TableCell className="text-sm">{formatDate(run.dateRun)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{run.nbEmployes}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{formatAmount(run.masseSalarialeBrute)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{formatAmount(run.cnssSalariale)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{formatAmount(run.irppTotal)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm font-bold text-green-700">{formatAmount(run.netAPayer)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-xs">
-                        Bulletins PDF
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="p-6">
+            <div className="rounded-md border border-dashed border-border bg-muted/20 p-6 text-center">
+              <p className="font-hand text-3xl">Aucun bulletin de paie n’est encore disponible.</p>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Les montants de paie, CNSS et IRPP apparaîtront ici après la première génération d’un run réel.
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -199,18 +182,15 @@ export default function IrppPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Déclaration Annuelle des Salaires et Honoraires</CardTitle>
-            <CardDescription>Export réglementaire pour l&apos;Office Togolais des Recettes (OTR) — Échéance 31 Mars</CardDescription>
+            <CardDescription>La déclaration annuelle sera générée à partir des données réelles dès qu’un premier exercice fiscal sera saisi.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="p-4 border rounded-lg bg-muted/20 space-y-2">
-              <p className="text-sm font-semibold">Exercice fiscal 2024</p>
+              <p className="text-sm font-semibold">Aucune donnée fiscale pour l’instant</p>
               <p className="text-xs text-muted-foreground">
-                Cumul annuel de la masse salariale : <strong>56 400 000 FCFA</strong> | IRPP total reversé : <strong>4 920 000 FCFA</strong>
+                Les cumuls annuels de masse salariale et d’IRPP seront calculés automatiquement lorsqu’un exercice réel sera clôturé.
               </p>
             </div>
-            <Button>
-              <Download className="h-4 w-4 mr-2" /> Télécharger l&apos;imprimé fiscal officiel (PDF OTR)
-            </Button>
           </CardContent>
         </Card>
       )}

@@ -1,6 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+if (process.env.APP_ENV === "production" || process.env.ALLOW_FAKE_SEED !== "true") {
+  console.error("❌ Seed de données fictives bloqué (environnement réel).");
+  process.exit(1);
+}
+
 const prisma = new PrismaClient();
 
 function getRelativeDate(daysAgo: number): string {

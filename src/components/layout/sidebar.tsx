@@ -66,6 +66,11 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
+    label: "Workspace BI",
+    href: "/workspace-bi",
+    icon: BarChart3,
+  },
+  {
     label: "Analyse",
     href: "/analyse",
     icon: BarChart3,
@@ -195,16 +200,20 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-screen w-60 shrink-0 flex-col border-r bg-card">
-      {/* Logo */}
-      <div className="flex items-center gap-2 px-4 py-4 border-b">
-        <div className="h-8 w-8 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
+      {/* Logo — cliquable pour retour au landing */}
+      <Link
+        href="/"
+        className="flex items-center gap-2 px-4 py-4 border-b hover:bg-accent transition-colors group"
+        title="Retour à l'accueil"
+      >
+        <div className="h-8 w-8 rounded-lg bg-brand-600 flex items-center justify-center shrink-0 group-hover:bg-brand-700 transition-colors">
           <span className="text-white font-bold text-sm">F</span>
         </div>
         <div>
           <span className="font-semibold text-sm">FiscLens</span>
           <span className="text-xs text-muted-foreground ml-1">Togo</span>
         </div>
-      </div>
+      </Link>
 
       {/* Sélecteur cabinet */}
       <DossierSelector />

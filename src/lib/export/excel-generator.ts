@@ -124,14 +124,18 @@ export function exportPayrollExcel(
   employees: { nom: string; poste: string; payroll: PayrollCalculationResult }[]
 ) {
   const data = employees.map((e) => ({
-    "Nom de l'Employé": e.nom,
-    "Poste Occupé": e.poste,
-    "Salaire Brut (FCFA)": e.payroll.salaireBrut,
-    "CNSS Salariale (4%)": e.payroll.cnssSalariale,
-    "CNSS Patronale (17.5%)": e.payroll.cnssPatronale,
-    "Coût Total Employeur": e.payroll.coutTotalEmployeur,
-    "Base Imposable IRPP": e.payroll.baseImposableIrpp,
-    "IRPP Retenu": e.payroll.irppNet,
+    "Nom de l'Employé":         e.nom,
+    "Poste Occupé":             e.poste,
+    "Salaire Brut (FCFA)":      e.payroll.salaireBrut,
+    "CNSS Salariale (4%)":      e.payroll.cnssSalariale,
+    "AMU Salariale (1%)":       e.payroll.amuSalariale,
+    "Total Retenus Salariales (5%)": e.payroll.totalRetenueSalariale,
+    "CNSS Patronale (15%)":     e.payroll.cnssPatronale,
+    "AMU Patronale (2.5%)":     e.payroll.amuPatronale,
+    "Total Charges Patronales (17.5%)": e.payroll.totalChargePatronale,
+    "Coût Total Employeur":     e.payroll.coutTotalEmployeur,
+    "Base Imposable IRPP":      e.payroll.baseImposableIrpp,
+    "IRPP Retenu":              e.payroll.irppNet,
     "Net à Payer au Salarié (FCFA)": e.payroll.netAPayer,
   }));
 

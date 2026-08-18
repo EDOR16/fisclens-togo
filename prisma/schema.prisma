@@ -1,44 +1,51 @@
-datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
 model User {
-  id           String       @id @default(cuid())
-  email        String       @unique
+  id           String   @id @default(cuid())
+  email        String   @unique
   name         String
   passwordHash String
-  require2fa   Boolean      @default(false)
+  require2fa   Boolean  @default(false)
   twoFaSecret  String?
-  backupCodes  String?      // JSON array de codes de secours hashés
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  backupCodes  String? // JSON array de codes de secours hashés
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  userTenants  UserTenant[]
-  auditLogs    AuditLog[]
-  consents     ConsentRecord[]
+  userTenants UserTenant[]
+  auditLogs   AuditLog[]
+  consents    ConsentRecord[]
 
   @@map("users")
 }
 
 model Tenant {
-  id                  String               @id @default(cuid())
-  name                String
-  regime              String               @default("REEL_NORMAL") // REEL_NORMAL, RSI, TPU
-  nif                 String?
-  exerciceOuvert      Boolean              @default(true)
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  regime         String   @default("REEL_NORMAL") // REEL_NORMAL, RSI, TPU
+  nif            String?
+  exerciceOuvert Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   userTenants         UserTenant[]
   ecritures           Ecriture[]
   comptes             ComptePlan[]
   auditLogs           AuditLog[]
   calendarObligations CalendarObligation[]
+  // BI & Data Analyse
+  productRefs         ProductRef[]
+  clientRefs          ClientRef[]
+  sales               Sale[]
+  purchases           Purchase[]
+  forecasts           Forecast[]
+  alerts              Alert[]
 
   @@map("tenants")
 }
@@ -50,26 +57,26 @@ model UserTenant {
   role      String   @default("GERANT") // GERANT, COMPTABLE, LECTURE, CABINET, ADMIN_SYS
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([userId, tenantId])
   @@map("user_tenants")
 }
 
 model Ecriture {
-  id        String         @id @default(cuid())
+  id        String   @id @default(cuid())
   tenantId  String
-  journal   String         // ACHATS, VENTES, BANQUE, CAISSE, OD, PAIE
-  date      String         // YYYY-MM-DD
+  journal   String // ACHATS, VENTES, BANQUE, CAISSE, OD, PAIE
+  date      String // YYYY-MM-DD
   piece     String
   libelle   String?
-  status    String         @default("VALIDE") // BROUILLON, VALIDE, CLOTURE
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  status    String   @default("VALIDE") // BROUILLON, VALIDE, CLOTURE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  lines     EcritureLine[]
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lines  EcritureLine[]
 
   @@map("ecritures")
 }
@@ -83,7 +90,7 @@ model EcritureLine {
   credit      Int      @default(0) // Montants entiers FCFA
   createdAt   DateTime @default(now())
 
-  ecriture    Ecriture @relation(fields: [ecritureId], references: [id], onDelete: Cascade)
+  ecriture Ecriture @relation(fields: [ecritureId], references: [id], onDelete: Cascade)
 
   @@map("ecriture_lines")
 }
@@ -95,29 +102,50 @@ model ComptePlan {
   libelle   String
   classe    Int
   postable  Boolean  @default(true)
+  isRoot    Boolean  @default(false)
+  archived  Boolean  @default(false)
+  refCode   String?
   type      String   @default("STANDARD")
   createdAt DateTime @default(now())
 
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, code])
   @@map("comptes_plan")
 }
 
+/// Référentiel SYSCOHADA commun à tous les dossiers. Les lignes officielles
+/// sont immuables : seules les déclinaisons propres à un tenant sont modifiables.
+model SyscohadaRef {
+  code       String   @id
+  libelle    String
+  classe     Int
+  nature     String
+  sensNormal String
+  postable   Boolean
+  splittable Boolean  @default(true)
+  source     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([classe])
+  @@map("syscohada_refs")
+}
+
 model CalendarObligation {
   id        String   @id @default(cuid())
   tenantId  String
-  key       String   // "TVA-2026-08"
+  key       String // "TVA-2026-08"
   label     String
-  regime    String   // REEL_NORMAL, RSI, TPU
-  freq      String   // MENSUELLE, TRIMESTRIELLE, ANNUELLE
-  dueDate   String   // YYYY-MM-DD
-  legalRef  String   // Réf CGI Togo / LPF
+  regime    String // REEL_NORMAL, RSI, TPU
+  freq      String // MENSUELLE, TRIMESTRIELLE, ANNUELLE
+  dueDate   String // YYYY-MM-DD
+  legalRef  String // Réf CGI Togo / LPF
   status    String   @default("A_JOUR") // A_JOUR, A_PARAMETRER, TRANSMIS
   alerts    String   @default("{\"j7\":true,\"j3\":true,\"j0\":true}")
   createdAt DateTime @default(now())
 
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, key, dueDate])
   @@map("calendar_obligations")
@@ -126,13 +154,13 @@ model CalendarObligation {
 model ConsentRecord {
   id        String   @id @default(cuid())
   userId    String
-  type      String   // CGU, CONFIDENTIALITE (Loi n°2018-26 Togo)
+  type      String // CGU, CONFIDENTIALITE (Loi n°2018-26 Togo)
   version   String   @default("1.0")
   ip        String?
   userAgent String?
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("consent_records")
 }
@@ -146,8 +174,138 @@ model AuditLog {
   details   String?
   createdAt DateTime @default(now())
 
-  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
+}
+
+// ============================================================================
+// BI & DATA ANALYSE (Module A - ADDENDUM N°1)
+// ============================================================================
+
+model ProductRef {
+  id           String   @id @default(cuid())
+  tenantId     String
+  code         String // Identifiant unique produit
+  designation  String
+  category     String // Catégorie produit (pour analyse)
+  priceVentHT  Int // Prix vente HT en FCFA entiers
+  costAchatHT  Int // Coût achat HT en FCFA entiers
+  margineCible Int // Marge cible % (ex 30 pour 30%)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sales     Sale[]
+  purchases Purchase[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("product_refs")
+}
+
+model ClientRef {
+  id              String   @id @default(cuid())
+  tenantId        String
+  code            String // Identifiant unique client
+  name            String
+  segment         String // Segment client (VIP, Normal, Petits…)
+  zoneGeo         String // Zone géographique (Lomé, Kara, Agoe…)
+  encoursAutorise Int // Encours autorisé en FCFA
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sales  Sale[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("client_refs")
+}
+
+model Sale {
+  id         String   @id @default(cuid())
+  tenantId   String
+  date       String // YYYY-MM-DD
+  refFacture String // Référence facture
+  clientId   String // FK ClientRef
+  productId  String // FK ProductRef
+  quantity   Int // Quantité vendue
+  puHT       Int // Prix unitaire HT (FCFA entiers)
+  montantHT  Int // Montant HT = quantity × puHT
+  tauxTVA    Int // Taux TVA % (ex 18)
+  montantTVA Int // Montant TVA
+  montantTTC Int // Total TTC = HT + TVA
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant  Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client  ClientRef  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  product ProductRef @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, date])
+  @@index([clientId])
+  @@index([productId])
+  @@map("sales")
+}
+
+model Purchase {
+  id          String   @id @default(cuid())
+  tenantId    String
+  date        String // YYYY-MM-DD
+  refCommande String // Référence commande
+  supplierId  String // Identifiant fournisseur (texte libre, pas FK)
+  productId   String // FK ProductRef
+  quantity    Int // Quantité achetée
+  puHT        Int // Prix unitaire HT (FCFA entiers)
+  montantHT   Int // Montant HT
+  tauxTVA     Int // Taux TVA %
+  montantTVA  Int // Montant TVA
+  montantTTC  Int // Total TTC
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant  Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product ProductRef @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, date])
+  @@index([productId])
+  @@map("purchases")
+}
+
+model Forecast {
+  id         String   @id @default(cuid())
+  tenantId   String
+  type       String // CA, TRESORERIE, VENTE_PRODUIT
+  date       String // YYYY-MM-DD (date de la prévision)
+  value      Int // Valeur en FCFA
+  lowerBound Int // Intervalle de confiance bas
+  upperBound Int // Intervalle de confiance haut
+  mape       Int // MAPE % (précision du modèle)
+  metadata   String? // JSON: {"productId": "...", "horizon": 30} pour détails
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, type, date])
+  @@map("forecasts")
+}
+
+model Alert {
+  id           String   @id @default(cuid())
+  tenantId     String
+  type         String // VENTE_CHUTE, MARGE_NEG, ENCOURS_DEPASSE, ECART_COMPTA, STOCK_LENT
+  severity     String // INFO, WARNING, CRITICAL
+  title        String // Titre court
+  message      String // Description détaillée
+  acknowledged Boolean  @default(false)
+  metadata     String? // JSON pour détails contextuels
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@map("alerts")
 }

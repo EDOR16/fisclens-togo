@@ -79,7 +79,23 @@ export const POST = withGuard(async (req: NextRequest, { tenantId, user }) => {
     );
   }
 
-  // 3. Enregistrer l'écriture et ses lignes dans une transaction
+  // 3. Un compte doit appartenir au tenant, ne pas être archivé et être saisissable.
+  const accountCodes = [...new Set(lines.map((line) => line.accountCode))];
+  const accounts = await prisma.comptePlan.findMany({
+    where: { tenantId, code: { in: accountCodes } },
+    select: { code: true, postable: true, archived: true },
+  });
+  const byCode = new Map(accounts.map((account) => [account.code, account]));
+  const unavailable = accountCodes.find((code) => !byCode.has(code) || byCode.get(code)?.archived);
+  if (unavailable) {
+    return NextResponse.json({ error: "COMPTE_INDISPONIBLE", message: `Compte ${unavailable} introuvable ou archivé` }, { status: 422 });
+  }
+  const root = accountCodes.find((code) => !byCode.get(code)?.postable);
+  if (root) {
+    return NextResponse.json({ error: "COMPTE_NON_POSTABLE", message: `Le compte racine ${root} ne peut pas recevoir d'écriture` }, { status: 422 });
+  }
+
+  // 4. Enregistrer l'écriture et ses lignes dans une transaction
   const ecriture = await prisma.$transaction(async (tx) => {
     const created = await tx.ecriture.create({
       data: {

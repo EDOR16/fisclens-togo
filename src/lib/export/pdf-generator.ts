@@ -257,18 +257,22 @@ export function exportPayrollPdf(
     `Entreprise : ${companyName} | Période : ${periode} | Réf : CGI Art. 26 & 74`
   );
 
-  const totalBrut = employees.reduce((s, e) => s + e.payroll.salaireBrut, 0);
+  const totalBrut    = employees.reduce((s, e) => s + e.payroll.salaireBrut, 0);
   const totalCnssSal = employees.reduce((s, e) => s + e.payroll.cnssSalariale, 0);
+  const totalAmuSal  = employees.reduce((s, e) => s + e.payroll.amuSalariale, 0);
   const totalCnssPat = employees.reduce((s, e) => s + e.payroll.cnssPatronale, 0);
-  const totalIrpp = employees.reduce((s, e) => s + e.payroll.irppNet, 0);
-  const totalNet = employees.reduce((s, e) => s + e.payroll.netAPayer, 0);
+  const totalAmuPat  = employees.reduce((s, e) => s + e.payroll.amuPatronale, 0);
+  const totalIrpp    = employees.reduce((s, e) => s + e.payroll.irppNet, 0);
+  const totalNet     = employees.reduce((s, e) => s + e.payroll.netAPayer, 0);
 
   const tableBody = employees.map((e) => [
     e.nom,
     e.poste,
     formatAmount(e.payroll.salaireBrut),
     formatAmount(e.payroll.cnssSalariale),
+    formatAmount(e.payroll.amuSalariale),
     formatAmount(e.payroll.cnssPatronale),
+    formatAmount(e.payroll.amuPatronale),
     formatAmount(e.payroll.baseImposableIrpp),
     formatAmount(e.payroll.irppNet),
     formatAmount(e.payroll.netAPayer),
@@ -280,12 +284,14 @@ export function exportPayrollPdf(
       [
         "Employé",
         "Poste",
-        { content: "Salaire Brut", styles: { halign: "right" } },
+        { content: "Brut", styles: { halign: "right" } },
         { content: "CNSS Sal. (4%)", styles: { halign: "right" } },
-        { content: "CNSS Pat. (17.5%)", styles: { halign: "right" } },
+        { content: "AMU Sal. (1%)", styles: { halign: "right" } },
+        { content: "CNSS Pat. (15%)", styles: { halign: "right" } },
+        { content: "AMU Pat. (2.5%)", styles: { halign: "right" } },
         { content: "Base IRPP", styles: { halign: "right" } },
-        { content: "IRPP Retenu", styles: { halign: "right" } },
-        { content: "Net à Payer", styles: { halign: "right" } },
+        { content: "IRPP", styles: { halign: "right" } },
+        { content: "Net", styles: { halign: "right" } },
       ],
     ],
     body: tableBody,
@@ -295,7 +301,9 @@ export function exportPayrollPdf(
         `${employees.length} salarié(s)`,
         formatAmount(totalBrut),
         formatAmount(totalCnssSal),
+        formatAmount(totalAmuSal),
         formatAmount(totalCnssPat),
+        formatAmount(totalAmuPat),
         "—",
         formatAmount(totalIrpp),
         formatAmount(totalNet),

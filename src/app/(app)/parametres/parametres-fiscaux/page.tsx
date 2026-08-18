@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { Lock, Eye } from "lucide-react";
-
-export const metadata: Metadata = { title: "Paramètres fiscaux" };
 
 /**
  * Page réservée ADMIN_SYS — paramètres versionnés par date d'effet.
@@ -75,6 +76,16 @@ const STATUS_BADGE: Record<string, React.ReactNode> = {
 };
 
 export default function ParametresFiscauxPage() {
+  const [viewingVersion, setViewingVersion] = useState<string | null>(null);
+
+  const handleNewVersion = () => {
+    toast.info("Ouvrir formulaire de création de nouvelle version...");
+  };
+
+  const handleViewVersion = (version: string) => {
+    setViewingVersion(viewingVersion === version ? null : version);
+    toast.info(`Affichage détaillé de la version ${version}`);
+  };
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -84,7 +95,7 @@ export default function ParametresFiscauxPage() {
             Chaque modification crée une nouvelle version datée — les anciennes sont conservées en audit.
           </p>
         </div>
-        <Button>
+        <Button onClick={handleNewVersion}>
           <Lock className="h-4 w-4" />
           Nouvelle version
         </Button>
@@ -109,7 +120,7 @@ export default function ParametresFiscauxPage() {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>Effet : {formatDate(ps.effectiveFrom)}</span>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" onClick={() => handleViewVersion(ps.version)}>
                     <Eye className="h-4 w-4" />
                   </Button>
                 </div>

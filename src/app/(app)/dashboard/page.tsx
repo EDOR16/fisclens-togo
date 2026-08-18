@@ -11,57 +11,19 @@ import {
 export const metadata: Metadata = { title: "Tableau de bord" };
 
 // ---------------------------------------------------------------------------
-// Données statiques (sera remplacé par Server Component → service/)
+// Données statiques interdites en environnement réel.
+// Le tableau de bord affiche un état vide tant qu'aucune écriture n'est saisie.
 // ---------------------------------------------------------------------------
 
-const STATS = [
-  {
-    label: "Chiffre d'affaires (mois)",
-    value: formatFcfa(12_450_000),
-    change: "+8.2%",
-    up: true,
-    icon: TrendingUp,
-    color: "text-green-600",
-  },
-  {
-    label: "Charges du mois",
-    value: formatFcfa(8_120_000),
-    change: "+2.1%",
-    up: false,
-    icon: TrendingDown,
-    color: "text-red-500",
-  },
-  {
-    label: "TVA à déclarer",
-    value: formatFcfa(856_000),
-    change: "Échéance : 20 sept.",
-    up: true,
-    icon: Receipt,
-    color: "text-blue-500",
-  },
-  {
-    label: "Anomalies détectées",
-    value: "3",
-    change: "À traiter",
-    up: false,
-    icon: AlertTriangle,
-    color: "text-yellow-500",
-  },
-];
+const EMPTY_STATS = [
+  { label: "Chiffre d'affaires (mois)", value: "0 FCFA", change: "Aucune donnée", up: true, icon: TrendingUp, color: "text-green-600" },
+  { label: "Charges du mois", value: "0 FCFA", change: "Aucune donnée", up: false, icon: TrendingDown, color: "text-red-500" },
+  { label: "TVA à déclarer", value: "0 FCFA", change: "Aucune déclaration", up: true, icon: Receipt, color: "text-blue-500" },
+  { label: "Anomalies détectées", value: "0", change: "Aucune anomalie", up: false, icon: AlertTriangle, color: "text-yellow-500" },
+] as const;
 
-const UPCOMING_OBLIGATIONS = [
-  { label: "Déclaration TVA — août",      date: "2025-09-20", status: "urgent",  icon: Receipt },
-  { label: "Acompte IS — septembre",      date: "2025-09-30", status: "warning", icon: BookOpen },
-  { label: "CNSS — cotisations août",     date: "2025-09-15", status: "ok",      icon: CheckCircle2 },
-  { label: "Déclaration IRPP employeur",  date: "2026-03-31", status: "ok",      icon: Clock },
-];
-
-const RECENT_ENTRIES = [
-  { date: "2025-08-14", libelle: "Achat matériel bureau",   journal: "ACHATS",  debit: 450_000,       credit: 0 },
-  { date: "2025-08-13", libelle: "Encaissement client SATI",journal: "BANQUE",  debit: 0,             credit: 2_300_000 },
-  { date: "2025-08-12", libelle: "Paie août — personnel",   journal: "PAIE",    debit: 3_200_000,     credit: 0 },
-  { date: "2025-08-10", libelle: "Facture fournisseur #84", journal: "ACHATS",  debit: 780_000,       credit: 0 },
-];
+const EMPTY_OBLIGATIONS: Array<{ label: string; date: string; status: string; icon: any }> = [];
+const EMPTY_ENTRIES: Array<{ date: string; libelle: string; journal: string; debit: number; credit: number }> = [];
 
 const STATUS_BADGE: Record<string, React.ReactNode> = {
   urgent:  <Badge variant="destructive">Urgent</Badge>,
@@ -86,7 +48,7 @@ export default function DashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {STATS.map((stat) => {
+        {EMPTY_STATS.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.label}>
@@ -115,7 +77,11 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {UPCOMING_OBLIGATIONS.map((obl) => {
+            {EMPTY_OBLIGATIONS.length === 0 ? (
+              <div className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
+                Aucune obligation fiscalement déclenchée pour ce tenant.
+              </div>
+            ) : EMPTY_OBLIGATIONS.map((obl) => {
               const Icon = obl.icon;
               return (
                 <div key={obl.label} className="flex items-center justify-between">
@@ -123,9 +89,7 @@ export default function DashboardPage() {
                     <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
                     <div>
                       <p className="text-sm font-medium">{obl.label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(obl.date)}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{formatDate(obl.date)}</p>
                     </div>
                   </div>
                   {STATUS_BADGE[obl.status]}
@@ -144,31 +108,37 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="pb-2 text-left text-xs font-medium text-muted-foreground">Libellé</th>
-                  <th className="pb-2 text-right text-xs font-medium text-muted-foreground">Débit</th>
-                  <th className="pb-2 text-right text-xs font-medium text-muted-foreground">Crédit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {RECENT_ENTRIES.map((e, i) => (
-                  <tr key={i} className="border-b last:border-0">
-                    <td className="py-2">
-                      <p className="font-medium truncate max-w-[160px]">{e.libelle}</p>
-                      <p className="text-xs text-muted-foreground">{e.journal} · {formatDate(e.date)}</p>
-                    </td>
-                    <td className="py-2 text-right tabular-nums font-mono text-sm">
-                      {e.debit > 0 ? formatFcfa(e.debit) : "—"}
-                    </td>
-                    <td className="py-2 text-right tabular-nums font-mono text-sm">
-                      {e.credit > 0 ? formatFcfa(e.credit) : "—"}
-                    </td>
+            {EMPTY_ENTRIES.length === 0 ? (
+              <div className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
+                Votre grand livre est vierge. Aucune donnée fictive ici : ce que vous saisirez sera votre seule vérité.
+              </div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="pb-2 text-left text-xs font-medium text-muted-foreground">Libellé</th>
+                    <th className="pb-2 text-right text-xs font-medium text-muted-foreground">Débit</th>
+                    <th className="pb-2 text-right text-xs font-medium text-muted-foreground">Crédit</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {EMPTY_ENTRIES.map((e, i) => (
+                    <tr key={i} className="border-b last:border-0">
+                      <td className="py-2">
+                        <p className="font-medium truncate max-w-[160px]">{e.libelle}</p>
+                        <p className="text-xs text-muted-foreground">{e.journal} · {formatDate(e.date)}</p>
+                      </td>
+                      <td className="py-2 text-right tabular-nums font-mono text-sm">
+                        {e.debit > 0 ? formatFcfa(e.debit) : "—"}
+                      </td>
+                      <td className="py-2 text-right tabular-nums font-mono text-sm">
+                        {e.credit > 0 ? formatFcfa(e.credit) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </CardContent>
         </Card>
       </div>

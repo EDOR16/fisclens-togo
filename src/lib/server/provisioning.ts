@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/server/prisma";
 import { generateCalendar, type Regime } from "./calendar-rules";
+import { SYSCOHADA_REF, type SyscohadaReference } from "../../../prisma/seed/syscohadaRef";
 
 export interface ProvisionInput {
   tenantName: string;
@@ -97,6 +98,20 @@ export const SYSCOHADA_OFFICIAL_ACCOUNTS = [
   { code: "851000", libelle: "Dotations hors activités ordinaires", classe: 8 },
 ];
 
+type SyscohadaRefClient = {
+  syscohadaRef: {
+    upsert(args: { where: { code: string }; update: Record<string, never>; create: SyscohadaReference }): Promise<unknown>;
+    findMany(): Promise<SyscohadaReference[]>;
+  };
+};
+
+/** Seed idempotent du noyau : les lignes importées depuis un texte officiel ne sont jamais écrasées. */
+export async function ensureSyscohadaReferences(tx: SyscohadaRefClient) {
+  for (const ref of SYSCOHADA_REF) {
+    await tx.syscohadaRef.upsert({ where: { code: ref.code }, update: {}, create: ref });
+  }
+}
+
 /**
  * Crée un espace de travail professionnel VIDE et 100% prêt à l'emploi.
  * Aucune donnée simulée.
@@ -104,6 +119,7 @@ export const SYSCOHADA_OFFICIAL_ACCOUNTS = [
 export async function provisionTenant(input: ProvisionInput) {
   return prisma.$transaction(
     async (tx) => {
+      await ensureSyscohadaReferences(tx);
       // 1. Création du Tenant Réel
       const tenant = await tx.tenant.create({
         data: {
@@ -132,18 +148,19 @@ export async function provisionTenant(input: ProvisionInput) {
         });
       }
 
-      // 3. Plan comptable : Injection du référentiel officiel SYSCOHADA Révisé
-      for (const acc of SYSCOHADA_OFFICIAL_ACCOUNTS) {
-        await tx.comptePlan.create({
-          data: {
-            tenantId: tenant.id,
-            code: acc.code,
-            libelle: acc.libelle,
-            classe: acc.classe,
-            postable: true,
-          },
-        });
-      }
+      // 3. Plan comptable : référentiel central (noyau + import officiel validé).
+      const refs = await tx.syscohadaRef.findMany();
+      await tx.comptePlan.createMany({
+        data: refs.map((ref) => ({
+          tenantId: tenant.id,
+          code: ref.code,
+          libelle: ref.libelle,
+          classe: ref.classe,
+          refCode: ref.code,
+          postable: ref.postable,
+          isRoot: !ref.postable || ref.code.length <= 2,
+        })),
+      });
 
       // 4. Génération automatique du calendrier fiscal selon le régime (TVA au 15, Patente 31/03, Liasse 30/04, etc.)
       const currentYear = new Date().getFullYear();
@@ -173,7 +190,7 @@ export async function provisionTenant(input: ProvisionInput) {
             tenantName: input.tenantName,
             regime: input.regime,
             role,
-            accountsCount: SYSCOHADA_OFFICIAL_ACCOUNTS.length,
+            accountsCount: refs.length,
             year: currentYear,
           }),
         },

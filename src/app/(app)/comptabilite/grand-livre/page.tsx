@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatAmount, formatDate } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Search, Download, BookOpen } from "lucide-react";
+import { exportGrandLivrePdf } from "@/lib/export/pdf-generator";
 
 type GrandLivreLine = {
   id: string;
@@ -18,33 +20,13 @@ type GrandLivreLine = {
   credit: number;
 };
 
-const MOCK_OPERATIONS: Record<string, { libelle: string; lines: GrandLivreLine[] }> = {
-  "411000": {
-    libelle: "Clients - Ventes de biens ou services",
-    lines: [
-      { id: "1", date: "2025-08-01", piece: "FAC-2025-010", journal: "VENTES", libelle: "Facture Client SOGET", debit: 1_250_000, credit: 0 },
-      { id: "2", date: "2025-08-04", piece: "REG-2025-004", journal: "BANQUE", libelle: "Règlement partiel SOGET", debit: 0, credit: 500_000 },
-      { id: "3", date: "2025-08-08", piece: "FAC-2025-014", journal: "VENTES", libelle: "Facture Client TOGO-TRANS", debit: 3_400_000, credit: 0 },
-      { id: "4", date: "2025-08-11", piece: "REG-2025-009", journal: "BANQUE", libelle: "Virement TOGO-TRANS solde", debit: 0, credit: 3_400_000 },
-      { id: "5", date: "2025-08-14", piece: "FAC-2025-019", journal: "VENTES", libelle: "Facture Client KEKELI", debit: 850_000, credit: 0 },
-    ],
-  },
-  "521000": {
-    libelle: "Banque - Ecobank Togo",
-    lines: [
-      { id: "1", date: "2025-08-01", piece: "OUV-2025-001", journal: "OD", libelle: "Solde initial à nouveau", debit: 5_200_000, credit: 0 },
-      { id: "2", date: "2025-08-04", piece: "REG-2025-004", journal: "BANQUE", libelle: "Encaissement client SOGET", debit: 500_000, credit: 0 },
-      { id: "3", date: "2025-08-06", piece: "VIR-2025-012", journal: "BANQUE", libelle: "Paiement loyer bureau Lomé 2", debit: 0, credit: 450_000 },
-      { id: "4", date: "2025-08-11", piece: "REG-2025-009", journal: "BANQUE", libelle: "Virement client TOGO-TRANS", debit: 3_400_000, credit: 0 },
-    ],
-  },
-};
+const EMPTY_OPERATIONS: Record<string, { libelle: string; lines: GrandLivreLine[] }> = {};
 
 export default function GrandLivrePage() {
   const [selectedAccount, setSelectedAccount] = useState("411000");
   const [searchTerm, setSearchTerm] = useState("411000");
 
-  const currentAccountData = MOCK_OPERATIONS[selectedAccount] || {
+  const currentAccountData = EMPTY_OPERATIONS[selectedAccount] || {
     libelle: "Compte sans mouvements récents",
     lines: [],
   };
@@ -62,6 +44,11 @@ export default function GrandLivrePage() {
   const totalCredit = currentAccountData.lines.reduce((acc, l) => acc + l.credit, 0);
   const soldeFinal = totalDebit - totalCredit;
 
+  const handleExport = () => {
+    exportGrandLivrePdf("Entreprise", selectedAccount, currentAccountData.libelle, computedLines);
+    toast.success("Grand livre PDF téléchargé.");
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -73,7 +60,7 @@ export default function GrandLivrePage() {
             Détail chronologique des mouvements et solde progressif par compte SYSCOHADA
           </p>
         </div>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={handleExport}>
           <Download className="h-4 w-4" /> Exporter PDF
         </Button>
       </div>
@@ -101,11 +88,7 @@ export default function GrandLivrePage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  if (MOCK_OPERATIONS[searchTerm]) {
-                    setSelectedAccount(searchTerm);
-                  } else {
-                    setSelectedAccount(searchTerm);
-                  }
+                  setSelectedAccount(searchTerm);
                 }}
               >
                 Filtrer

@@ -1,4 +1,7 @@
+"use client";
+
 import type { Metadata } from "next";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -20,14 +23,7 @@ type AuditEntry = {
   details: string;
 };
 
-const MOCK_AUDIT: AuditEntry[] = [
-  { id: "a1", action: "ENTRY_CREATE",      userId: "u1", userName: "Kofi Mensah",   tenantId: "t1", createdAt: "2025-08-14T09:32:00Z", details: "Écriture #ECR-2025-089 créée" },
-  { id: "a2", action: "PERIOD_LOCK",       userId: "u1", userName: "Kofi Mensah",   tenantId: "t1", createdAt: "2025-08-13T17:01:00Z", details: "Exercice 2024 verrouillé" },
-  { id: "a3", action: "CABINET_SWITCH",    userId: "u2", userName: "Afi Delali",     tenantId: "t1", createdAt: "2025-08-13T14:22:00Z", details: "Changement dossier → tenant t2" },
-  { id: "a4", action: "PARAM_UPDATE",      userId: "u3", userName: "Admin Système",  tenantId: "t1", createdAt: "2025-08-10T11:05:00Z", details: "Paramètres fiscaux 2025-v1 créés" },
-  { id: "a5", action: "EXPORT_CREATED",    userId: "u1", userName: "Kofi Mensah",   tenantId: "t1", createdAt: "2025-08-09T16:43:00Z", details: "Export TVA août 2025" },
-  { id: "a6", action: "REVERSAL_CREATED",  userId: "u1", userName: "Kofi Mensah",   tenantId: "t1", createdAt: "2025-08-08T10:12:00Z", details: "Contre-passation ECR-2025-071" },
-];
+const EMPTY_AUDIT: AuditEntry[] = [];
 
 const ACTION_BADGE: Record<string, React.ReactNode> = {
   ENTRY_CREATE:     <Badge variant="info">Saisie</Badge>,
@@ -48,7 +44,7 @@ export default function AuditLogsPage() {
             Log immuable — aucune entrée ne peut être modifiée ou supprimée
           </p>
         </div>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={() => toast.info("Export audit log en CSV...") }>
           <Download className="h-4 w-4" />
           Exporter CSV
         </Button>
@@ -64,35 +60,13 @@ export default function AuditLogsPage() {
       </Card>
 
       <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Horodatage</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Utilisateur</TableHead>
-                <TableHead>Détails</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {MOCK_AUDIT.map((entry) => (
-                <TableRow key={entry.id}>
-                  <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                    {formatDate(entry.createdAt)}
-                  </TableCell>
-                  <TableCell>{ACTION_BADGE[entry.action] ?? <Badge variant="outline">{entry.action}</Badge>}</TableCell>
-                  <TableCell className="text-sm font-medium">{entry.userName}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{entry.details}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                      <Eye className="h-3.5 w-3.5" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <CardContent className="p-6">
+          <div className="rounded-md border border-dashed border-border bg-muted/20 p-6 text-center">
+            <p className="font-hand text-3xl">Aucune activité d’audit enregistrée.</p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Les événements de sécurité, de validation et de clôture apparaitront ici dès qu’une vraie action sera exécutée.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

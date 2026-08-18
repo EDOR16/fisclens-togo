@@ -71,7 +71,7 @@
 }
 
 /* ========================================================================= */
-/* NOUVELLE IDENTITÉ : "LE GRAND LIVRE COMPTABLE TOGOLAIS"                  */
+/* IDENTITÉ TYPOGRAPHIQUE — GRAND LIVRE                                      */
 /* ========================================================================= */
 
 .font-hand {
@@ -83,14 +83,77 @@
   font-feature-settings: "tnum" on, "lnum" on;
 }
 
-.paper-ruled {
-  background-color: #FBF7EC;
-  background-image:
-    linear-gradient(90deg, transparent 72px, #B3261E 72px, #B3261E 74px, transparent 74px),
-    repeating-linear-gradient(transparent, transparent 31px, #E6DEC8 31px, #E6DEC8 32px);
-  color: #0B3D2E;
+/* ========================================================================= */
+/* DUAL-THEME : paper (ivoire, défaut) / ink (vert sombre)                   */
+/* Piloté par data-theme sur <html>. Persisté via localStorage (fl-theme).   */
+/* ========================================================================= */
+
+:root,
+[data-theme="paper"] {
+  --bg:        #FBF7EC;               /* ivoire */
+  --rule:      #E6DEC8;               /* lignes horizontales */
+  --marginRed: #B3261E;               /* marge rouge gauche */
+  --ink:       #0B3D2E;               /* vert foncé Togo */
+  --inkSoft:   #33604C;
+  --paper:     #FDFAF1;
+  --highlight: #FCD116;               /* or Togo */
+  --stamp:     #157A46;
+  --hole:      #FBF7EC;               /* couleur perforations */
 }
 
+[data-theme="ink"] {
+  --bg:        #0B3D2E;               /* vert foncé Togo */
+  --rule:      rgba(251,247,236,.10); /* lignes discrètes */
+  --marginRed: #FCD116;               /* marge or Togo (accent) */
+  --ink:       #FBF7EC;               /* ivoire comme encre */
+  --inkSoft:   #BFD8CC;
+  --paper:     #FDFAF1;               /* le reçu reste toujours ivoire */
+  --highlight: #FCD116;
+  --stamp:     #22c55e;
+  --hole:      #0B3D2E;               /* perforations fond encre */
+}
+
+.paper-ruled {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(90deg, transparent 72px, var(--marginRed) 72px, var(--marginRed) 74px, transparent 74px),
+    repeating-linear-gradient(transparent, transparent 31px, var(--rule) 31px, var(--rule) 32px);
+  color: var(--ink);
+}
+
+.ink-ruled {
+  background-color: #0B3D2E;
+  background-image:
+    linear-gradient(90deg, transparent 88px, #FCD116 88px, #FCD116 90px, transparent 90px),
+    repeating-linear-gradient(transparent, transparent 31px, rgba(251, 247, 236, .10) 31px, rgba(251, 247, 236, .10) 32px);
+}
+
+/* Reçu perforé — reste ivoire sur les deux fonds */
+.receipt {
+  position: relative;
+  background: var(--paper, #FDFAF1);
+  color: #0B3D2E;               /* texte toujours foncé sur le reçu */
+  border: 1px solid #E2D9C2;
+  box-shadow: 0 20px 34px -16px rgba(11, 61, 46, 0.25);
+}
+
+.receipt::before,
+.receipt::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  background-image: radial-gradient(circle at 7px 12px, var(--hole, #FBF7EC) 5px, transparent 5.5px);
+  background-size: 14px 24px;
+  background-repeat: repeat-y;
+  z-index: 10;
+}
+
+.receipt::before { left: -7px; }
+.receipt::after  { right: -7px; }
+
+/* Alias legacy compat */
 .receipt-card {
   position: relative;
   background: #FDFAF1;

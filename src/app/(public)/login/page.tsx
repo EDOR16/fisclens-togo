@@ -1,154 +1,146 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { toast } from "sonner";
-import Link from "next/link";
-
-import { api, ApiException } from "@/lib/api-client";
+import { useRouter } from "next/navigation";
+import { LegalRef, Stamp } from "@/components/landing/ui";
+import { Switchers, useUI } from "@/lib/ui-providers";
 import { useAuth } from "@/lib/auth-context";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
 
-// ---------------------------------------------------------------------------
-// Schéma de validation
-// ---------------------------------------------------------------------------
-
-const LoginSchema = z.object({
-  email:    z.string().email("Email invalide"),
-  password: z.string().min(8, "Mot de passe requis"),
-});
-
-type LoginInput = z.infer<typeof LoginSchema>;
-
-type LoginResponse = {
-  token: string;
-  tenantId: string;
-  require2fa: boolean;
-  userId: string;
-};
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
+const inputCls =
+  "mt-1 w-full border-b-2 border-dashed border-white/40 bg-transparent py-2 font-mono text-paper outline-none focus:border-paper placeholder:text-paper/35";
 
 export default function LoginPage() {
-  const router       = useRouter();
-  const searchParams = useSearchParams();
-  const { login }    = useAuth();
+  const { t } = useUI();
+  const router = useRouter();
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<LoginInput>({ resolver: zodResolver(LoginSchema) });
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    setLoading(true);
 
-  async function onSubmit(data: LoginInput) {
     try {
-      const res = await api.post<LoginResponse>("/auth/login", data);
+      const res = await fetch("/api/v1/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-      if (res.require2fa) {
-        // Stocker l'userId temporairement pour le step 2FA
-        sessionStorage.setItem("fl_2fa_uid", res.userId);
+      const data = await res.json().catch(() => ({}));
+
+      if (res.status === 401) return setErr(t("login_error"));
+      if (res.status === 202 || data.require2FA) {
+        if (!data.userId) {
+          setErr("Impossible de démarrer la vérification à deux facteurs.");
+          return;
+        }
+        sessionStorage.setItem("fl_2fa_uid", data.userId);
         router.push("/2fa");
         return;
       }
+      if (!res.ok) return setErr(t("login_error"));
 
-      await login(res.token, res.tenantId);
-      const redirect = searchParams.get("redirect") ?? "/dashboard";
-      router.push(redirect as any);
-    } catch (err) {
-      if (err instanceof ApiException) {
-        if (err.status === 401) toast.error("Email ou mot de passe incorrect");
-        else if (err.status === 429) toast.error("Trop de tentatives — réessayez dans quelques minutes");
-        else toast.error("Erreur de connexion");
-      } else {
-        toast.error("Erreur réseau — vérifiez votre connexion");
-      }
+      await login(data.token, data.tenantId);
+      router.push("/dashboard");
+    } catch {
+      setErr("Impossible de joindre le serveur. Réessayez dans un instant.");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Connexion</CardTitle>
-        <CardDescription>Accédez à votre espace comptable et fiscal</CardDescription>
-      </CardHeader>
+    <main className="ink-ruled min-h-screen font-body text-paper">
+      <header className="mx-auto flex max-w-6xl items-center justify-end px-6 pt-8">
+        <Switchers />
+      </header>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
-          {/* Email */}
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              placeholder="vous@entreprise.tg"
-              {...register("email")}
-            />
-            {errors.email && (
-              <p className="text-xs text-destructive">{errors.email.message}</p>
-            )}
+      <section className="mx-auto grid max-w-6xl items-center gap-16 px-6 py-14 lg:grid-cols-2">
+        <div>
+          <div className="inline-flex items-center gap-3 rounded-full border border-paper/20 bg-paper/5 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.22em] text-paper/80">
+            <span className="grid h-8 w-8 place-items-center rounded-md bg-paper text-[#0B3D2E] font-bold text-base">F</span>
+            FiscLens Togo
           </div>
 
-          {/* Mot de passe */}
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="text-sm font-medium">
-              Mot de passe
-            </label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPwd ? "text" : "password"}
-                autoComplete="current-password"
-                placeholder="••••••••"
-                className="pr-10"
-                {...register("password")}
+          <h1 className="mt-6 font-hand text-6xl leading-[0.95] text-paper md:text-7xl">
+            {t("h1_login")}
+          </h1>
+          <p className="mt-6 max-w-md text-lg text-paper/80">{t("login_sub")}</p>
+          <ul className="mt-8 space-y-3 font-mono text-sm text-paper/90">
+            <li>→ TLS + mots de passe robustes <LegalRef>section 8</LegalRef></li>
+            <li>→ 2FA obligatoire pour Cabinet &amp; Admin <LegalRef>section 8</LegalRef></li>
+            <li>→ Chaque connexion est journalisée <LegalRef>audit log</LegalRef></li>
+          </ul>
+        </div>
+
+        <div className="receipt rotate-[0.6deg] p-8">
+          <div className="flex items-start justify-between">
+            <h2 className="font-display text-2xl font-semibold text-ink">{t("login_title")}</h2>
+            <Stamp>Accès sécurisé</Stamp>
+          </div>
+
+          <form onSubmit={submit} className="mt-8 space-y-6">
+            <label className="block font-mono text-xs uppercase tracking-widest text-inkSoft">
+              {t("email")}
+              <input
+                className={inputCls}
+                type="email"
+                value={email}
+                autoComplete="email"
+                placeholder="vous@entreprise.tg"
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
-              <button
-                type="button"
-                onClick={() => setShowPwd((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label={showPwd ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-              >
-                {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+            </label>
+
+            <label className="block font-mono text-xs uppercase tracking-widest text-inkSoft">
+              {t("password")}
+              <span className="relative block">
+                <input
+                  className={inputCls + " pr-10"}
+                  type={showPwd ? "text" : "password"}
+                  value={password}
+                  autoComplete="current-password"
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((v) => !v)}
+                  aria-label="Afficher le mot de passe"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 px-2 font-mono text-[10px] text-paper/70"
+                >
+                  {showPwd ? "CACHER" : "VOIR"}
+                </button>
+              </span>
+            </label>
+
+            {err && (
+              <p className="border-l-4 border-[#B3261E] pl-3 font-mono text-xs text-[#B3261E]">{err}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-full bg-[#0B3D2E] py-3.5 font-semibold text-[#FBF7EC] transition hover:opacity-90 disabled:opacity-60"
+            >
+              {loading ? "…" : t("login_submit")}
+            </button>
+
+            <div className="space-y-1 text-center font-mono text-xs text-inkSoft">
+              <a href="/forgot" className="underline decoration-[#FCD116] decoration-2 underline-offset-2">{t("forgot")}</a>
+              <p>
+                {t("no_account")} <a href="/register" className="underline decoration-[#FCD116] decoration-2 underline-offset-2">{t("create")}</a>
+              </p>
             </div>
-            {errors.password && (
-              <p className="text-xs text-destructive">{errors.password.message}</p>
-            )}
-          </div>
-        </CardContent>
-
-        <CardFooter className="flex flex-col gap-3">
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Connexion en cours…
-              </>
-            ) : (
-              "Se connecter"
-            )}
-          </Button>
-
-          <p className="text-sm text-muted-foreground text-center">
-            Pas encore de compte ?{" "}
-            <Link href="/register" className="text-primary hover:underline font-medium">
-              Créer un compte
-            </Link>
-          </p>
-        </CardFooter>
-      </form>
-    </Card>
+          </form>
+        </div>
+      </section>
+    </main>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,8 +8,8 @@ import { formatAmount } from "@/lib/utils";
 import { AlertCircle, Download, FileCheck, Building2 } from "lucide-react";
 
 export default function PatentePage() {
-  const valeurLocative = 3_600_000;
-  const chiffreAffaires = 64_500_000;
+  const valeurLocative = 0;
+  const chiffreAffaires = 0;
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -26,7 +27,7 @@ export default function PatentePage() {
             Contribution des patentes assise sur la valeur locative des locaux professionnels et le CA
           </p>
         </div>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={() => window.open("https://www.otr.tg/index.php/fr/documentation/sur-les-impots/derniers-publications/formulaires.html", "_blank", "noopener,noreferrer")}>
           <Download className="h-4 w-4" /> Formulaire OTR
         </Button>
       </div>
@@ -54,7 +55,7 @@ export default function PatentePage() {
             <div className="p-4 border rounded-lg bg-card">
               <p className="text-xs text-muted-foreground uppercase font-semibold">Valeur locative annuelle déclarée</p>
               <p className="text-xl font-bold font-mono mt-1 text-primary">{formatAmount(valeurLocative)} FCFA</p>
-              <p className="text-xs text-muted-foreground mt-1">Immeuble commercial Lomé 2</p>
+              <p className="text-xs text-muted-foreground mt-1">Aucune donnée immobilière enregistrée</p>
             </div>
             <div className="p-4 border rounded-lg bg-card">
               <p className="text-xs text-muted-foreground uppercase font-semibold">Chiffre d&apos;affaires N-1</p>

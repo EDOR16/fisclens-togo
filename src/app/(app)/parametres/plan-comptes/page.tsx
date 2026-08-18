@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,38 +9,72 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BookOpen, Search, Plus, Download, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api-client";
 
 type AccountItem = {
   code: string;
   libelle: string;
   classe: number;
-  type: "ACTIF" | "PASSIF" | "CHARGE" | "PRODUIT" | "SPECIAL";
+  type?: "ACTIF" | "PASSIF" | "CHARGE" | "PRODUIT" | "SPECIAL";
+  postable: boolean;
+  archived: boolean;
 };
-
-const PLAN_SYSCOHADA: AccountItem[] = [
-  { code: "101000", libelle: "Capital social", classe: 1, type: "PASSIF" },
-  { code: "162000", libelle: "Emprunts auprès des établissements de crédit", classe: 1, type: "PASSIF" },
-  { code: "211000", libelle: "Frais de développement", classe: 2, type: "ACTIF" },
-  { code: "241000", libelle: "Matériel industriel et outillage", classe: 2, type: "ACTIF" },
-  { code: "245000", libelle: "Matériel de transport", classe: 2, type: "ACTIF" },
-  { code: "311000", libelle: "Marchandises A", classe: 3, type: "ACTIF" },
-  { code: "401100", libelle: "Fournisseurs d'exploitation locaux", classe: 4, type: "PASSIF" },
-  { code: "411100", libelle: "Clients ordinaires Togo", classe: 4, type: "ACTIF" },
-  { code: "445200", libelle: "TVA collectée sur ventes (18%)", classe: 4, type: "PASSIF" },
-  { code: "445400", libelle: "TVA récupérable sur achats (18%)", classe: 4, type: "ACTIF" },
-  { code: "521000", libelle: "Banques locales (Ecobank / Orabank)", classe: 5, type: "ACTIF" },
-  { code: "571000", libelle: "Caisse principale Lomé", classe: 5, type: "ACTIF" },
-  { code: "601100", libelle: "Achats de marchandises au Togo", classe: 6, type: "CHARGE" },
-  { code: "661000", libelle: "Rémunérations directes versées au personnel", classe: 6, type: "CHARGE" },
-  { code: "664000", libelle: "Charges sociales patronales CNSS", classe: 6, type: "CHARGE" },
-  { code: "701100", libelle: "Ventes de marchandises au Togo", classe: 7, type: "PRODUIT" },
-];
 
 export default function PlanComptesPage() {
   const [selectedClasse, setSelectedClasse] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const [accounts, setAccounts] = useState<AccountItem[]>([]);
+  const [showSubAccountForm, setShowSubAccountForm] = useState(false);
+  const [parentCode, setParentCode] = useState("");
+  const [subAccountCode, setSubAccountCode] = useState("");
+  const [subAccountLabel, setSubAccountLabel] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = PLAN_SYSCOHADA.filter((acc) => {
+  useEffect(() => {
+    api.get<{ comptes: AccountItem[] }>("/accounting/comptes")
+      .then(({ comptes }) => setAccounts(comptes))
+      .catch(() => toast.error("Impossible de charger le plan comptable"));
+  }, []);
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const token = localStorage.getItem("fl_token");
+      const tenantId = localStorage.getItem("fl_tenant_id");
+      const response = await fetch("/api/v1/accounting/comptes/import", { method: "POST", headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(tenantId ? { "x-tenant-id": tenantId } : {}) }, body: formData });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || "Import refusé");
+      toast.success(`${result.imported} compte(s) de référence importé(s). Ils seront attribués aux nouveaux dossiers.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Import impossible");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const handleCreateSubAccount = async (event: React.FormEvent) => {
+    event.preventDefault();
+    try {
+      const { compte } = await api.post<{ compte: AccountItem }>("/accounting/comptes/subaccount", { parentCode, code: subAccountCode, libelle: subAccountLabel });
+      setAccounts((current) => [...current, compte].sort((a, b) => a.code.localeCompare(b.code)));
+      setParentCode("");
+      setSubAccountCode("");
+      setSubAccountLabel("");
+      setShowSubAccountForm(false);
+      toast.success("Sous-compte créé.");
+    } catch (error) {
+      toast.error(error instanceof Error ? "Création du sous-compte refusée." : "Création du sous-compte impossible.");
+    }
+  };
+
+  const handleViewGrandLivre = (code: string) => {
+    toast.info(`Affichage du grand livre pour le compte ${code}`);
+  };
+
+  const filtered = accounts.filter((acc) => {
     const matchClasse = selectedClasse === null || acc.classe === selectedClasse;
     const matchSearch =
       acc.code.includes(search) || acc.libelle.toLowerCase().includes(search.toLowerCase());
@@ -58,14 +93,29 @@ export default function PlanComptesPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
             <Upload className="h-4 w-4 mr-1" /> Importer
           </Button>
-          <Button size="sm">
+          <input ref={inputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImport} />
+          <Button size="sm" onClick={() => setShowSubAccountForm((visible) => !visible)}>
             <Plus className="h-4 w-4 mr-1" /> Créer un sous-compte
           </Button>
         </div>
       </div>
+
+      {showSubAccountForm && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Créer un sous-compte personnalisé</CardTitle><CardDescription>Le code doit commencer par le compte parent et ne peut pas modifier une racine SYSCOHADA.</CardDescription></CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreateSubAccount} className="grid gap-3 sm:grid-cols-4 sm:items-end">
+              <label className="space-y-1 text-sm font-medium"><span>Compte parent</span><Input value={parentCode} onChange={(event) => setParentCode(event.target.value.replace(/\D/g, ""))} placeholder="Ex. 411" required /></label>
+              <label className="space-y-1 text-sm font-medium"><span>Code du sous-compte</span><Input value={subAccountCode} onChange={(event) => setSubAccountCode(event.target.value.replace(/\D/g, ""))} placeholder="Ex. 411001" required /></label>
+              <label className="space-y-1 text-sm font-medium sm:col-span-1"><span>Intitulé</span><Input value={subAccountLabel} onChange={(event) => setSubAccountLabel(event.target.value)} placeholder="Client X" required /></label>
+              <Button type="submit">Enregistrer</Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Barre de recherche et filtres de classes */}
       <Card>
@@ -119,6 +169,7 @@ export default function PlanComptesPage() {
                 <TableHead>Intitulé du compte</TableHead>
                 <TableHead>Classe</TableHead>
                 <TableHead>Nature</TableHead>
+                <TableHead>Statut</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -133,9 +184,13 @@ export default function PlanComptesPage() {
                     {acc.type === "PASSIF" && <Badge variant="outline" className="text-purple-700 bg-purple-50">Passif</Badge>}
                     {acc.type === "CHARGE" && <Badge variant="outline" className="text-red-700 bg-red-50">Charge</Badge>}
                     {acc.type === "PRODUIT" && <Badge variant="outline" className="text-green-700 bg-green-50">Produit</Badge>}
+                    {!acc.type && <Badge variant="outline">SYSCOHADA</Badge>}
+                  </TableCell>
+                  <TableCell>
+                    {acc.archived ? <Badge variant="outline">Archivé</Badge> : acc.postable ? <Badge variant="success">Saisissable</Badge> : <Badge variant="warning">Racine</Badge>}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="text-xs">
+                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => handleViewGrandLivre(acc.code)}>
                       Grand Livre
                     </Button>
                   </TableCell>

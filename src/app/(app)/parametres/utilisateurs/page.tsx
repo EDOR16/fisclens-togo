@@ -19,12 +19,7 @@ type UserItem = {
   dateAjout: string;
 };
 
-const INITIAL_USERS: UserItem[] = [
-  { id: "1", nom: "Kofi Mensah", email: "kofi@entreprise.tg", role: "GERANT", statut: "ACTIF", dateAjout: "10/01/2024" },
-  { id: "2", nom: "Afi Delali", email: "afi.delali@cabinet-expert.tg", role: "CABINET", statut: "ACTIF", dateAjout: "15/02/2024" },
-  { id: "3", nom: "Komla Agbeko", email: "komla@entreprise.tg", role: "COMPTABLE", statut: "ACTIF", dateAjout: "01/03/2024" },
-  { id: "4", nom: "Auditeur Externe", email: "audit@fisc.tg", role: "LECTURE", statut: "INVITE", dateAjout: "12/08/2025" },
-];
+const INITIAL_USERS: UserItem[] = [];
 
 export default function UtilisateursPage() {
   const [users, setUsers] = useState<UserItem[]>(INITIAL_USERS);

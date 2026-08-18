@@ -18,13 +18,7 @@ type ClientRisk = {
   derniereFacture: string;
 };
 
-const CLIENTS_RISK: ClientRisk[] = [
-  { id: "1", nom: "ETS KPONTON & FILS", compte: "411002", encoursTotal: 4_250_000, retardMoyenJours: 78, score: "CRITIQUE", derniereFacture: "15/05/2025" },
-  { id: "2", nom: "SOCIETE KEKELI SARL", compte: "411005", encoursTotal: 2_800_000, retardMoyenJours: 42, score: "ELEVE", derniereFacture: "02/06/2025" },
-  { id: "3", nom: "SOGET DISTRIB TOGO", compte: "411001", encoursTotal: 1_250_000, retardMoyenJours: 14, score: "MOYEN", derniereFacture: "01/08/2025" },
-  { id: "4", nom: "TOGO-TRANS LOGISTICS", compte: "411003", encoursTotal: 850_000, retardMoyenJours: 3, score: "FAIBLE", derniereFacture: "11/08/2025" },
-  { id: "5", nom: "AGENCE COMMERCIALE GBEGNEDZI", compte: "411004", encoursTotal: 450_000, retardMoyenJours: 0, score: "FAIBLE", derniereFacture: "14/08/2025" },
-];
+const CLIENTS_RISK: ClientRisk[] = [];
 
 export default function RisqueClientsPage() {
   function sendRelance(client: ClientRisk) {
@@ -44,24 +38,23 @@ export default function RisqueClientsPage() {
         </div>
       </div>
 
-      {/* Cartes KPI */}
       <div className="grid sm:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription className="text-xs uppercase font-semibold">Total Encours Clients (411)</CardDescription>
-            <CardTitle className="text-xl font-mono text-primary">{formatAmount(9_600_000)} FCFA</CardTitle>
+            <CardTitle className="text-xl font-mono text-primary">0 FCFA</CardTitle>
           </CardHeader>
         </Card>
         <Card className="border-red-200 bg-red-50/40">
           <CardHeader className="pb-2">
             <CardDescription className="text-xs uppercase font-semibold text-red-900">Encours Échu (+60 jours)</CardDescription>
-            <CardTitle className="text-xl font-mono text-red-600">{formatAmount(4_250_000)} FCFA</CardTitle>
+            <CardTitle className="text-xl font-mono text-red-600">0 FCFA</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription className="text-xs uppercase font-semibold">Délai Moyen de Paiement (DSO)</CardDescription>
-            <CardTitle className="text-xl font-mono">38 jours</CardTitle>
+            <CardTitle className="text-xl font-mono">0 jour</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -69,49 +62,15 @@ export default function RisqueClientsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Portefeuille Clients & Niveau d&apos;exposition</CardTitle>
-          <CardDescription>Trié par niveau de risque décroissant</CardDescription>
+          <CardDescription>Les données client apparaîtront dès qu’un portefeuille réel sera importé.</CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Compte</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead className="text-right">Encours Total (FCFA)</TableHead>
-                <TableHead className="text-right">Retard Moyen</TableHead>
-                <TableHead>Dernière Facture</TableHead>
-                <TableHead>Score de Risque</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {CLIENTS_RISK.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{c.compte}</TableCell>
-                  <TableCell className="font-medium text-sm">{c.nom}</TableCell>
-                  <TableCell className="text-right font-mono text-sm font-semibold">{formatAmount(c.encoursTotal)}</TableCell>
-                  <TableCell className="text-right font-mono text-sm">{c.retardMoyenJours} j</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{c.derniereFacture}</TableCell>
-                  <TableCell>
-                    {c.score === "CRITIQUE" && <Badge variant="destructive">Critique (+60j)</Badge>}
-                    {c.score === "ELEVE" && <Badge variant="destructive" className="bg-orange-600">Élevé (+30j)</Badge>}
-                    {c.score === "MOYEN" && <Badge variant="warning">Moyen</Badge>}
-                    {c.score === "FAIBLE" && <Badge variant="success">Faible</Badge>}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => sendRelance(c)}
-                    >
-                      <Mail className="h-3 w-3 mr-1" /> Relancer
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <CardContent className="p-6">
+          <div className="rounded-md border border-dashed border-border bg-muted/20 p-6 text-center">
+            <p className="font-hand text-3xl">Aucun client en risque pour le moment.</p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Les encours, retards et scores seront calculés automatiquement à partir des factures et paiements réels.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

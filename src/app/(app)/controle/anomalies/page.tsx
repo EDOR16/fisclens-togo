@@ -20,12 +20,7 @@ type Anomaly = {
   statut: "OUVERT" | "EN_COURS" | "RESOLU";
 };
 
-const INITIAL_ANOMALIES: Anomaly[] = [
-  { id: "1", type: "DOUBLON_FACTURE", libelle: "Facture FAC-2025-014 déjà enregistrée le 08/08", compte: "401000", montant: 780_000, date: "2025-08-10", gravite: "HAUTE", statut: "OUVERT" },
-  { id: "2", type: "TVA_INCOHERENTE", libelle: "Taux TVA effectif à 14.2% au lieu de 18% sur écriture #089", compte: "445200", montant: 1_250_000, date: "2025-08-12", gravite: "HAUTE", statut: "OUVERT" },
-  { id: "3", type: "MONTANT_ATYPIQUE", libelle: "Dépense de caisse inhabituelle supérieure à 500 000 FCFA", compte: "571000", montant: 650_000, date: "2025-08-13", gravite: "MOYENNE", statut: "EN_COURS" },
-  { id: "4", type: "PIECE_MANQUANTE", libelle: "Aucune pièce justificative PDF rattachée à l'écriture #094", compte: "601000", montant: 320_000, date: "2025-08-14", gravite: "BASSE", statut: "OUVERT" },
-];
+const INITIAL_ANOMALIES: Anomaly[] = [];
 
 export default function AnomaliesPage() {
   const [anomalies, setAnomalies] = useState<Anomaly[]>(INITIAL_ANOMALIES);
@@ -86,58 +81,15 @@ export default function AnomaliesPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Anomalies relevées sur l&apos;exercice</CardTitle>
-          <CardDescription>Actions correctives ou justifications requises avant clôture</CardDescription>
+          <CardDescription>Aucune anomalie détectée pour le moment sur cet environnement réel.</CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Gravité</TableHead>
-                <TableHead>Type & Description</TableHead>
-                <TableHead>Compte</TableHead>
-                <TableHead className="text-right">Montant</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {anomalies.map((a) => (
-                <TableRow key={a.id}>
-                  <TableCell className="text-xs font-mono text-muted-foreground">{formatDate(a.date)}</TableCell>
-                  <TableCell>
-                    {a.gravite === "HAUTE" && <Badge variant="destructive">Haute</Badge>}
-                    {a.gravite === "MOYENNE" && <Badge variant="warning">Moyenne</Badge>}
-                    {a.gravite === "BASSE" && <Badge variant="outline">Basse</Badge>}
-                  </TableCell>
-                  <TableCell className="text-sm font-medium">
-                    <p>{a.libelle}</p>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{a.compte}</TableCell>
-                  <TableCell className="text-right font-mono text-sm">{formatAmount(a.montant)} FCFA</TableCell>
-                  <TableCell>
-                    {a.statut === "OUVERT" && <Badge variant="destructive">Ouvert</Badge>}
-                    {a.statut === "EN_COURS" && <Badge variant="warning">En cours</Badge>}
-                    {a.statut === "RESOLU" && <Badge variant="success">Résolu</Badge>}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {a.statut !== "RESOLU" ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs text-primary"
-                        onClick={() => resolveAnomaly(a.id)}
-                      >
-                        Marquer résolu
-                      </Button>
-                    ) : (
-                      <CheckCircle2 className="h-4 w-4 text-green-600 ml-auto" />
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <CardContent className="p-6">
+          <div className="rounded-md border border-dashed border-border bg-muted/20 p-6 text-center">
+            <p className="font-hand text-3xl">Aucune anomalie à traiter.</p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Les doublons, écarts TVA, montants atypiques et pièces manquantes seront listés automatiquement dès qu’une donnée réelle sera saisie.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

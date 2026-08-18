@@ -1,31 +1,39 @@
 "use client";
 
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatAmount } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Building, Download, Calendar, HelpCircle, CheckCircle2 } from "lucide-react";
+import { api } from "@/lib/api-client";
+import { exportIsDeclarationPdf } from "@/lib/export/pdf-generator";
 
 export default function IsPage() {
-  const chiffreAffaires = 64_500_000;
-  const resultatComptable = 7_150_000;
-  const reintegrations = 450_000; // Charges non déductibles
-  const deductions = 200_000; // Produits non imposables
-  const resultatFiscal = resultatComptable + reintegrations - deductions;
+  const chiffreAffaires = 0;
+  const resultatComptable = 0;
+  const reintegrations = 0;
+  const deductions = 0;
+  const resultatFiscal = 0;
 
-  // Calcul IS vs IMF
-  const tauxIS = 0.27; // 27%
-  const isTheorique = Math.floor(resultatFiscal * tauxIS);
+  const tauxIS = 0.27;
+  const isTheorique = 0;
+  const imfTheorique = 0;
+  const isExigible = 0;
+  const acompteJuin = 0;
+  const acompteSeptembre = 0;
+  const soldeAvril = 0;
 
-  // IMF (Impôt Minimum Forfaitaire) : 1% du CA avec plancher et plafond légal
-  const imfTheorique = Math.max(100_000, Math.min(5_000_000, Math.floor(chiffreAffaires * 0.01)));
-
-  // Impôt exigible : max(IS, IMF)
-  const isExigible = Math.max(isTheorique, imfTheorique);
-  const acompteJuin = Math.floor(isExigible / 3);
-  const acompteSeptembre = Math.floor(isExigible / 3);
-  const soldeAvril = isExigible - acompteJuin - acompteSeptembre;
+  const downloadIsPdf = async () => {
+    try {
+      const data = await api.get<any>("/fiscal/is");
+      exportIsDeclarationPdf(data.tenant.name, data.exercice, data.calculation);
+      toast.success("Bordereau IS / IMF téléchargé.");
+    } catch {
+      toast.error("Impossible de générer le bordereau IS / IMF.");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -43,7 +51,7 @@ export default function IsPage() {
             Détermination du résultat fiscal, comparaison IS 27% vs IMF 1% et échéancier des acomptes provisionnels
           </p>
         </div>
-        <Button size="sm">
+        <Button size="sm" onClick={() => void downloadIsPdf()}>
           <Download className="h-4 w-4" /> Liasse Fiscale OTR (PDF)
         </Button>
       </div>

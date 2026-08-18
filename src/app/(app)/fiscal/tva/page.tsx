@@ -1,26 +1,39 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatAmount } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Receipt, Download, FileText, CheckCircle2 } from "lucide-react";
+import { api } from "@/lib/api-client";
+import { exportTvaDeclarationPdf } from "@/lib/export/pdf-generator";
 
 export default function TvaPage() {
   const [periode, setPeriode] = useState("2025-08");
 
-  // Données de calcul TVA pour la période
-  const tvaCollectee = 2_241_000; // 18% sur 12 450 000
-  const tvaDeductibleImmo = 360_000;
-  const tvaDeductibleServices = 1_025_000;
-  const tvaDeductibleTotale = tvaDeductibleImmo + tvaDeductibleServices;
+  // En environnement réel, la TVA n'est calculée qu'à partir des écritures saisies par le tenant.
+  const tvaCollectee = 0;
+  const tvaDeductibleImmo = 0;
+  const tvaDeductibleServices = 0;
+  const tvaDeductibleTotale = 0;
   const creditReporteMoisPrecedent = 0;
-  const prorataDeduction = 100; // 100%
+  const prorataDeduction = 100;
 
-  const tvaNetteDue = Math.max(0, tvaCollectee - tvaDeductibleTotale - creditReporteMoisPrecedent);
-  const creditReportable = Math.max(0, (tvaDeductibleTotale + creditReporteMoisPrecedent) - tvaCollectee);
+  const tvaNetteDue = 0;
+  const creditReportable = 0;
+
+  const downloadTvaPdf = async (deductionsOnly = false) => {
+    try {
+      const data = await api.get<any>(`/fiscal/tva?periode=${periode}`);
+      exportTvaDeclarationPdf(data.tenant.name, data.tenant.nif, data.periode, data.calculation);
+      toast.success(deductionsOnly ? "État des déductions téléchargé." : "Déclaration TVA téléchargée.");
+    } catch {
+      toast.error("Impossible de générer le PDF TVA.");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -39,10 +52,10 @@ export default function TvaPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => void downloadTvaPdf(true)}>
             <FileText className="h-4 w-4" /> État des déductions
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => void downloadTvaPdf()}>
             <Download className="h-4 w-4" /> Télécharger formulaire OTR (PDF)
           </Button>
         </div>
@@ -100,9 +113,9 @@ export default function TvaPage() {
               <TableRow>
                 <TableCell className="font-mono text-xs">01</TableCell>
                 <TableCell>Opérations taxables à 18% (Ventes de biens et services)</TableCell>
-                <TableCell className="text-right font-mono">{formatAmount(12_450_000)}</TableCell>
+                <TableCell className="text-right font-mono">0</TableCell>
                 <TableCell className="text-right font-mono">18%</TableCell>
-                <TableCell className="text-right font-mono font-medium">{formatAmount(tvaCollectee)}</TableCell>
+                <TableCell className="text-right font-mono font-medium">0</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-mono text-xs">02</TableCell>
@@ -122,16 +135,16 @@ export default function TvaPage() {
               <TableRow>
                 <TableCell className="font-mono text-xs">03</TableCell>
                 <TableCell>TVA sur immobilisations (investissements)</TableCell>
-                <TableCell className="text-right font-mono">{formatAmount(2_000_000)}</TableCell>
+                <TableCell className="text-right font-mono">0</TableCell>
                 <TableCell className="text-right font-mono">18%</TableCell>
-                <TableCell className="text-right font-mono font-medium">{formatAmount(tvaDeductibleImmo)}</TableCell>
+                <TableCell className="text-right font-mono font-medium">0</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-mono text-xs">04</TableCell>
                 <TableCell>TVA sur autres biens et services (achats d&apos;exploitation)</TableCell>
-                <TableCell className="text-right font-mono">{formatAmount(5_694_444)}</TableCell>
+                <TableCell className="text-right font-mono">0</TableCell>
                 <TableCell className="text-right font-mono">18%</TableCell>
-                <TableCell className="text-right font-mono font-medium">{formatAmount(tvaDeductibleServices)}</TableCell>
+                <TableCell className="text-right font-mono font-medium">0</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-mono text-xs">05</TableCell>

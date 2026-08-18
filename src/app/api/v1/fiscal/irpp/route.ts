@@ -33,42 +33,27 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
     where: { id: tenantId },
   });
 
-  // Exemple d'effectif standard pour le tenant
-  const defaultEmployees = [
-    { nom: "Kofi Mensah", poste: "Directeur Général", salaireBrut: 1_200_000, charges: 3 },
-    { nom: "Afi Delali", poste: "Responsable Comptable", salaireBrut: 650_000, charges: 2 },
-    { nom: "Komla Agbeko", poste: "Commercial Senior", salaireBrut: 450_000, charges: 1 },
-    { nom: "Kodjo Tossou", poste: "Assistant Administratif", salaireBrut: 250_000, charges: 0 },
-  ];
+  const employees: Array<{ nom: string; poste: string; payroll: ReturnType<typeof calculateTogoPayroll> }> = [];
 
-  const processedEmployees = defaultEmployees.map((e) => ({
-    nom: e.nom,
-    poste: e.poste,
-    payroll: calculateTogoPayroll({
-      salaireBrut: e.salaireBrut,
-      nombreChargesFamille: e.charges,
-    }),
-  }));
-
-  const totalBrut = processedEmployees.reduce((s, e) => s + e.payroll.salaireBrut, 0);
-  const totalCnssSalariale = processedEmployees.reduce((s, e) => s + e.payroll.cnssSalariale, 0);
-  const totalCnssPatronale = processedEmployees.reduce((s, e) => s + e.payroll.cnssPatronale, 0);
-  const totalIrpp = processedEmployees.reduce((s, e) => s + e.payroll.irppNet, 0);
-  const totalNet = processedEmployees.reduce((s, e) => s + e.payroll.netAPayer, 0);
+  const totalBrut = 0;
+  const totalCnssSalariale = 0;
+  const totalCnssPatronale = 0;
+  const totalIrpp = 0;
+  const totalNet = 0;
 
   return NextResponse.json({
     tenant: {
       name: tenant?.name || "Entreprise",
       nif: tenant?.nif || "",
     },
-    employees: processedEmployees,
+    employees,
     totals: {
       totalBrut,
       totalCnssSalariale,
       totalCnssPatronale,
       totalIrpp,
       totalNet,
-      nbEmployees: processedEmployees.length,
+      nbEmployees: 0,
     },
   });
 });

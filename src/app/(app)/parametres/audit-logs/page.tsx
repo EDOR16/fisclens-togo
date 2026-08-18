@@ -1,17 +1,10 @@
 "use client";
 
-import type { Metadata } from "next";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
-import { Lock, Eye, Download } from "lucide-react";
+import { Lock, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-
-
 
 type AuditEntry = {
   id: string;
@@ -62,9 +55,9 @@ export default function AuditLogsPage() {
       <Card>
         <CardContent className="p-6">
           <div className="rounded-md border border-dashed border-border bg-muted/20 p-6 text-center">
-            <p className="font-hand text-3xl">Aucune activité d’audit enregistrée.</p>
+            <p className="font-hand text-3xl">Aucune activité d'audit enregistrée.</p>
             <p className="mt-3 text-sm text-muted-foreground">
-              Les événements de sécurité, de validation et de clôture apparaitront ici dès qu’une vraie action sera exécutée.
+              Les événements de sécurité, de validation et de clôture apparaitront ici dès qu'une vraie action sera exécutée.
             </p>
           </div>
         </CardContent>

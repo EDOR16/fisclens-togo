@@ -11,7 +11,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 
-export const metadata: Metadata = { title: "Audit log" };
+
 
 type AuditEntry = {
   id: string;
@@ -26,11 +26,11 @@ type AuditEntry = {
 const EMPTY_AUDIT: AuditEntry[] = [];
 
 const ACTION_BADGE: Record<string, React.ReactNode> = {
-  ENTRY_CREATE:     <Badge variant="info">Saisie</Badge>,
-  PERIOD_LOCK:      <Badge variant="destructive">Clôture</Badge>,
-  CABINET_SWITCH:   <Badge variant="warning">Switch dossier</Badge>,
-  PARAM_UPDATE:     <Badge variant="warning">Paramètre</Badge>,
-  EXPORT_CREATED:   <Badge variant="outline">Export</Badge>,
+  ENTRY_CREATE: <Badge variant="info">Saisie</Badge>,
+  PERIOD_LOCK: <Badge variant="destructive">Clôture</Badge>,
+  CABINET_SWITCH: <Badge variant="warning">Switch dossier</Badge>,
+  PARAM_UPDATE: <Badge variant="warning">Paramètre</Badge>,
+  EXPORT_CREATED: <Badge variant="outline">Export</Badge>,
   REVERSAL_CREATED: <Badge variant="secondary">Contre-pass.</Badge>,
 };
 
@@ -44,7 +44,7 @@ export default function AuditLogsPage() {
             Log immuable — aucune entrée ne peut être modifiée ou supprimée
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => toast.info("Export audit log en CSV...") }>
+        <Button variant="outline" size="sm" onClick={() => toast.info("Export audit log en CSV...")}>
           <Download className="h-4 w-4" />
           Exporter CSV
         </Button>

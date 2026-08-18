@@ -1,4 +1,4 @@
-﻿interface ApiClientOptions extends RequestInit {
+interface ApiClientOptions extends RequestInit {
   params?: Record<string, string | number | boolean>;
 }
 
@@ -28,11 +28,17 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, body?: unknown): Promise<T> {
-    return this.request<T>(endpoint, { method: "POST", body: body ? JSON.stringify(body) : undefined });
+    return this.request<T>(endpoint, {
+      method: "POST",
+      body: body ? JSON.stringify(body) : undefined,
+    });
   }
 
   async put<T>(endpoint: string, body?: unknown): Promise<T> {
-    return this.request<T>(endpoint, { method: "PUT", body: body ? JSON.stringify(body) : undefined });
+    return this.request<T>(endpoint, {
+      method: "PUT",
+      body: body ? JSON.stringify(body) : undefined,
+    });
   }
 
   async delete<T>(endpoint: string): Promise<T> {

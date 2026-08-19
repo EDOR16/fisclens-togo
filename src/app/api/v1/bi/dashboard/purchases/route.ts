@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/v1/bi/dashboard/purchases
  * Dashboard Achats : top fournisseurs, évolution prix, concentration

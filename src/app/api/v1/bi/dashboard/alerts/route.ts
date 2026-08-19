@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/v1/bi/dashboard/alerts
  * Dashboard Alertes : chute ventes, marge négative, encours dépassé, écart compta

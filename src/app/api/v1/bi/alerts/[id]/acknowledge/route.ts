@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/v1/bi/alerts/:id/acknowledge
  * Acquitter une alerte (la marquer comme lue)

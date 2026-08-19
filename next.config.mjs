@@ -1,9 +1,8 @@
-/** @type {import('next').NextConfig} */
+﻿/** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
     typedRoutes: true,
   },
-  // Sécurité headers
   async headers() {
     return [
       {
@@ -19,9 +18,4 @@ const nextConfig = {
   },
 };
 
-export default {
-  ...nextConfig,
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client'],
-  },
-};
+export default nextConfig;

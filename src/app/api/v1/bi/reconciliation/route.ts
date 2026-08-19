@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/v1/bi/reconciliation
  * Réconciliation comptable : BI vs compta

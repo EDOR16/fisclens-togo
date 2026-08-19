@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/v1/bi/dashboard/profitability
  * Dashboard Rentabilité : marges par produit/catégorie, point mort

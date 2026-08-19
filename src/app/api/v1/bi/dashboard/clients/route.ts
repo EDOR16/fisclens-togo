@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/v1/bi/dashboard/clients
  * Dashboard Clients : segmentation RFM, Pareto 80/20, top 20, score de risque

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/v1/bi/dashboard/forecast
  * Dashboard Prévisions : CA projeté, trésorerie 90j, simulateur what-if

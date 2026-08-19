@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/v1/bi/dashboard/sales
  * Dashboard Ventes : top produits, zones géo, saisonnalité, matrice BCG

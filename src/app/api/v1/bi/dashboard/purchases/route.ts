@@ -8,7 +8,7 @@ import { withTenantGuard } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
 import { getTopSuppliers } from "@/lib/bi/aggregates";
 
-export const GET = withTenantGuard(async (req: NextRequest, tenantId: string) => {
+export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: { tenantId: string }) => {
   try {
     // Top fournisseurs
     const topSuppliers = await getTopSuppliers(tenantId, 10);

@@ -14,7 +14,7 @@ interface ImportSalesRequest {
   fileBuffer: string; // base64 encoded
 }
 
-export const POST = withTenantGuard(async (req: NextRequest, tenantId: string) => {
+export const POST = withTenantGuard(async (req: NextRequest, { tenantId }: { tenantId: string }) => {
   try {
     const body = (await req.json()) as ImportSalesRequest;
     const { fileBuffer } = body;

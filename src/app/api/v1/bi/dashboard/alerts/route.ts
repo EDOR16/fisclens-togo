@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withTenantGuard } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
 
-export const GET = withTenantGuard(async (req: NextRequest, tenantId: string) => {
+export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: { tenantId: string }) => {
   try {
     // Récupérer toutes les alertes non acquittées
     const alerts = await prisma.alert.findMany({

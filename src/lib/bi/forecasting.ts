@@ -234,9 +234,9 @@ export async function simulateWhatIf(
     where: { tenantId },
     _sum: { montantHT: true, montantTVA: true },
   });
-  const avgMarginPercent = marginAgg._sum.montantTTC
-    ? ((marginAgg._sum.montantTTC - marginAgg._sum.montantHT) /
-        marginAgg._sum.montantTTC) *
+  const avgMarginPercent = ((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0))
+    ? ((((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0)) - marginAgg._sum.montantHT) /
+        ((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0))) *
       100
     : 20;
 

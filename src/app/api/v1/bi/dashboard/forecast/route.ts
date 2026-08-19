@@ -11,7 +11,7 @@ import {
   simulateWhatIf,
 } from "@/lib/bi/forecasting";
 
-export const GET = withTenantGuard(async (req: NextRequest, tenantId: string) => {
+export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: { tenantId: string }) => {
   try {
     // Prévisions CA 30 jours
     const caForecast = await forecastCA(tenantId, 30);

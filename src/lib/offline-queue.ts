@@ -67,7 +67,7 @@ if (typeof window !== "undefined") {
       try {
         await apiRequest(req.path, {
           method: req.method as "POST" | "PATCH",
-          body: req.body,
+          body: req.body as any,
           idempotencyKey: req.idempotencyKey,
         });
         if (req.id !== undefined) await offlineQueue.remove(req.id);

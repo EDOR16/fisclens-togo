@@ -8,7 +8,7 @@ import { withTenantGuard } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
 import { getProfitabilityByCategory } from "@/lib/bi/aggregates";
 
-export const GET = withTenantGuard(async (req: NextRequest, tenantId: string) => {
+export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: { tenantId: string }) => {
   try {
     // Marges par catégorie
     const profitabilityByCategory = await getProfitabilityByCategory(tenantId);

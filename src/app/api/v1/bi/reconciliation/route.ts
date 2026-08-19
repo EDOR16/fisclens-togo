@@ -23,7 +23,7 @@ interface ReconciliationResult {
   }>;
 }
 
-export const GET = withTenantGuard(async (req: NextRequest, tenantId: string) => {
+export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: { tenantId: string }) => {
   try {
     // Paramètre optionnel : seuil d'écart (en % du CA, défaut 5%)
     const url = new URL(req.url);

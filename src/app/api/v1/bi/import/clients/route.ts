@@ -7,7 +7,7 @@ import { prisma } from "@/lib/server/prisma";
 import { withTenantGuard } from "@/lib/server/with-guard";
 import { validateClientsImport } from "@/lib/bi/excel-import";
 
-export const POST = withTenantGuard(async (req: NextRequest, tenantId: string) => {
+export const POST = withTenantGuard(async (req: NextRequest, { tenantId }: { tenantId: string }) => {
   try {
     const body = await req.json() as { fileBuffer: string };
     const { fileBuffer } = body;

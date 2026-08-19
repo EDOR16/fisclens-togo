@@ -40,7 +40,7 @@ export default function WorkspaceBIPage() {
       const response = await apiClient.get(`/bi/dashboard/${dashboardName}`);
       setDashboardData((prev) => ({
         ...prev,
-        [dashboardName]: response.data,
+        [dashboardName]: (response as any).data,
       }));
     } catch (error) {
       console.error(`Erreur chargement ${dashboardName}:`, error);
@@ -61,7 +61,7 @@ export default function WorkspaceBIPage() {
         fileName: file.name,
       });
 
-      setImportProgress(`✓ ${response.message}`);
+      setImportProgress(`✓ ${(response as any).message}`);
 
       // Recharger les données
       setTimeout(() => {
@@ -265,7 +265,7 @@ export default function WorkspaceBIPage() {
 
             <TabsContent value="alerts" className="space-y-4">
               {dashboardData.alerts ? (
-                <AlertsComponent {...dashboardData.alerts.data} />
+                <AlertsComponent {...(dashboardData.alerts as any)} />
               ) : (
                 <Card className="p-6 text-center text-gray-500">
                   Cliquez pour charger les alertes

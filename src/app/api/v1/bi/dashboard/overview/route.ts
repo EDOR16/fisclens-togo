@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withTenantGuard } from "@/lib/server/with-guard";
 import { calculateGlobalKPIs } from "@/lib/bi/aggregates";
 
-export const GET = withTenantGuard(async (req: NextRequest, tenantId: string) => {
+export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: { tenantId: string }) => {
   try {
     const kpis = await calculateGlobalKPIs(tenantId);
 

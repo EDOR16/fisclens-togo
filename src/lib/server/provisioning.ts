@@ -120,6 +120,7 @@ export async function provisionTenant(input: ProvisionInput) {
   return prisma.$transaction(
     async (tx) => {
       await ensureSyscohadaReferences(tx);
+
       // 1. Création du Tenant Réel
       const tenant = await tx.tenant.create({
         data: {
@@ -130,7 +131,7 @@ export async function provisionTenant(input: ProvisionInput) {
         },
       });
 
-      // 2. Association du rôle utilisateur (GÉRANT par défaut, ou CABINET si sélectionné)
+      // 2. Association du rôle utilisateur
       const role = input.role || "GERANT";
       await tx.userTenant.create({
         data: {
@@ -140,7 +141,6 @@ export async function provisionTenant(input: ProvisionInput) {
         },
       });
 
-      // Si rôle CABINET ou ADMIN_SYS -> 2FA obligatoire exigé dès la prochaine connexion
       if (role === "CABINET" || role === "ADMIN_SYS") {
         await tx.user.update({
           where: { id: input.ownerUserId },
@@ -148,7 +148,7 @@ export async function provisionTenant(input: ProvisionInput) {
         });
       }
 
-      // 3. Plan comptable : référentiel central (noyau + import officiel validé).
+      // 3. Plan comptable
       const refs = await tx.syscohadaRef.findMany();
       await tx.comptePlan.createMany({
         data: refs.map((ref) => ({
@@ -162,11 +162,11 @@ export async function provisionTenant(input: ProvisionInput) {
         })),
       });
 
-      // 4. Génération automatique du calendrier fiscal selon le régime (TVA au 15, Patente 31/03, Liasse 30/04, etc.)
+      // 4. Calendrier fiscal
       const currentYear = new Date().getFullYear();
       await generateCalendar(tx, tenant.id, input.regime, currentYear);
 
-      // 5. Enregistrement des consentements actifs (Loi togolaise n°2018-26 relative à la protection des données)
+      // 5. Consentements
       for (const consentType of ["CGU", "CONFIDENTIALITE"]) {
         await tx.consentRecord.create({
           data: {
@@ -179,7 +179,7 @@ export async function provisionTenant(input: ProvisionInput) {
         });
       }
 
-      // 6. Audit log initial
+      // 6. Audit log
       await tx.auditLog.create({
         data: {
           tenantId: tenant.id,
@@ -198,6 +198,9 @@ export async function provisionTenant(input: ProvisionInput) {
 
       return tenant;
     },
-    { timeout: 30000 }
+    {
+      timeout: 120000, // ✅ Augmenté à 120 secondes (2 min) pour éviter P2028
+      maxWait: 60000   // ✅ Temps d'attente max pour acquérir la transaction
+    }
   );
 }

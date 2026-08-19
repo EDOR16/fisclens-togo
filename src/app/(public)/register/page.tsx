@@ -8,8 +8,8 @@ import { useUI, Switchers } from "@/lib/ui-providers";
 
 const REGIMES = [
   { value: "REEL_NORMAL", labelKey: "regime_1" },
-  { value: "RSI",         labelKey: "regime_2" },
-  { value: "TPU",         labelKey: "regime_3" },
+  { value: "RSI", labelKey: "regime_2" },
+  { value: "TPU", labelKey: "regime_3" },
 ] as const;
 
 /** Score de solidité du mot de passe 0..4 (section 8) */
@@ -31,17 +31,19 @@ const inputCls =
 export default function RegisterPage() {
   const { t } = useUI();
 
+  // 1. Initialisation avec régime par défaut pour éviter erreur Zod
   const [f, setF] = useState({
     tenantName: "",
-    email:      "",
-    regime:     "",
-    password:   "",
-    confirm:    "",
-    cgu:        false,
-    conf:       false,
+    email: "",
+    regime: "REEL_NORMAL",
+    password: "",
+    confirm: "",
+    cgu: false,
+    conf: false,
   });
+
   const [err, setErr] = useState<string | null>(null);
-  const [ok,  setOk]  = useState(false);
+  const [ok, setOk] = useState(false);
 
   const set = (k: string, v: unknown) => setF((s) => ({ ...s, [k]: v }));
   const s = score(f.password);
@@ -55,21 +57,34 @@ export default function RegisterPage() {
     if (s < 3)
       return setErr("Mot de passe trop faible (12 caractères min., majuscules, chiffres, symbole).");
 
-    const res = await fetch("/api/v1/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        tenantName:    f.tenantName,
-        email:         f.email,
-        regime:        f.regime,
-        password:      f.password,
-        cgu:           f.cgu,
-        confidentialite: f.conf,
-      }),
-    });
+    try {
+      const res = await fetch("/api/v1/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: f.tenantName, // ✅ Correction : companyName attendu par le backend
+          email: f.email,
+          regime: f.regime,
+          password: f.password,
+          cgu: f.cgu,
+          confidentialite: f.conf,
+          role: "GERANT",
+          nif: ""
+        }),
+      });
 
-    if (!res.ok) return setErr("Inscription impossible — vérifiez les champs ou l'email.");
-    setOk(true);
+      const data = await res.json();
+
+      if (!res.ok) {
+        // ✅ Affiche le message d'erreur précis du serveur (Zod)
+        const errorMsg = data.details?._errors?.[0] || data.message || "Erreur inconnue";
+        return setErr(errorMsg);
+      }
+
+      setOk(true);
+    } catch (error) {
+      setErr("Impossible de joindre le serveur.");
+    }
   }
 
   return (
@@ -77,9 +92,8 @@ export default function RegisterPage() {
 
       {/* ── En-tête ── */}
       <header className="mx-auto flex max-w-6xl items-center gap-3 px-6 pt-10">
-        {/* Logo flat uniquement sur papier (règle de marque) */}
         <span className="grid h-10 w-10 place-items-center rounded-lg font-mono text-lg font-semibold"
-              style={{ background: "var(--ink)", color: "var(--bg)" }}>
+          style={{ background: "var(--ink)", color: "var(--bg)" }}>
           F
         </span>
         <p className="font-display text-xl font-semibold">
@@ -88,10 +102,9 @@ export default function RegisterPage() {
         </p>
         <div className="ml-auto flex items-center gap-4">
           <p className="hidden font-mono text-[11px] uppercase tracking-widest sm:block"
-             style={{ color: "var(--inkSoft)" }}>
+            style={{ color: "var(--inkSoft)" }}>
             {t("no_sim")}
           </p>
-          {/* Bascule langue + fond */}
           <Switchers />
         </div>
       </header>
@@ -116,7 +129,7 @@ export default function RegisterPage() {
           </ul>
         </div>
 
-        {/* Formulaire = reçu perforé — toujours ivoire sur les deux fonds */}
+        {/* Formulaire */}
         <div className="receipt rotate-[0.6deg] rounded-sm p-8">
           <div className="flex items-start justify-between">
             <h2 className="font-display text-2xl font-semibold">
@@ -130,8 +143,8 @@ export default function RegisterPage() {
               <p className="text-lg">✔ {t("provisioned_ok")}</p>
               <p>{t("provisioned_desc")}</p>
               <a href="/login"
-                 className="inline-block rounded-full px-6 py-3 font-semibold"
-                 style={{ background: "#0B3D2E", color: "#FBF7EC" }}>
+                className="inline-block rounded-full px-6 py-3 font-semibold"
+                style={{ background: "#0B3D2E", color: "#FBF7EC" }}>
                 {t("connect_cta")}
               </a>
             </div>
@@ -142,24 +155,24 @@ export default function RegisterPage() {
               <label className="block font-mono text-xs uppercase tracking-widest text-inkSoft">
                 {t("company")}
                 <input className={inputCls} placeholder="Nom de votre entreprise"
-                       value={f.tenantName}
-                       onChange={(e) => set("tenantName", e.target.value)} required />
+                  value={f.tenantName}
+                  onChange={(e) => set("tenantName", e.target.value)} required />
               </label>
 
               {/* Email */}
               <label className="block font-mono text-xs uppercase tracking-widest text-inkSoft">
                 {t("email")}
                 <input className={inputCls} type="email" placeholder="vous@entreprise.tg"
-                       value={f.email}
-                       onChange={(e) => set("email", e.target.value)} required />
+                  value={f.email}
+                  onChange={(e) => set("email", e.target.value)} required />
               </label>
 
               {/* Régime */}
               <label className="block font-mono text-xs uppercase tracking-widest text-inkSoft">
                 {t("regime")} <LegalRef>détermine votre calendrier</LegalRef>
                 <select className={inputCls + " cursor-pointer"} value={f.regime}
-                        onChange={(e) => set("regime", e.target.value)} required>
-                  <option value="">{t("regime_ph")}</option>
+                  onChange={(e) => set("regime", e.target.value)} required>
+                  {/* Option vide retirée car défaut est REEL_NORMAL, mais on peut la garder si on veut forcer le choix */}
                   {REGIMES.map((r) => (
                     <option key={r.value} value={r.value}>{t(r.labelKey)}</option>
                   ))}
@@ -171,9 +184,8 @@ export default function RegisterPage() {
                 <label className="block font-mono text-xs uppercase tracking-widest text-inkSoft">
                   {t("password")}
                   <input className={inputCls} type="password" value={f.password}
-                         onChange={(e) => set("password", e.target.value)} required />
+                    onChange={(e) => set("password", e.target.value)} required />
                 </label>
-                {/* Indicateur de force */}
                 <div className="mt-2 flex gap-1" aria-hidden>
                   {[0, 1, 2, 3].map((i) => (
                     <span key={i} className="h-1.5 flex-1 rounded" style={{
@@ -192,19 +204,19 @@ export default function RegisterPage() {
               <label className="block font-mono text-xs uppercase tracking-widest text-inkSoft">
                 {t("confirm")}
                 <input className={inputCls} type="password" value={f.confirm}
-                       onChange={(e) => set("confirm", e.target.value)} required />
+                  onChange={(e) => set("confirm", e.target.value)} required />
               </label>
 
               {/* Consentements */}
               <div className="space-y-2 font-mono text-xs">
                 <label className="flex items-start gap-2">
                   <input type="checkbox" className="mt-0.5" style={{ accentColor: "#0B3D2E" }}
-                         checked={f.cgu} onChange={(e) => set("cgu", e.target.checked)} required />
+                    checked={f.cgu} onChange={(e) => set("cgu", e.target.checked)} required />
                   <span>{t("cgu")} <LegalRef>v1.0</LegalRef></span>
                 </label>
                 <label className="flex items-start gap-2">
                   <input type="checkbox" className="mt-0.5" style={{ accentColor: "#0B3D2E" }}
-                         checked={f.conf} onChange={(e) => set("conf", e.target.checked)} required />
+                    checked={f.conf} onChange={(e) => set("conf", e.target.checked)} required />
                   <span>{t("privacy")} <LegalRef>loi n°2018-26</LegalRef></span>
                 </label>
               </div>
@@ -212,20 +224,20 @@ export default function RegisterPage() {
               {/* Erreur */}
               {err && (
                 <p className="border-l-4 pl-3 font-mono text-xs"
-                   style={{ borderColor: "var(--marginRed)", color: "var(--marginRed)" }}>
+                  style={{ borderColor: "var(--marginRed)", color: "var(--marginRed)" }}>
                   {err}
                 </p>
               )}
 
               <button type="submit"
-                      className="w-full rounded-full py-3.5 font-semibold transition hover:opacity-80 active:scale-95"
-                      style={{ background: "#0B3D2E", color: "#FBF7EC" }}>
+                className="w-full rounded-full py-3.5 font-semibold transition hover:opacity-80 active:scale-95"
+                style={{ background: "#0B3D2E", color: "#FBF7EC" }}>
                 {t("submit")}
               </button>
 
               <p className="text-center font-mono text-xs">
                 <a href="/login" className="underline decoration-2"
-                   style={{ textDecorationColor: "var(--highlight)" }}>
+                  style={{ textDecorationColor: "var(--highlight)" }}>
                   {t("login_link")}
                 </a>
               </p>

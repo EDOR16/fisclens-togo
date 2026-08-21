@@ -210,7 +210,7 @@ export function Sidebar() {
           <span className="text-white font-bold text-sm">F</span>
         </div>
         <div>
-          <span className="font-semibold text-sm"><span className="text-foreground">Fisc</span><span style={{ color: "#B3261E" }}>Lens</span></span>
+          <span className="font-semibold text-sm"><span className="text-foreground">Fisc</span><span className="text-[#B3261E]">Lens</span></span>
           <span className="text-xs text-muted-foreground ml-1">Togo</span>
         </div>
       </Link>

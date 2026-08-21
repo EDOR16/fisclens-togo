@@ -7,6 +7,7 @@ export interface AuthenticatedContext {
   role: string;
   user: {
     id: string;
+    userId: string;
     email: string;
     name?: string;
   };
@@ -16,7 +17,7 @@ export type GuardContext = AuthenticatedContext;
 
 export interface GuardOptions {
   roles?: string[];
-  requireTenant?: boolean; // Par défaut true, sauf si explicitement false
+  requireTenant?: boolean;
 }
 
 type Handler = (
@@ -24,10 +25,6 @@ type Handler = (
   ctx: GuardContext
 ) => Promise<NextResponse> | NextResponse;
 
-/**
- * Middleware de protection multi-tenant.
- * Si options.requireTenant === false, on injecte un tenantId vide mais on ne bloque pas.
- */
 export function withGuard(
   handler: Handler,
   options?: GuardOptions
@@ -39,7 +36,6 @@ export function withGuard(
         req.nextUrl.searchParams.get("tenantId") ||
         "";
 
-      // ❌ CORRECTION ICI : On ne bloque QUE si requireTenant n'est pas explicitement false
       if (!tenantId && options?.requireTenant !== false) {
         return NextResponse.json(
           { error: "TENANT_REQUIRED", message: "Tenant ID requis" },
@@ -52,18 +48,18 @@ export function withGuard(
       const email = req.headers.get("x-user-email") || "system@fisclens.tg";
       const name = req.headers.get("x-user-name") || "Utilisateur système";
 
-      // Vérification des rôles autorisés
       if (options?.roles && options.roles.length > 0 && !options.roles.includes(role)) {
         return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
       }
 
       const ctx: GuardContext = {
         params: context.params,
-        tenantId, // Peut être "" si requireTenant=false
+        tenantId,
         userId,
         role,
         user: {
           id: userId,
+          userId: userId,
           email,
           name,
         },
@@ -78,5 +74,4 @@ export function withGuard(
   };
 }
 
-// Alias pour compatibilité
 export const withTenantGuard = withGuard;

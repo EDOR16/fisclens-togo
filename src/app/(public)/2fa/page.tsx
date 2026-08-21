@@ -56,7 +56,7 @@ export default function TwoFaPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await api.post<VerifyResponse>("/auth/2fa/verify", { userId, otp });
+      const res = await api.post<VerifyResponse>("/api/v1/auth/2fa/verify", { userId, otp });
       sessionStorage.removeItem("fl_2fa_uid");
       await login(res.token, res.tenantId);
 

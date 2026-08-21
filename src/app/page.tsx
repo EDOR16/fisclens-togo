@@ -446,10 +446,10 @@ export default function GrandLivreLandingPage() {
 
             <div className="pt-2 flex justify-between items-baseline text-[#33604C]">
               <div>
-                <span>3. Déduction Cotisation AMU Ouvrière (2.5%)</span>
+                <span>3. Déduction Cotisation AMU Ouvrière (5%)</span>
                 <LegalRef>Décret 2023-096/PR</LegalRef>
               </div>
-              <span>- 12 500 F</span>
+              <span>- 25 000 F</span>
             </div>
 
             <div className="pt-2 flex justify-between items-baseline font-semibold text-[#0B3D2E]">
@@ -457,7 +457,7 @@ export default function GrandLivreLandingPage() {
                 <span>= SALAIRE BRUT IMPOSABLE (SBI)</span>
                 <span className="text-[10px] text-[#33604C] block">Base de calcul de l&apos;impôt sur le revenu</span>
               </div>
-              <span>467 500 F</span>
+              <span>455 000 F</span>
             </div>
 
             <div className="pt-2 flex justify-between items-baseline text-[#33604C]">
@@ -465,7 +465,7 @@ export default function GrandLivreLandingPage() {
                 <span>4. Abattement forfaitaire pour frais professionnels (28%)</span>
                 <LegalRef>CGI Togo art. 26</LegalRef>
               </div>
-              <span>- 130 900 F</span>
+              <span>- 127 400 F</span>
             </div>
 
             <div className="pt-2 flex justify-between items-baseline font-bold text-[#0B3D2E]">
@@ -473,7 +473,7 @@ export default function GrandLivreLandingPage() {
                 <span>= REVENU NET IMPOSABLE SOUMIS AU BARÈME PROGRESSIF</span>
                 <LegalRef>CGI Togo art. 74</LegalRef>
               </div>
-              <span>336 600 F</span>
+              <span>327 600 F</span>
             </div>
 
             <div className="pt-2 flex justify-between items-baseline text-[#157A46] font-bold">

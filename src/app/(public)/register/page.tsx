@@ -97,7 +97,7 @@ export default function RegisterPage() {
           F
         </span>
         <p className="font-display text-xl font-semibold">
-          FiscLens&nbsp;
+          <span style={{ color: "var(--ink)" }}>Fisc</span><span style={{ color: "#B3261E" }}>Lens</span>&nbsp;
           <span style={{ color: "var(--stamp)" }}>Togo</span>
         </p>
         <div className="ml-auto flex items-center gap-4">

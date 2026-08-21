@@ -1,10 +1,12 @@
-/**
- * Store auth côté client — gère session, token, tenantId courant et mode expert.
- * Pas de Zustand pour garder les dépendances minimales — Context React simple.
- */
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { api } from "@/lib/api-client";
 
 // ---------------------------------------------------------------------------
@@ -33,7 +35,6 @@ export type SessionUser = {
 type AuthState = {
   user: SessionUser | null;
   currentTenantId: string | null;
-  /** Mode expert = vocabulaire comptable (cabinet) vs vulgarisé (gérant) */
   expertMode: boolean;
   isLoading: boolean;
 };
@@ -48,10 +49,6 @@ type AuthActions = {
 
 type AuthContextValue = AuthState & AuthActions;
 
-// ---------------------------------------------------------------------------
-// Context
-// ---------------------------------------------------------------------------
-
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -64,56 +61,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshSession = useCallback(async () => {
     const token = localStorage.getItem("fl_token");
+
     if (!token) {
-      setState((s) => ({ ...s, user: null, isLoading: false }));
+      setState((s) => ({ ...s, user: null, currentTenantId: null, isLoading: false }));
       return;
     }
+
     try {
-      const user = await api.get<SessionUser>("/auth/me");
+      // Correction URL API : /api/v1/auth/me
+      const user = await api.get<SessionUser>("/api/v1/auth/me");
+
       const storedTenant = localStorage.getItem("fl_tenant_id");
       const tenantId =
         storedTenant && user.tenantIds.includes(storedTenant)
           ? storedTenant
-          : (user.tenantIds[0] ?? null);
+          : user.tenantIds[0] ?? null;
+
+      if (tenantId) {
+        localStorage.setItem("fl_tenant_id", tenantId);
+      }
+
       setState((s) => ({ ...s, user, currentTenantId: tenantId, isLoading: false }));
     } catch {
       localStorage.removeItem("fl_token");
       localStorage.removeItem("fl_tenant_id");
-      setState((s) => ({ ...s, user: null, isLoading: false }));
+      
+      document.cookie = "fl_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+      document.cookie = "fl_tenant_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+
+      setState((s) => ({ ...s, user: null, currentTenantId: null, isLoading: false }));
     }
   }, []);
 
   useEffect(() => {
     void refreshSession();
-    // Lire le mode expert sauvegardé
     const stored = localStorage.getItem("fl_expert_mode");
     if (stored === "true") {
       setState((s) => ({ ...s, expertMode: true }));
     }
   }, [refreshSession]);
 
-  const login = useCallback(async (token: string, tenantId: string) => {
-    localStorage.setItem("fl_token", token);
-    localStorage.setItem("fl_tenant_id", tenantId);
-    // Stocker aussi dans un cookie pour que le middleware Next.js puisse lire le token
-    // (localStorage n'est pas accessible côté serveur/Edge)
-    const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
-    document.cookie = `fl_token=${token}; path=/; expires=${expires}; SameSite=Lax`;
-    document.cookie = `fl_tenant_id=${tenantId}; path=/; expires=${expires}; SameSite=Lax`;
-    await refreshSession();
-  }, [refreshSession]);
+  const login = useCallback(
+    async (token: string, tenantId: string) => {
+      localStorage.setItem("fl_token", token);
+      localStorage.setItem("fl_tenant_id", tenantId);
+
+      const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
+      document.cookie = `fl_token=${token}; path=/; expires=${expires}; SameSite=Lax`;
+      document.cookie = `fl_tenant_id=${tenantId}; path=/; expires=${expires}; SameSite=Lax`;
+
+      await refreshSession();
+    },
+    [refreshSession]
+  );
 
   const logout = useCallback(() => {
     localStorage.removeItem("fl_token");
     localStorage.removeItem("fl_tenant_id");
-    // Supprimer aussi les cookies
+    localStorage.removeItem("fl_expert_mode");
+
     document.cookie = "fl_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
     document.cookie = "fl_tenant_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+
     setState({ user: null, currentTenantId: null, expertMode: false, isLoading: false });
   }, []);
 
   const switchTenant = useCallback((tenantId: string) => {
     localStorage.setItem("fl_tenant_id", tenantId);
+    
+    const token = localStorage.getItem("fl_token");
+    const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
+    if (token) {
+        document.cookie = `fl_token=${token}; path=/; expires=${expires}; SameSite=Lax`;
+    }
+    document.cookie = `fl_tenant_id=${tenantId}; path=/; expires=${expires}; SameSite=Lax`;
+
     setState((s) => ({ ...s, currentTenantId: tenantId }));
   }, []);
 
@@ -134,17 +156,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
-
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
   return ctx;
 }
 
-/** Vérifie si le rôle courant fait partie d'une liste de rôles autorisés */
 export function useHasRole(...roles: Role[]): boolean {
   const { user } = useAuth();
   if (!user) return false;

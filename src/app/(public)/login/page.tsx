@@ -64,7 +64,7 @@ export default function LoginPage() {
         <div>
           <div className="inline-flex items-center gap-3 rounded-full border border-paper/20 bg-paper/5 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.22em] text-paper/80">
             <span className="grid h-8 w-8 place-items-center rounded-md bg-paper text-[#0B3D2E] font-bold text-base">F</span>
-            FiscLens Togo
+            <span style={{ color: "var(--paper)" }}>Fisc</span><span style={{ color: "#B3261E" }}>Lens</span><span style={{ color: "var(--paper)" }}> Togo</span>
           </div>
 
           <h1 className="mt-6 font-hand text-6xl leading-[0.95] text-paper md:text-7xl">

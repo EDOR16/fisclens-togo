@@ -47,7 +47,7 @@ export const SYSCOHADA_OFFICIAL_ACCOUNTS = [
   { code: "418100", libelle: "Clients - Factures à établir", classe: 4 },
   { code: "421100", libelle: "Personnel, rémunérations nettes dues", classe: 4 },
   { code: "422000", libelle: "Personnel, avances et acomptes", classe: 4 },
-  { code: "431100", libelle: "Sécurité sociale (CNSS & AMU Togo)", classe: 4 },
+  { code: "431100", libelle: "CNSS - Cotisation ouvrière (4%)", classe: 4 },
   { code: "443100", libelle: "État, TVA facturée sur ventes (18%)", classe: 4 },
   { code: "443200", libelle: "État, TVA facturée sur prestations de services (18%)", classe: 4 },
   { code: "445100", libelle: "État, TVA déductible sur immobilisations (18%)", classe: 4 },
@@ -77,7 +77,7 @@ export const SYSCOHADA_OFFICIAL_ACCOUNTS = [
   { code: "641100", libelle: "Taxe professionnelle (Patente)", classe: 6 },
   { code: "641300", libelle: "Taxes sur les véhicules de société", classe: 6 },
   { code: "661100", libelle: "Rémunération du personnel (Salaires bruts)", classe: 6 },
-  { code: "664100", libelle: "Charges patronales de sécurité sociale (CNSS 17.5% + AMU)", classe: 6 },
+  { code: "664100", libelle: "Charges patronales de sécurité sociale (CNSS 17.5% + AMU 5%)", classe: 6 },
   { code: "681100", libelle: "Dotations aux amortissements d'exploitation", classe: 6 },
   { code: "681200", libelle: "Dotations aux dépréciations d'exploitation (Créances douteuses)", classe: 6 },
 

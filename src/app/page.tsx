@@ -200,7 +200,7 @@ export default function GrandLivreLandingPage() {
             </h1>
 
             <p className="text-base sm:text-lg text-[#33604C] leading-relaxed max-w-lg">
-              Comptabilité SYSCOHADA, TVA 18 %, IRPP barème art. 74, IS vs IMF : FiscLens Togo calcule,{" "}
+              Comptabilité SYSCOHADA, TVA 18 %, IRPP barème art. 74, IS vs IMF : <span className="text-ink">Fisc</span><span className="text-[#B3261E] font-bold">Lens</span> Togo calcule,{" "}
               <strong className="text-[#0B3D2E]">cite l&apos;article de loi</strong>, et prépare vos déclarations OTR sans approximation.
             </p>
 
@@ -237,7 +237,7 @@ export default function GrandLivreLandingPage() {
                     QUITTANCE D&apos;ESTIMATION FISCALE
                   </span>
                   <span className="font-mono text-xs font-bold text-[#0B3D2E]">
-                    FiscLens Togo · Moteur SYSCOHADA v1.0
+                    <span className="text-ink">Fisc</span><span className="text-[#B3261E] font-bold">Lens</span> Togo · Moteur SYSCOHADA v1.0
                   </span>
                 </div>
                 <Stamp variant="circle" color="#157A46">
@@ -414,7 +414,7 @@ export default function GrandLivreLandingPage() {
             La preuve par l&apos;article de loi.
           </h2>
           <p className="text-sm text-[#33604C] leading-relaxed">
-            FiscLens ne cache aucun calcul derrière une boîte noire. Voici comment le moteur décompose un bulletin de paie et la retenue IRPP ligne par ligne, avec chaque source juridique.
+            <span className="text-ink">Fisc</span><span className="text-[#B3261E] font-bold">Lens</span> ne cache aucun calcul derrière une boîte noire. Voici comment le moteur décompose un bulletin de paie et la retenue IRPP ligne par ligne, avec chaque source juridique.
           </p>
         </div>
 
@@ -504,7 +504,7 @@ export default function GrandLivreLandingPage() {
             Conçu pour le réel togolais.
           </h2>
           <p className="text-xs sm:text-sm text-[#33604C]">
-            Pas une adaptation superficielle d&apos;un logiciel européen : FiscLens répond aux réalités quotidiennes de Lomé, Kara et de l&apos;intérieur.
+            Pas une adaptation superficielle d&apos;un logiciel européen : <span className="text-ink">Fisc</span><span className="text-[#B3261E] font-bold">Lens</span> répond aux réalités quotidiennes de Lomé, Kara et de l&apos;intérieur.
           </p>
         </div>
 
@@ -721,10 +721,10 @@ export default function GrandLivreLandingPage() {
             </span>
             <h2 className="font-hand text-5xl sm:text-6xl text-[#FBF7EC] leading-tight">
               Vous gardez la signature et le jugement.<br />
-              <span className="text-[#FCD116]">FiscLens prend le clavier et les échéances.</span>
+              <span className="text-[#FCD116]"><span className="text-ink">Fisc</span><span className="text-[#B3261E] font-bold">Lens</span> prend le clavier et les échéances.</span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
-              Libérez vos collaborateurs de la ressaisie manuelle. FiscLens sécurise les écritures d&apos;équilibrage, applique les proratas de déduction et prépare vos états financiers SYSCOHADA prêts à être certifiés.
+              Libérez vos collaborateurs de la ressaisie manuelle. <span className="text-ink">Fisc</span><span className="text-[#B3261E] font-bold">Lens</span> sécurise les écritures d&apos;équilibrage, applique les proratas de déduction et prépare vos états financiers SYSCOHADA prêts à être certifiés.
             </p>
           </div>
 
@@ -762,7 +762,7 @@ export default function GrandLivreLandingPage() {
 
           <div className="pt-6 border-t border-[#E2D9C2] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px]">
             <p>
-              © {new Date().getFullYear()} FiscLens Togo. Conçu conformément aux référentiels <strong>SYSCOHADA Révisé</strong>, <strong>CGI Togo</strong> et formulaires OTR.
+              © {new Date().getFullYear()} <span className="text-ink">Fisc</span><span className="text-[#B3261E] font-bold">Lens</span> Togo. Conçu conformément aux référentiels <strong>SYSCOHADA Révisé</strong>, <strong>CGI Togo</strong> et formulaires OTR.
             </p>
             <p className="font-bold text-[#0B3D2E]">
               Protection des Données Financières · Loi n°2018-26 (Togo)

@@ -7,7 +7,6 @@ export interface AuthenticatedContext {
   role: string;
   user: {
     id: string;
-    userId: string;
     email: string;
     name?: string;
   };
@@ -65,7 +64,6 @@ export function withGuard(
         role,
         user: {
           id: userId,
-          userId,
           email,
           name,
         },

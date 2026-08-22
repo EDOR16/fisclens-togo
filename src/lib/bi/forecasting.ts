@@ -44,12 +44,12 @@ export interface WhatIfScenario {
 // ---------------------------------------------------------------------------
 
 function getDateRange(days: number): string[] {
-  const dates = [];
+  const dates: string[] = [];
   const now = new Date();
   for (let i = 0; i < days; i++) {
     const date = new Date(now);
     date.setDate(date.getDate() + i);
-    dates.push(date.toISOString().split("T")[0]);
+    dates.push(date.toISOString().split("T")[0] ?? "");
   }
   return dates;
 }
@@ -77,7 +77,7 @@ function calculateMAPE(actual: number[], predicted: number[]): number {
   if (actual.length === 0) return 0;
   const errors = actual.map((a, i) => {
     if (a === 0) return 0;
-    return Math.abs((a - predicted[i]) / a);
+    return Math.abs((a - (predicted[i] ?? 0)) / a);
   });
   return Math.round((errors.reduce((a, b) => a + b, 0) / errors.length) * 100);
 }
@@ -99,7 +99,7 @@ export async function forecastCA(
     where: {
       tenantId,
       date: {
-        gte: ninetyDaysAgo.toISOString().split("T")[0],
+        gte: ninetyDaysAgo.toISOString().split("T")[0] ?? "",
       },
     },
     select: { date: true, montantHT: true },
@@ -118,7 +118,7 @@ export async function forecastCA(
   for (let i = -90; i <= 0; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() + i);
-    const dateStr = d.toISOString().split("T")[0];
+    const dateStr = d.toISOString().split("T")[0] ?? "";
     caValues.push(dailyCA.get(dateStr) || 0);
   }
 
@@ -133,7 +133,7 @@ export async function forecastCA(
   // Prévisions simples : moyenne mobile constante
   const projections: ForecastResult[] = [];
   const forecastDates = getDateRange(days);
-  
+
   for (const date of forecastDates) {
     projections.push({
       date,
@@ -230,14 +230,19 @@ export async function simulateWhatIf(
   const projectedCA = baseCA + volumeImpact + priceImpact + churnImpact;
 
   // Marge moyenne
+  // NOTE MÉTIER : cette formule calcule (HT+TVA - HT) / (HT+TVA), ce qui donne en réalité
+  // un taux de TVA apparent (montantTVA / montantTTC), pas une marge commerciale.
+  // Corrigé ici uniquement pour la null-safety demandée par tsc (marginAgg._sum.montantHT
+  // peut être null) — la logique métier reste identique à l'existant, à valider séparément
+  // si l'objectif est une vraie marge (CA - coût d'achat) / CA comme dans aggregates.ts.
   const marginAgg = await prisma.sale.aggregate({
     where: { tenantId },
     _sum: { montantHT: true, montantTVA: true },
   });
   const avgMarginPercent = ((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0))
-    ? ((((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0)) - marginAgg._sum.montantHT) /
-        ((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0))) *
-      100
+    ? ((((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0)) - (marginAgg._sum.montantHT || 0)) /
+      ((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0))) *
+    100
     : 20;
 
   const projectedMargin = Math.round((projectedCA * avgMarginPercent) / 100);

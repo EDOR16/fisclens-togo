@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/server/prisma";
-import { withTenantGuard } from "@/lib/server/with-guard";
+import { withTenantGuard, GuardContext } from "@/lib/server/with-guard";
 import { validateSalesImport } from "@/lib/bi/excel-import";
 
 interface ImportSalesRequest {
@@ -16,7 +16,7 @@ interface ImportSalesRequest {
   fileBuffer: string; // base64 encoded
 }
 
-export const POST = withTenantGuard(async (req: NextRequest, { tenantId }: { tenantId: string }) => {
+export const POST = withTenantGuard(async (req: NextRequest, { tenantId }: GuardContext) => {
   try {
     const body = (await req.json()) as ImportSalesRequest;
     const { fileBuffer } = body;

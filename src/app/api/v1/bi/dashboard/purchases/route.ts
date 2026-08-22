@@ -6,11 +6,11 @@ export const dynamic = 'force-dynamic';
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { withTenantGuard } from "@/lib/server/with-guard";
+import { withTenantGuard, GuardContext } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
 import { getTopSuppliers } from "@/lib/bi/aggregates";
 
-export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: { tenantId: string }) => {
+export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardContext) => {
   try {
     // Top fournisseurs
     const topSuppliers = await getTopSuppliers(tenantId, 10);
@@ -38,13 +38,13 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: { tena
       .map(([productCode, data]) => {
         const firstPrice = data.prices[0];
         const lastPrice = data.prices[data.prices.length - 1];
-        const inflationPercent = firstPrice > 0 
+        const inflationPercent = firstPrice !== undefined && firstPrice > 0 && lastPrice !== undefined
           ? Math.round(((lastPrice - firstPrice) / firstPrice) * 100)
           : 0;
         return {
           productCode,
-          firstPrice,
-          lastPrice,
+          firstPrice: firstPrice ?? 0,
+          lastPrice: lastPrice ?? 0,
           inflationPercent,
         };
       })

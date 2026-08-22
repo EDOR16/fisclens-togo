@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic';
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { withTenantGuard } from "@/lib/server/with-guard";
+import { withTenantGuard, GuardContext } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
 
-export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: { tenantId: string }) => {
+export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardContext) => {
   try {
     // Récupérer toutes les alertes non acquittées
     const alerts = await prisma.alert.findMany({

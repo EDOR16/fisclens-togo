@@ -16,11 +16,12 @@ model User {
   require2fa       Boolean  @default(false)
   twoFaSecret      String?
   backupCodes      String? // JSON array de codes de secours hashés
-  
+  isSuperAdmin     Boolean  @default(false) // ✅ Ajouté pour le Super Admin Panel
+
   // ✅ Champs ajoutés pour la réinitialisation de mot de passe
   resetToken       String?
   resetTokenExpiry DateTime?
-  
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -302,12 +303,12 @@ model Forecast {
 model Alert {
   id           String   @id @default(cuid())
   tenantId     String
-  type         String // VENTE_CHUTE, MARGE_NEG, ENCOURS_DEPASSE, ECART_COMPTA, STOCK_LENT
-  severity     String // INFO, WARNING, CRITICAL
-  title        String // Titre court
-  message      String // Description détaillée
+  type         String   // VENTE_CHUTE, MARGE_NEG, ENCOURS_DEPASSE, ECART_COMPTA, STOCK_LENT
+  severity     String   // INFO, WARNING, CRITICAL
+  title        String   // Titre court
+  message      String   // Description détaillée
   acknowledged Boolean  @default(false)
-  metadata     String? // JSON pour détails contextuels
+  metadata     String?  // JSON pour détails contextuels
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

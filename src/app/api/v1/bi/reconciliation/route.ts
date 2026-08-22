@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/server/prisma";
-import { withTenantGuard } from "@/lib/server/with-guard";
+import { withTenantGuard, GuardContext } from "@/lib/server/with-guard";
 
 interface ReconciliationResult {
   salesBI: number; // Total CA BI (ventes)
@@ -25,7 +25,7 @@ interface ReconciliationResult {
   }>;
 }
 
-export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: { tenantId: string }) => {
+export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardContext) => {
   try {
     // Paramètre optionnel : seuil d'écart (en % du CA, défaut 5%)
     const url = new URL(req.url);

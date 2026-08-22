@@ -6,14 +6,14 @@ export const dynamic = 'force-dynamic';
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { withTenantGuard } from "@/lib/server/with-guard";
+import { withTenantGuard, GuardContext } from "@/lib/server/with-guard";
 import {
   forecastCA,
   forecastTreasury,
   simulateWhatIf,
 } from "@/lib/bi/forecasting";
 
-export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: { tenantId: string }) => {
+export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardContext) => {
   try {
     // Prévisions CA 30 jours
     const caForecast = await forecastCA(tenantId, 30);

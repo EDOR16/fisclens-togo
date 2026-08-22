@@ -82,6 +82,7 @@ function parseExcelFile(buffer: Buffer): Record<string, unknown>[] {
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) throw new Error("Fichier Excel vide");
   const sheet = workbook.Sheets[sheetName];
+  if (!sheet) throw new Error("Feuille Excel introuvable");
   return utils.sheet_to_json(sheet, { defval: "" });
 }
 

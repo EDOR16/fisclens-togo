@@ -6,11 +6,11 @@ export const dynamic = 'force-dynamic';
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { withTenantGuard } from "@/lib/server/with-guard";
+import { withTenantGuard, GuardContext } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
 
 export const POST = withTenantGuard(
-  async (req: NextRequest, { tenantId }: { tenantId: string }) => {
+  async (req: NextRequest, { tenantId }: GuardContext) => {
     try {
       const url = new URL(req.url);
       const pathParts = url.pathname.split("/");

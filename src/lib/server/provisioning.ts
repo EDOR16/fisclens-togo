@@ -102,14 +102,18 @@ type SyscohadaRefClient = {
   syscohadaRef: {
     upsert(args: { where: { code: string }; update: Record<string, never>; create: SyscohadaReference }): Promise<unknown>;
     findMany(): Promise<SyscohadaReference[]>;
+    createMany(args: { data: SyscohadaReference[]; skipDuplicates?: boolean }): Promise<{ count: number }>;
   };
 };
 
-/** Seed idempotent du noyau : les lignes importées depuis un texte officiel ne sont jamais écrasées. */
+/**
+ * Seed idempotent du noyau : les lignes importées depuis un texte officiel ne sont jamais écrasées.
+ * Une seule requête createMany + skipDuplicates au lieu d'une boucle d'upsert séquentiels
+ * (qui provoquait un timeout P2028 sur la transaction à chaque chargement de page,
+ * puisque ce seed tournait à chaque GET /api/v1/accounting/comptes).
+ */
 export async function ensureSyscohadaReferences(tx: SyscohadaRefClient) {
-  for (const ref of SYSCOHADA_REF) {
-    await tx.syscohadaRef.upsert({ where: { code: ref.code }, update: {}, create: ref });
-  }
+  await tx.syscohadaRef.createMany({ data: SYSCOHADA_REF, skipDuplicates: true });
 }
 
 /**

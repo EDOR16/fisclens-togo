@@ -7,16 +7,22 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
+
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  passwordHash String
-  require2fa   Boolean  @default(false)
-  twoFaSecret  String?
-  backupCodes  String? // JSON array de codes de secours hashés
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String   @id @default(cuid())
+  email            String   @unique
+  name             String
+  passwordHash     String
+  require2fa       Boolean  @default(false)
+  twoFaSecret      String?
+  backupCodes      String? // JSON array de codes de secours hashés
+  
+  // ✅ Champs ajoutés pour la réinitialisation de mot de passe
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   userTenants UserTenant[]
   auditLogs   AuditLog[]
@@ -171,6 +177,7 @@ model AuditLog {
   userId    String?
   action    String
   entity    String
+  entityId  String? // ✅ Ajouté pour correspondre au code forgot-password
   details   String?
   createdAt DateTime @default(now())
 

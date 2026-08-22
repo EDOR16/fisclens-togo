@@ -35,13 +35,13 @@ const NAV_ITEMS: NavItem[] = [
     href: "/comptabilite",
     icon: BookOpen,
     children: [
-      { label: "Saisie",            href: "/comptabilite/saisie",           icon: ChevronRight, roles: ["GERANT", "COMPTABLE"] },
-      { label: "Journaux",          href: "/comptabilite/journaux",          icon: ChevronRight },
-      { label: "Grand livre",       href: "/comptabilite/grand-livre",       icon: ChevronRight },
-      { label: "Balance",           href: "/comptabilite/balance",           icon: ChevronRight },
-      { label: "États financiers",  href: "/comptabilite/etats-financiers",  icon: ChevronRight },
-      { label: "Rapprochement",     href: "/comptabilite/rapprochement",     icon: ChevronRight, roles: ["GERANT", "COMPTABLE"] },
-      { label: "Clôture",           href: "/comptabilite/cloture",           icon: ChevronRight, roles: ["GERANT"] },
+      { label: "Saisie", href: "/comptabilite/saisie", icon: ChevronRight, roles: ["GERANT", "COMPTABLE"] },
+      { label: "Journaux", href: "/comptabilite/journaux", icon: ChevronRight },
+      { label: "Grand livre", href: "/comptabilite/grand-livre", icon: ChevronRight },
+      { label: "Balance", href: "/comptabilite/balance", icon: ChevronRight },
+      { label: "États financiers", href: "/comptabilite/etats-financiers", icon: ChevronRight },
+      { label: "Rapprochement", href: "/comptabilite/rapprochement", icon: ChevronRight, roles: ["GERANT", "COMPTABLE"] },
+      { label: "Clôture", href: "/comptabilite/cloture", icon: ChevronRight, roles: ["GERANT"] },
     ],
   },
   {
@@ -49,11 +49,11 @@ const NAV_ITEMS: NavItem[] = [
     href: "/fiscal",
     icon: Receipt,
     children: [
-      { label: "IRPP / Paie",    href: "/fiscal/irpp",          icon: ChevronRight },
-      { label: "TVA",            href: "/fiscal/tva",           icon: ChevronRight },
-      { label: "IS / IMF",       href: "/fiscal/is",            icon: ChevronRight },
-      { label: "Patente",        href: "/fiscal/patente",       icon: ChevronRight },
-      { label: "Déclarations",   href: "/fiscal/declarations",  icon: ChevronRight },
+      { label: "IRPP / Paie", href: "/fiscal/irpp", icon: ChevronRight },
+      { label: "TVA", href: "/fiscal/tva", icon: ChevronRight },
+      { label: "IS / IMF", href: "/fiscal/is", icon: ChevronRight },
+      { label: "Patente", href: "/fiscal/patente", icon: ChevronRight },
+      { label: "Déclarations", href: "/fiscal/declarations", icon: ChevronRight },
     ],
   },
   {
@@ -61,7 +61,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/controle",
     icon: AlertTriangle,
     children: [
-      { label: "Anomalies",      href: "/controle/anomalies",      icon: ChevronRight },
+      { label: "Anomalies", href: "/controle/anomalies", icon: ChevronRight },
       { label: "Risque clients", href: "/controle/risque-clients", icon: ChevronRight, roles: ["GERANT", "COMPTABLE"] },
     ],
   },
@@ -75,10 +75,10 @@ const NAV_ITEMS: NavItem[] = [
     href: "/analyse",
     icon: BarChart3,
     children: [
-      { label: "Vue générale",  href: "/analyse/dashboard",    icon: ChevronRight },
-      { label: "RFM clients",   href: "/analyse/rfm",          icon: ChevronRight },
+      { label: "Vue générale", href: "/analyse/dashboard", icon: ChevronRight },
+      { label: "RFM clients", href: "/analyse/rfm", icon: ChevronRight },
       { label: "Concentration", href: "/analyse/concentration", icon: ChevronRight },
-      { label: "Trésorerie",    href: "/analyse/tresorerie",   icon: ChevronRight },
+      { label: "Trésorerie", href: "/analyse/tresorerie", icon: ChevronRight },
     ],
   },
   {
@@ -91,10 +91,11 @@ const NAV_ITEMS: NavItem[] = [
     href: "/parametres",
     icon: Settings,
     children: [
-      { label: "Plan de comptes",   href: "/parametres/plan-comptes",     icon: ChevronRight },
-      { label: "Paramètres fiscaux",href: "/parametres/parametres-fiscaux",icon: ChevronRight, roles: ["ADMIN_SYS"] },
-      { label: "Utilisateurs",      href: "/parametres/utilisateurs",     icon: ChevronRight, roles: ["GERANT"] },
-      { label: "Sécurité",          href: "/parametres/securite",         icon: ChevronRight },
+      // ✅ MODIFICATION LIGNE 86 : Mise à jour du lien vers la nouvelle route
+      { label: "Plan de comptes", href: "/accounting/comptes", icon: ChevronRight },
+      { label: "Paramètres fiscaux", href: "/parametres/parametres-fiscaux", icon: ChevronRight, roles: ["ADMIN_SYS"] },
+      { label: "Utilisateurs", href: "/parametres/utilisateurs", icon: ChevronRight, roles: ["GERANT"] },
+      { label: "Sécurité", href: "/parametres/securite", icon: ChevronRight },
     ],
   },
 ];

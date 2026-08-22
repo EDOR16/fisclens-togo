@@ -16,10 +16,14 @@ interface RequestOptions extends RequestInit {
   idempotencyKey?: string;
 }
 
+const API_PREFIX = "/api/v1";
+
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { params, queueOffline, idempotencyKey, ...fetchOptions } = options;
 
-  let url = endpoint;
+  // Préfixe /api/v1 uniquement si l'endpoint ne l'a pas déjà
+  // (permet de garder des appels legacy écrits en dur sans les casser)
+  let url = endpoint.startsWith("/api/") ? endpoint : `${API_PREFIX}${endpoint}`;
 
   if (params) {
     const searchParams = new URLSearchParams();

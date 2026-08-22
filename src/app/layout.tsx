@@ -35,6 +35,27 @@ export const metadata: Metadata = {
   ],
 };
 
+// Reproduit exactement applyThemeToDoc() de theme-provider.tsx.
+// Exécuté en synchrone dans le <head>, avant hydratation React,
+// pour éviter le flash de thème par défaut (FOUC) constaté en production.
+const THEME_INIT_SCRIPT = `
+(function() {
+  try {
+    var t = localStorage.getItem('fl_theme_mode') || 'dark';
+    var root = document.documentElement;
+    root.classList.remove('dark', 'light', 'theme-midnight', 'theme-emerald');
+    if (t === 'light') {
+      root.classList.add('light');
+    } else {
+      root.classList.add(t);
+      if (t !== 'dark') {
+        root.classList.add('dark');
+      }
+    }
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
@@ -42,6 +63,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${inter.variable} ${caveat.variable} ${plexMono.variable} ${fraunces.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="font-sans antialiased">
         <AppThemeProvider>
           <AuthProvider>

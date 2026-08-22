@@ -162,7 +162,7 @@ export function LogoAnimated({
               <span className="bg-gradient-to-r from-emerald-400 via-brand-400 to-green-500 bg-clip-text text-transparent group-hover:from-emerald-300 group-hover:to-amber-300">
                 Fisc
               </span>
-              <span className="text-foreground">Lens</span>
+              <span className="text-red-500">Lens</span>
             </span>
             <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/40 text-amber-500">
               Togo

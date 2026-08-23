@@ -8,7 +8,7 @@ import type { NextRequest } from "next/server";
  * La vérification complète (JWT + tenant + rôle) est dans withGuard.ts côté API.
  *
  * Défense en profondeur : on supprime ici tout header d'identité envoyé par le client
- * (x-user-id, x-user-role, etc.) AVANT qu'il n'atteigne les routes API. Même si
+ * AVANT qu'il n'atteigne les routes API. Même si
  * withGuard.ts ignore déjà ces headers pour l'identité (il ne fait plus confiance
  * qu'au JWT vérifié), ce nettoyage empêche toute régression future qui recommencerait
  * à les lire par erreur.

@@ -1,3 +1,214 @@
+===== STRUCTURE DU PROJET =====
+next-env.d.ts
+prisma\schema.prisma
+prisma\seed\index.ts
+prisma\seed\syscohadaRef.ts
+scripts\reset-prod.ts
+src\app\(app)\accounting\comptes\page.tsx
+src\app\(app)\analyse\concentration\page.tsx
+src\app\(app)\analyse\dashboard\page.tsx
+src\app\(app)\analyse\page.tsx
+src\app\(app)\analyse\rfm\page.tsx
+src\app\(app)\analyse\tresorerie\page.tsx
+src\app\(app)\calendrier\page.tsx
+src\app\(app)\comptabilite\balance\page.tsx
+src\app\(app)\comptabilite\cloture\page.tsx
+src\app\(app)\comptabilite\etats-financiers\page.tsx
+src\app\(app)\comptabilite\grand-livre\page.tsx
+src\app\(app)\comptabilite\journaux\page.tsx
+src\app\(app)\comptabilite\page.tsx
+src\app\(app)\comptabilite\rapprochement\page.tsx
+src\app\(app)\comptabilite\saisie\page.tsx
+src\app\(app)\controle\anomalies\page.tsx
+src\app\(app)\controle\page.tsx
+src\app\(app)\controle\risque-clients\page.tsx
+src\app\(app)\dashboard\page.tsx
+src\app\(app)\fiscal\declarations\page.tsx
+src\app\(app)\fiscal\irpp\page.tsx
+src\app\(app)\fiscal\is\page.tsx
+src\app\(app)\fiscal\page.tsx
+src\app\(app)\fiscal\patente\page.tsx
+src\app\(app)\fiscal\tva\page.tsx
+src\app\(app)\layout.tsx
+src\app\(app)\parametres\audit-logs\page.tsx
+src\app\(app)\parametres\page.tsx
+src\app\(app)\parametres\parametres-fiscaux\page.tsx
+src\app\(app)\parametres\plan-comptes\page.tsx
+src\app\(app)\parametres\securite\page.tsx
+src\app\(app)\parametres\utilisateurs\page.tsx
+src\app\(app)\workspace-bi\page.tsx
+src\app\(public)\2fa\page.tsx
+src\app\(public)\layout.tsx
+src\app\(public)\login\page.tsx
+src\app\(public)\register\page.tsx
+src\app\api\v1\accounting\balance\route.ts
+src\app\api\v1\accounting\comptes\import\route.ts
+src\app\api\v1\accounting\comptes\route.ts
+src\app\api\v1\accounting\comptes\subaccount\route.ts
+src\app\api\v1\accounting\dashboard-stats\route.ts
+src\app\api\v1\accounting\ecritures\route.ts
+src\app\api\v1\accounting\grand-livre\route.ts
+src\app\api\v1\accounting\journaux\route.ts
+src\app\api\v1\accounting\page.tsx
+src\app\api\v1\auth\2fa\disable\route.ts
+src\app\api\v1\auth\2fa\enable\route.ts
+src\app\api\v1\auth\2fa\setup\route.ts
+src\app\api\v1\auth\2fa\verify\route.ts
+src\app\api\v1\auth\forgot-password\route.ts
+src\app\api\v1\auth\login\route.ts
+src\app\api\v1\auth\me\route.ts
+src\app\api\v1\auth\register\route.ts
+src\app\api\v1\bi\alerts\[id]\acknowledge\route.ts
+src\app\api\v1\bi\dashboard\alerts\route.ts
+src\app\api\v1\bi\dashboard\clients\route.ts
+src\app\api\v1\bi\dashboard\forecast\route.ts
+src\app\api\v1\bi\dashboard\overview\route.ts
+src\app\api\v1\bi\dashboard\profitability\route.ts
+src\app\api\v1\bi\dashboard\purchases\route.ts
+src\app\api\v1\bi\dashboard\sales\route.ts
+src\app\api\v1\bi\import\clients\route.ts
+src\app\api\v1\bi\import\products\route.ts
+src\app\api\v1\bi\import\purchases\route.ts
+src\app\api\v1\bi\import\sales\route.ts
+src\app\api\v1\bi\reconciliation\route.ts
+src\app\api\v1\fiscal\declarations\route.ts
+src\app\api\v1\fiscal\irpp\route.ts
+src\app\api\v1\fiscal\is\route.ts
+src\app\api\v1\fiscal\tva\route.ts
+src\app\api\v1\health\route.ts
+src\app\layout.tsx
+src\app\page.tsx
+src\components\bi\alerts-component.tsx
+src\components\bi\dashboard-overview.tsx
+src\components\fiscal\custom-tax-dialog.tsx
+src\components\fiscal-ui.tsx
+src\components\landing\dynamic-background.tsx
+src\components\landing\fiscal-simulator.tsx
+src\components\landing\terminal-preview.tsx
+src\components\landing\theme-wallpaper-modal.tsx
+src\components\landing\ui.tsx
+src\components\layout\sidebar.tsx
+src\components\offline-badge.tsx
+src\components\theme\theme-provider.tsx
+src\components\ui\badge.tsx
+src\components\ui\button.tsx
+src\components\ui\card.tsx
+src\components\ui\dialog.tsx
+src\components\ui\input.tsx
+src\components\ui\label.tsx
+src\components\ui\logo-animated.tsx
+src\components\ui\table.tsx
+src\components\ui\tabs.tsx
+src\lib\api-client.ts
+src\lib\auth-context.tsx
+src\lib\bi\aggregates.ts
+src\lib\bi\excel-import.ts
+src\lib\bi\forecasting.ts
+src\lib\export\excel-generator.ts
+src\lib\export\pdf-generator.ts
+src\lib\fiscal\togo-rules.ts
+src\lib\i18n.ts
+src\lib\offline-queue.ts
+src\lib\server\calendar-rules.ts
+src\lib\server\jwt.ts
+src\lib\server\prisma.ts
+src\lib\server\provisioning.ts
+src\lib\server\with-guard.ts
+src\lib\ui-providers.tsx
+src\lib\utils.ts
+src\middleware.ts
+src\tests\accounting-integrity.test.ts
+src\tests\bi-module.test.ts
+src\tests\provisioning.test.ts
+tailwind.config.ts
+vitest.config.ts
+
+===== PACKAGE.JSON =====
+{
+  "name": "fisclens-togo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed/index.ts",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.9.0",
+    "@prisma/client": "^5.17.0",
+    "@radix-ui/react-alert-dialog": "^1.1.1",
+    "@radix-ui/react-avatar": "^1.1.0",
+    "@radix-ui/react-dialog": "^1.1.1",
+    "@radix-ui/react-dropdown-menu": "^2.1.1",
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-popover": "^1.1.1",
+    "@radix-ui/react-progress": "^1.1.0",
+    "@radix-ui/react-select": "^2.1.1",
+    "@radix-ui/react-separator": "^1.1.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-switch": "^1.1.0",
+    "@radix-ui/react-tabs": "^1.1.0",
+    "@radix-ui/react-toast": "^1.2.1",
+    "@radix-ui/react-tooltip": "^1.1.2",
+    "@tanstack/react-query": "^5.51.23",
+    "@tanstack/react-query-devtools": "^5.51.23",
+    "bcryptjs": "^2.4.3",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
+    "date-fns-tz": "^3.1.3",
+    "idb": "^8.0.0",
+    "jose": "^5.6.3",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.2",
+    "lucide-react": "^0.414.0",
+    "next": "14.2.5",
+    "next-themes": "^0.3.0",
+    "nuqs": "^1.19.1",
+    "otplib": "^12.0.1",
+    "prisma": "^5.17.0",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.52.2",
+    "recharts": "^2.12.7",
+    "resend": "^6.21.0",
+    "sonner": "^1.5.0",
+    "tailwind-merge": "^2.4.0",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.5.4",
+    "xlsx": "^0.18.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.14.14",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitest/coverage-v8": "^2.0.5",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.5",
+    "postcss": "^8.4.41",
+    "prettier": "^3.3.3",
+    "tailwindcss": "^3.4.7",
+    "tsx": "^4.17.0",
+    "vitest": "^2.0.5"
+  }
+}
+
+
+===== SCHEMA PRISMA =====
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
@@ -288,3 +499,11 @@ model Alert {
   @@index([tenantId, createdAt])
   @@map("alerts")
 }
+
+
+===== VARIABLES ENVIRONNEMENT =====
+DATABASE_URL="file:./dev.db"
+JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NODE_ENV="development"
+

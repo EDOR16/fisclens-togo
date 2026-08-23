@@ -15,11 +15,14 @@ import { api } from "@/lib/api-client";
 
 export type Role = "GERANT" | "COMPTABLE" | "LECTURE" | "CABINET" | "ADMIN_SYS";
 
+export type SubscriptionPlan = "STARTER" | "PRO" | "PREMIUM";
+
 export type TenantSummary = {
   id: string;
   name: string;
   regime: string;
   exerciceOuvert: boolean;
+  plan: SubscriptionPlan;
 };
 
 export type SessionUser = {

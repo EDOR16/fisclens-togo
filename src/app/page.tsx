@@ -119,15 +119,19 @@ export default function GrandLivreLandingPage() {
   const echeance = useMemo(() => getProchaineEcheance(), []);
 
   return (
-    <div className="min-h-screen paper-ruled flex flex-col font-sans selection:bg-[#FCD116] selection:text-[#0B3D2E]">
+    <div className="min-h-screen relative overflow-hidden bg-slate-950 font-sans text-slate-100 selection:bg-blue-600 selection:text-white">
+      {/* Decorative background blobs */}
+      <div className="absolute top-0 left-0 h-[600px] w-[600px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-blue-600/10 blur-[120px]" />
+      <div className="absolute top-1/4 right-0 h-[500px] w-[500px] translate-x-1/3 translate-y-1/3 rounded-full bg-lens-red/10 blur-[120px]" />
+      
       {/* ========================================================================= */}
       {/* 1. TOP BAR : RÉFÉRENCES RÉGLEMENTAIRES SOURCÉES                         */}
       {/* ========================================================================= */}
-      <div className="bg-[#0B3D2E] text-[#FBF7EC] text-xs py-2.5 px-4 border-b border-[#0B3D2E]/40 z-30">
+      <div className="relative z-30 bg-black/40 backdrop-blur-md text-slate-300 text-xs py-2.5 px-4 border-b border-white/10">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2 font-mono text-[11px]">
-            <span className="h-2 w-2 rounded-full bg-[#FCD116] animate-pulse" />
-            <span>RÉFÉRENTIEL TOGO :</span>
+            <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+            <span className="text-white font-semibold">RÉFÉRENTIEL TOGO :</span>
             <span className="opacity-90">
               SYSCOHADA Révisé · CGI Togo (IS 27%, TVA 18%, IRPP art. 74) · OTR Formulaires CA3
             </span>

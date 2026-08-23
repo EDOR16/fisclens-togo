@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Page Workspace BI & Data Analyse
  * Import Excel + Navigation vers les 7 dashboards
  */
@@ -33,14 +33,14 @@ export default function WorkspaceBIPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [importProgress, setImportProgress] = useState<string | null>(null);
 
-  // Charger les données des dashboards
+  // Charger les donnÃ©es des dashboards
   const loadDashboard = async (dashboardName: string) => {
     setIsLoading(true);
     try {
-      const response = await apiClient.get(`/bi/dashboard/${dashboardName}`);
+      const response = await apiClient.get<{ success: boolean; data: unknown }>(`/bi/dashboard/${dashboardName}`);
       setDashboardData((prev) => ({
         ...prev,
-        [dashboardName]: (response as any).data,
+        [dashboardName]: response.data,
       }));
     } catch (error) {
       console.error(`Erreur chargement ${dashboardName}:`, error);
@@ -56,30 +56,30 @@ export default function WorkspaceBIPage() {
       const buffer = await file.arrayBuffer();
       const base64 = Buffer.from(buffer).toString("base64");
 
-      const response = await apiClient.post(`/bi/import/${type}`, {
+      const response = await apiClient.post<{ success: boolean; message: string; imported: unknown[] }>(`/bi/import/${type}`, {
         fileBuffer: base64,
         fileName: file.name,
       });
 
-      setImportProgress(`✓ ${(response as any).message}`);
+      setImportProgress(`âœ“ ${response.message}`);
 
-      // Recharger les données
+      // Recharger les donnÃ©es
       setTimeout(() => {
         loadDashboard("overview");
         setImportProgress(null);
       }, 2000);
     } catch (error) {
-      setImportProgress(`✗ Erreur import: ${String(error)}`);
+      setImportProgress(`âœ— Erreur import: ${String(error)}`);
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* En-tête */}
+      {/* En-tÃªte */}
       <div>
         <h1 className="text-3xl font-bold">Workspace BI & Data Analyse</h1>
         <p className="text-gray-600 mt-2">
-          Analysez vos données opérationnelles, générez des prévisions et prenez des décisions éclairées
+          Analysez vos donnÃ©es opÃ©rationnelles, gÃ©nÃ©rez des prÃ©visions et prenez des dÃ©cisions Ã©clairÃ©es
         </p>
       </div>
 
@@ -87,7 +87,7 @@ export default function WorkspaceBIPage() {
       <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="flex items-center gap-3 mb-4">
           <Upload className="text-blue-600" size={24} />
-          <h2 className="text-lg font-semibold">Importer des données Excel</h2>
+          <h2 className="text-lg font-semibold">Importer des donnÃ©es Excel</h2>
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
@@ -142,11 +142,11 @@ export default function WorkspaceBIPage() {
           </TabsTrigger>
           <TabsTrigger value="profitability" onClick={() => loadDashboard("profitability")} className="text-xs">
             <Target size={16} className="mr-1" />
-            <span className="hidden sm:inline">Rentabilité</span>
+            <span className="hidden sm:inline">RentabilitÃ©</span>
           </TabsTrigger>
           <TabsTrigger value="forecast" onClick={() => loadDashboard("forecast")} className="text-xs">
             <Zap size={16} className="mr-1" />
-            <span className="hidden sm:inline">Prévisions</span>
+            <span className="hidden sm:inline">PrÃ©visions</span>
           </TabsTrigger>
           <TabsTrigger value="alerts" onClick={() => loadDashboard("alerts")} className="text-xs">
             <AlertCircle size={16} className="mr-1" />
@@ -156,7 +156,7 @@ export default function WorkspaceBIPage() {
 
         {isLoading && (
           <div className="p-8 text-center text-gray-500">
-            Chargement des données...
+            Chargement des donnÃ©es...
           </div>
         )}
 
@@ -167,7 +167,7 @@ export default function WorkspaceBIPage() {
                 <DashboardOverview {...dashboardData.overview.data} />
               ) : (
                 <Card className="p-6 text-center text-gray-500">
-                  Cliquez pour charger les données
+                  Cliquez pour charger les donnÃ©es
                 </Card>
               )}
             </TabsContent>
@@ -189,7 +189,7 @@ export default function WorkspaceBIPage() {
                       </div>
                     </Card>
                     <Card className="p-4">
-                      <h3 className="font-semibold mb-2">Zones Géographiques</h3>
+                      <h3 className="font-semibold mb-2">Zones GÃ©ographiques</h3>
                       <div className="space-y-1 text-sm">
                         {dashboardData.sales.data.zones.slice(0, 5).map((z: any) => (
                           <div key={z.zone} className="flex justify-between">
@@ -203,7 +203,7 @@ export default function WorkspaceBIPage() {
                 </div>
               ) : (
                 <Card className="p-6 text-center text-gray-500">
-                  Cliquez pour charger les données
+                  Cliquez pour charger les donnÃ©es
                 </Card>
               )}
             </TabsContent>
@@ -226,7 +226,7 @@ export default function WorkspaceBIPage() {
                 </div>
               ) : (
                 <Card className="p-6 text-center text-gray-500">
-                  Cliquez pour charger les données
+                  Cliquez pour charger les donnÃ©es
                 </Card>
               )}
             </TabsContent>
@@ -246,26 +246,26 @@ export default function WorkspaceBIPage() {
                 </Card>
               ) : (
                 <Card className="p-6 text-center text-gray-500">
-                  Cliquez pour charger les données
+                  Cliquez pour charger les donnÃ©es
                 </Card>
               )}
             </TabsContent>
 
             <TabsContent value="profitability" className="space-y-4">
               <Card className="p-6 text-center text-gray-500">
-                Dashboard Rentabilité
+                Dashboard RentabilitÃ©
               </Card>
             </TabsContent>
 
             <TabsContent value="forecast" className="space-y-4">
               <Card className="p-6 text-center text-gray-500">
-                Dashboard Prévisions
+                Dashboard PrÃ©visions
               </Card>
             </TabsContent>
 
             <TabsContent value="alerts" className="space-y-4">
               {dashboardData.alerts ? (
-                <AlertsComponent {...(dashboardData.alerts as any)} />
+                <AlertsComponent {...dashboardData.alerts} />
               ) : (
                 <Card className="p-6 text-center text-gray-500">
                   Cliquez pour charger les alertes

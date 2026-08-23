@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import type { Metadata } from "next";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { Lock, Eye } from "lucide-react";
 
+
 /**
- * Page réservée ADMIN_SYS — paramètres versionnés par date d'effet.
- * La vérification de rôle réelle est côté API (withGuard ADMIN_SYS).
- * Côté UI : RoleGuard masque le contenu pour les autres rôles.
+ * Page rÃ©servÃ©e ADMIN_SYS â€” paramÃ¨tres versionnÃ©s par date d'effet.
+ * La vÃ©rification de rÃ´le rÃ©elle est cÃ´tÃ© API (withGuard ADMIN_SYS).
+ * CÃ´tÃ© UI : RoleGuard masque le contenu pour les autres rÃ´les.
  */
 
 type ParameterSet = {
@@ -37,7 +39,7 @@ const PARAMETER_SETS: ParameterSet[] = [
     id: "ps-2025",
     version: "2025-v1",
     effectiveFrom: "2025-01-01",
-    legalRef: "LF 2025 — CGI art. 26, 72, 73, 74",
+    legalRef: "LF 2025 â€” CGI art. 26, 72, 73, 74",
     status: "active",
     params: {
       tauxTVA: 18,
@@ -54,7 +56,7 @@ const PARAMETER_SETS: ParameterSet[] = [
     id: "ps-2024",
     version: "2024-v1",
     effectiveFrom: "2024-01-01",
-    legalRef: "LF 2024 — CGI art. 26, 72, 73, 74",
+    legalRef: "LF 2024 â€” CGI art. 26, 72, 73, 74",
     status: "archived",
     params: {
       tauxTVA: 18,
@@ -72,27 +74,27 @@ const PARAMETER_SETS: ParameterSet[] = [
 const STATUS_BADGE: Record<string, React.ReactNode> = {
   active:   <Badge variant="success">Actif</Badge>,
   draft:    <Badge variant="warning">Brouillon</Badge>,
-  archived: <Badge variant="outline">Archivé</Badge>,
+  archived: <Badge variant="outline">ArchivÃ©</Badge>,
 };
 
 export default function ParametresFiscauxPage() {
   const [viewingVersion, setViewingVersion] = useState<string | null>(null);
 
   const handleNewVersion = () => {
-    toast.info("Ouvrir formulaire de création de nouvelle version...");
+    toast.info("Ouvrir formulaire de crÃ©ation de nouvelle version...");
   };
 
   const handleViewVersion = (version: string) => {
     setViewingVersion(viewingVersion === version ? null : version);
-    toast.info(`Affichage détaillé de la version ${version}`);
+    toast.info(`Affichage dÃ©taillÃ© de la version ${version}`);
   };
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Paramètres fiscaux versionnés</h2>
+          <h2 className="text-lg font-semibold">ParamÃ¨tres fiscaux versionnÃ©s</h2>
           <p className="text-sm text-muted-foreground">
-            Chaque modification crée une nouvelle version datée — les anciennes sont conservées en audit.
+            Chaque modification crÃ©e une nouvelle version datÃ©e â€” les anciennes sont conservÃ©es en audit.
           </p>
         </div>
         <Button onClick={handleNewVersion}>
@@ -103,9 +105,9 @@ export default function ParametresFiscauxPage() {
 
       <div className="rounded-md border bg-amber-50 border-amber-200 p-4">
         <p className="text-sm text-amber-800">
-          <strong>🔒 Accès ADMIN_SYS uniquement.</strong>{" "}
-          Toute modification est journalisée dans l&apos;audit log de manière immuable.
-          La création d&apos;une nouvelle version ne supprime jamais l&apos;ancienne.
+          <strong>ðŸ”’ AccÃ¨s ADMIN_SYS uniquement.</strong>{" "}
+          Toute modification est journalisÃ©e dans l&apos;audit log de maniÃ¨re immuable.
+          La crÃ©ation d&apos;une nouvelle version ne supprime jamais l&apos;ancienne.
         </p>
       </div>
 
@@ -138,7 +140,7 @@ export default function ParametresFiscauxPage() {
                   <p className="font-semibold">{ps.params.tauxIS}%</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">CNSS salarié</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">CNSS salariÃ©</p>
                   <p className="font-semibold">{ps.params.tauxCNSS_sal}%</p>
                 </div>
                 <div className="space-y-1">

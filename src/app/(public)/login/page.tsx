@@ -1,21 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { LegalRef, Stamp } from "@/components/landing/ui";
 import { Switchers, useUI } from "@/lib/ui-providers";
-import { useAuth } from "@/lib/auth-context";
+import { GoogleSignInButton } from "@/components/google-sign-in-button";
 
 const inputCls =
   "mt-1 w-full border-b-2 border-dashed border-white/40 bg-transparent py-2 font-mono text-paper outline-none focus:border-paper placeholder:text-paper/35";
 
 export default function LoginPage() {
-  const { t } = useUI();
-  const router = useRouter();
-  const { login } = useAuth();
+  const { t, theme } = useUI();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
+  const [need2FA, setNeed2FA] = useState(false);
+  const [totp, setTotp] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,34 +27,26 @@ export default function LoginPage() {
       const res = await fetch("/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, totp: need2FA ? totp : undefined }),
       });
 
       const data = await res.json().catch(() => ({}));
 
       if (res.status === 401) return setErr(t("login_error"));
       if (res.status === 202 || data.require2FA) {
-        if (!data.userId) {
-          setErr("Impossible de démarrer la vérification à deux facteurs.");
-          return;
-        }
-        sessionStorage.setItem("fl_2fa_uid", data.userId);
-        router.push("/2fa");
+        setNeed2FA(true);
         return;
       }
       if (!res.ok) return setErr(t("login_error"));
 
-      await login(data.token, data.tenantId);
-      router.push("/dashboard");
-    } catch {
-      setErr("Impossible de joindre le serveur. Réessayez dans un instant.");
+      window.location.href = "/";
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="ink-ruled min-h-screen font-body text-paper">
+    <main className={`${theme === "ink" ? "ink-ruled text-paper" : "paper-ruled text-ink"} min-h-screen font-body`}>
       <header className="mx-auto flex max-w-6xl items-center justify-end px-6 pt-8">
         <Switchers />
       </header>
@@ -64,7 +55,7 @@ export default function LoginPage() {
         <div>
           <div className="inline-flex items-center gap-3 rounded-full border border-paper/20 bg-paper/5 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.22em] text-paper/80">
             <span className="grid h-8 w-8 place-items-center rounded-md bg-paper text-[#0B3D2E] font-bold text-base">F</span>
-            <span className="text-paper">Fisc</span><span className="text-lens-red font-bold">Lens</span><span style={{ color: "var(--paper)" }}> Togo</span>
+            FiscLens Togo
           </div>
 
           <h1 className="mt-6 font-hand text-6xl leading-[0.95] text-paper md:text-7xl">
@@ -81,7 +72,7 @@ export default function LoginPage() {
         <div className="receipt rotate-[0.6deg] p-8">
           <div className="flex items-start justify-between">
             <h2 className="font-display text-2xl font-semibold text-ink">{t("login_title")}</h2>
-            <Stamp>Accès sécurisé</Stamp>
+            <Stamp>{need2FA ? "2FA requise" : "Accès sécurisé"}</Stamp>
           </div>
 
           <form onSubmit={submit} className="mt-8 space-y-6">
@@ -120,6 +111,23 @@ export default function LoginPage() {
               </span>
             </label>
 
+            {need2FA && (
+              <label className="block font-mono text-xs uppercase tracking-widest text-inkSoft">
+                {t("totp")} <LegalRef>TOTP</LegalRef>
+                <input
+                  className={inputCls}
+                  inputMode="numeric"
+                  pattern="\d{6}"
+                  maxLength={6}
+                  value={totp}
+                  placeholder="000000"
+                  onChange={(e) => setTotp(e.target.value.replace(/\D/g, ""))}
+                  required
+                />
+                <p className="mt-1 text-[10px] normal-case text-inkSoft">{t("login_2fa_hint")}</p>
+              </label>
+            )}
+
             {err && (
               <p className="border-l-4 border-[#B3261E] pl-3 font-mono text-xs text-[#B3261E]">{err}</p>
             )}
@@ -129,8 +137,25 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full rounded-full bg-[#0B3D2E] py-3.5 font-semibold text-[#FBF7EC] transition hover:opacity-90 disabled:opacity-60"
             >
-              {loading ? "…" : t("login_submit")}
+              {loading ? "…" : need2FA ? "Vérifier le code" : t("login_submit")}
             </button>
+
+            {!need2FA && (
+              <>
+                <div className="flex items-center gap-3 py-1">
+                  <span className="h-px flex-1 bg-paper/20" />
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-paper/50">ou</span>
+                  <span className="h-px flex-1 bg-paper/20" />
+                </div>
+
+                <GoogleSignInButton
+                  className="w-full flex items-center justify-center gap-2 rounded-full border border-paper/30 bg-paper/5 py-3.5 font-mono text-sm text-paper transition hover:bg-paper/10 disabled:opacity-60"
+                  onCompanyNameRequired={() =>
+                    setErr("Aucun compte associé à cet email Google. Créez d'abord votre espace via « Créer un compte ».")
+                  }
+                />
+              </>
+            )}
 
             <div className="space-y-1 text-center font-mono text-xs text-inkSoft">
               <a href="/forgot" className="underline decoration-[#FCD116] decoration-2 underline-offset-2">{t("forgot")}</a>

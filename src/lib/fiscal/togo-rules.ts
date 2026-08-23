@@ -1,10 +1,12 @@
 /**
  * Moteur fiscal et social de la République Togolaise (CGI Togo / CNSS)
  * Tous les montants sont calculés en FCFA entiers.
+ * Barème IRPP, taux IS/TVA/MFP et mécanisme des acomptes vérifiés contre :
+ * CODE GENERAL DES IMPOTS ET LIVRE DES PROCEDURES FISCALES — OTR 2025.
  */
 
 // ---------------------------------------------------------------------------
-// 1. MODULE TVA (18%)
+// 1. MODULE TVA (18%) — Art. 195 CGI : taux unique 18%
 // ---------------------------------------------------------------------------
 
 export type TvaCalculationInput = {
@@ -62,12 +64,11 @@ export function calculateTogoTva(input: TvaCalculationInput): TvaCalculationResu
 // ---------------------------------------------------------------------------
 // 2. MODULE IRPP & PAIE TOGO (CGI Art. 26 & 74 / CNSS / AMU)
 // ---------------------------------------------------------------------------
-// Taux applicables (source : CNSS Togo / décret AMU 2011) :
+// Taux de cotisations sociales (source : CNSS Togo / décret AMU) :
 //   CNSS vieillesse-invalidité : 4% ouvrier + 15% patronal
 //   AMU (Assurance Maladie Universelle) : 1% ouvrier + 2.5% patronal
 //   Total prélèvement salarié   : 4% CNSS + 1% AMU = 5%
 //   Total charge patronale      : 15% CNSS + 2.5% AMU = 17.5%
-//   → coût global employeur     : salaire brut × 117.5%
 // ---------------------------------------------------------------------------
 
 export type PayrollCalculationInput = {
@@ -82,8 +83,8 @@ export type PayrollCalculationResult = {
   cnssSalariale: number;    // 4%   — cotisation ouvrier CNSS
   cnssPatronale: number;    // 15%  — cotisation employeur CNSS (hors AMU)
   // ─── AMU (Assurance Maladie Universelle) ──────────────────
-  amuSalariale: number;     // 1%   — ouvrier AMU (décret AMU Togo)
-  amuPatronale: number;     // 2.5% — employeur AMU (décret AMU Togo)
+  amuSalariale: number;     // 1%   — ouvrier AMU
+  amuPatronale: number;     // 2.5% — employeur AMU
   // ─── Agrégats ─────────────────────────────────────────────
   totalRetenueSalariale: number;  // cnssSalariale + amuSalariale (5%)
   totalChargePatronale: number;   // cnssPatronale + amuPatronale (17.5%)
@@ -97,22 +98,25 @@ export type PayrollCalculationResult = {
   netAPayer: number;
 };
 
-// Barème progressif mensuel IRPP Togo [CGI art. 74]
+// Barème progressif annuel IRPP Togo [CGI art. 74, Loi n°2022-022 du 27/12/2022]
+// Seuils ramenés au mois (÷12) pour une retenue mensuelle à la source.
 const TRANCHES_IRPP_MENSUEL = [
-  { min: 0,         max: 75_000,    taux: 0.0  },
-  { min: 75_000,    max: 250_000,   taux: 0.07 },
-  { min: 250_000,   max: 500_000,   taux: 0.15 },
-  { min: 500_000,   max: 1_000_000, taux: 0.25 },
-  { min: 1_000_000, max: 1_500_000, taux: 0.30 },
-  { min: 1_500_000, max: Infinity,  taux: 0.35 },
+  { min: 0, max: 75_000, taux: 0.0 }, // 0 – 900 000 F/an : exonéré
+  { min: 75_000, max: 250_000, taux: 0.03 }, // 900 001 – 3 000 000 F/an : 3%
+  { min: 250_000, max: 500_000, taux: 0.10 }, // 3 000 001 – 6 000 000 F/an : 10%
+  { min: 500_000, max: 750_000, taux: 0.15 }, // 6 000 001 – 9 000 000 F/an : 15%
+  { min: 750_000, max: 1_000_000, taux: 0.20 }, // 9 000 001 – 12 000 000 F/an : 20%
+  { min: 1_000_000, max: 1_250_000, taux: 0.25 }, // 12 000 001 – 15 000 000 F/an : 25%
+  { min: 1_250_000, max: 1_666_667, taux: 0.30 }, // 15 000 001 – 20 000 000 F/an : 30%
+  { min: 1_666_667, max: Infinity, taux: 0.35 }, // Plus de 20 000 000 F/an : 35%
 ];
 
 // Taux de cotisations sociales Togo (CNSS + AMU)
 const TAUX = {
-  CNSS_SAL:  0.04,   // 4%    ouvrier CNSS vieillesse-invalidité
-  CNSS_PAT:  0.15,   // 15%   patronal CNSS (hors AMU)
-  AMU_SAL:   0.01,   // 1%    ouvrier AMU
-  AMU_PAT:   0.025,  // 2.5%  patronal AMU
+  CNSS_SAL: 0.04,   // 4%    ouvrier CNSS vieillesse-invalidité
+  CNSS_PAT: 0.15,   // 15%   patronal CNSS (hors AMU)
+  AMU_SAL: 0.01,   // 1%    ouvrier AMU
+  AMU_PAT: 0.025,  // 2.5%  patronal AMU
 } as const;
 
 export function calculateTogoPayroll(input: PayrollCalculationInput): PayrollCalculationResult {
@@ -120,14 +124,14 @@ export function calculateTogoPayroll(input: PayrollCalculationInput): PayrollCal
 
   // ─── Cotisations salariales ───────────────────────────────
   const cnssSalariale = Math.round(salaireBrut * TAUX.CNSS_SAL);
-  const amuSalariale  = Math.round(salaireBrut * TAUX.AMU_SAL);
+  const amuSalariale = Math.round(salaireBrut * TAUX.AMU_SAL);
   const totalRetenueSalariale = cnssSalariale + amuSalariale; // 5%
 
   // ─── Charges patronales ───────────────────────────────────
-  const cnssPatronale        = Math.round(salaireBrut * TAUX.CNSS_PAT);
-  const amuPatronale         = Math.round(salaireBrut * TAUX.AMU_PAT);
+  const cnssPatronale = Math.round(salaireBrut * TAUX.CNSS_PAT);
+  const amuPatronale = Math.round(salaireBrut * TAUX.AMU_PAT);
   const totalChargePatronale = cnssPatronale + amuPatronale;  // 17.5%
-  const coutTotalEmployeur   = salaireBrut + totalChargePatronale;
+  const coutTotalEmployeur = salaireBrut + totalChargePatronale;
 
   // ─── Base IRPP ────────────────────────────────────────────
   const brutApresCotisations = salaireBrut - totalRetenueSalariale;
@@ -154,9 +158,9 @@ export function calculateTogoPayroll(input: PayrollCalculationInput): PayrollCal
   }
   irppBrut = Math.round(irppBrut);
 
-  // ─── Réduction charges de famille ────────────────────────
+  // ─── Réduction charges de famille [CGI art. 73 : 10 000 F/pers/mois, max 6] ──
   const charges = Math.min(input.nombreChargesFamille || 0, 6);
-  const reductionChargeFamille = charges * 2000;
+  const reductionChargeFamille = charges * 10_000;
   const irppNet = Math.max(0, irppBrut - reductionChargeFamille);
 
   // ─── Net à payer ──────────────────────────────────────────
@@ -182,7 +186,8 @@ export function calculateTogoPayroll(input: PayrollCalculationInput): PayrollCal
 }
 
 // ---------------------------------------------------------------------------
-// 3. MODULE IS & IMF (27% vs 1%)
+// 3. MODULE IS & MFP (27% vs 1% du CA, plancher 20 000 F)
+// CGI art. 113 (taux IS 27%), art. 120 (MFP), art. 114 (acomptes)
 // ---------------------------------------------------------------------------
 
 export type IsCalculationInput = {
@@ -191,6 +196,8 @@ export type IsCalculationInput = {
   totalCharges: number;
   reintegrationsFiscales?: number;
   deductionsFiscales?: number;
+  /** Impôt (IS ou MFP) mis à la charge du contribuable au titre du dernier exercice clos [Art. 114] */
+  impotExercicePrecedent?: number;
 };
 
 export type IsCalculationResult = {
@@ -201,13 +208,15 @@ export type IsCalculationResult = {
   resultatFiscal: number;
   tauxIs: number;
   isTheorique: number;
-  tauxImf: number;
-  imfTheorique: number;
-  impotRetenu: "IS" | "IMF";
+  tauxMfp: number;
+  mfpTheorique: number;
+  impotRetenu: "IS" | "MFP";
   impotExigible: number;
-  acompteJuin: number; // 33%
-  acompteSeptembre: number; // 33%
-  soldeAvril: number; // 34%
+  /** 4 acomptes égaux, chacun 25% de l'impôt de l'exercice N-1 [Art. 114] */
+  acompte1: number;
+  acompte2: number;
+  acompte3: number;
+  acompte4: number;
 };
 
 export function calculateTogoIS(input: IsCalculationInput): IsCalculationResult {
@@ -216,23 +225,23 @@ export function calculateTogoIS(input: IsCalculationInput): IsCalculationResult 
   const deductions = input.deductionsFiscales || 0;
   const resultatFiscal = Math.max(0, resultatComptable + reintegrations - deductions);
 
-  // IS à 27%
+  // IS à 27% [Art. 113] — toute fraction < 1 000 F négligée
   const tauxIs = 0.27;
-  const isTheorique = Math.round(resultatFiscal * tauxIs);
+  const isTheorique = Math.floor((resultatFiscal * tauxIs) / 1000) * 1000;
 
-  // IMF : 1% du CA (plancher 200 000 FCFA, plafond 5 000 000 FCFA) [CGI Togo]
-  const tauxImf = 0.01;
-  const calculImf = Math.round(input.chiffreAffairesHt * tauxImf);
-  const imfTheorique = Math.max(200_000, Math.min(5_000_000, calculImf));
+  // MFP : 1% du CA HT, plancher 20 000 FCFA, sans plafond [Art. 120]
+  const tauxMfp = 0.01;
+  const calculMfp = Math.round(input.chiffreAffairesHt * tauxMfp);
+  const mfpTheorique = Math.max(20_000, calculMfp);
 
-  // Règle du Max(IS, IMF)
-  const impotRetenu = isTheorique >= imfTheorique ? "IS" : "IMF";
-  const impotExigible = Math.max(isTheorique, imfTheorique);
+  // Règle du Max(IS, MFP) — le MFP s'applique en cas de déficit ou si l'IS lui est inférieur
+  const impotRetenu = isTheorique >= mfpTheorique ? "IS" : "MFP";
+  const impotExigible = Math.max(isTheorique, mfpTheorique);
 
-  // Acomptes provisionnels
-  const acompteJuin       = Math.round(impotExigible / 3);
-  const acompteSeptembre  = Math.round(impotExigible / 3);
-  const soldeAvril        = impotExigible - acompteJuin - acompteSeptembre;
+  // Acomptes provisionnels [Art. 114] : 4 acomptes égaux au quart de l'impôt N-1,
+  // arrondis au millier de francs inférieur. Nécessite l'impôt de l'exercice précédent.
+  const baseAcompte = input.impotExercicePrecedent ?? 0;
+  const acompteUnitaire = Math.floor(baseAcompte / 4 / 1000) * 1000;
 
   return {
     chiffreAffairesHt: input.chiffreAffairesHt,
@@ -242,12 +251,13 @@ export function calculateTogoIS(input: IsCalculationInput): IsCalculationResult 
     resultatFiscal,
     tauxIs: 27,
     isTheorique,
-    tauxImf: 1,
-    imfTheorique,
+    tauxMfp: 1,
+    mfpTheorique,
     impotRetenu,
     impotExigible,
-    acompteJuin,
-    acompteSeptembre,
-    soldeAvril,
+    acompte1: acompteUnitaire,
+    acompte2: acompteUnitaire,
+    acompte3: acompteUnitaire,
+    acompte4: acompteUnitaire,
   };
 }

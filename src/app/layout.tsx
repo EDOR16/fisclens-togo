@@ -38,10 +38,13 @@ export const metadata: Metadata = {
 // Reproduit exactement applyThemeToDoc() de theme-provider.tsx.
 // Exécuté en synchrone dans le <head>, avant hydratation React,
 // pour éviter le flash de thème par défaut (FOUC) constaté en production.
+// Si l'utilisateur n'a jamais choisi de thème, on respecte sa préférence
+// système (prefers-color-scheme) au lieu d'imposer le sombre.
 const THEME_INIT_SCRIPT = `
 (function() {
   try {
-    var t = localStorage.getItem('fl_theme_mode') || 'dark';
+    var saved = localStorage.getItem('fl_theme_mode');
+    var t = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
     var root = document.documentElement;
     root.classList.remove('dark', 'light', 'theme-midnight', 'theme-emerald');
     if (t === 'light') {

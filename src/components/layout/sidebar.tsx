@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, BookOpen, Receipt, AlertTriangle,
   BarChart3, CalendarDays, Settings, LogOut, ChevronsUpDown,
-  Users, ChevronRight, Building2,
+  Users, ChevronRight, Building2, Sun, Moon,
 } from "lucide-react";
 import { useAuth, useHasRole, type Role } from "@/lib/auth-context";
+import { useAppTheme } from "@/components/theme/theme-provider";
 import { cn } from "@/lib/utils";
 import { NetworkStatus } from "@/components/offline-badge";
 import { RoleBadge } from "@/components/fiscal-ui";
@@ -91,8 +92,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/parametres",
     icon: Settings,
     children: [
-      // ✅ MODIFICATION LIGNE 86 : Mise à jour du lien vers la nouvelle route
-      { label: "Plan de comptes", href: "/accounting/comptes", icon: ChevronRight },
+      { label: "Plan de comptes", href: "/parametres/plan-comptes", icon: ChevronRight },
       { label: "Paramètres fiscaux", href: "/parametres/parametres-fiscaux", icon: ChevronRight, roles: ["ADMIN_SYS"] },
       { label: "Utilisateurs", href: "/parametres/utilisateurs", icon: ChevronRight, roles: ["GERANT"] },
       { label: "Sécurité", href: "/parametres/securite", icon: ChevronRight },
@@ -211,7 +211,7 @@ export function Sidebar() {
           <span className="text-white font-bold text-sm">F</span>
         </div>
         <div>
-          <span className="font-semibold text-sm"><span className="text-foreground">Fisc</span><span className="text-[#B3261E]">Lens</span></span>
+          <span className="font-semibold text-sm">FiscLens</span>
           <span className="text-xs text-muted-foreground ml-1">Togo</span>
         </div>
       </Link>
@@ -258,6 +258,26 @@ export function Sidebar() {
 }
 
 // ---------------------------------------------------------------------------
+// Sélecteur de thème clair/sombre — visible, branché sur useAppTheme
+// ---------------------------------------------------------------------------
+
+function ThemeToggle() {
+  const { theme, toggleTheme } = useAppTheme();
+  const isDark = theme !== "light";
+
+  return (
+    <button
+      onClick={toggleTheme}
+      aria-label={isDark ? "Passer au thème clair" : "Passer au thème sombre"}
+      title={isDark ? "Passer au thème clair" : "Passer au thème sombre"}
+      className="rounded-full p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+    >
+      {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Topbar
 // ---------------------------------------------------------------------------
 
@@ -271,6 +291,9 @@ export function Topbar({ title }: { title?: string }) {
       <div className="flex items-center gap-3">
         {/* Statut réseau */}
         <NetworkStatus />
+
+        {/* Sélecteur clair/sombre — l'utilisateur choisit, rien n'est imposé */}
+        <ThemeToggle />
 
         {/* Toggle mode expert (cabinet) */}
         {user?.role === "CABINET" && (

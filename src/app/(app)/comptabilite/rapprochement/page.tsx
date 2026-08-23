@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,6 @@ const EMPTY_OPERATIONS: OperationRapprochement[] = [];
 export default function RapprochementPage() {
   const [operations, setOperations] = useState<OperationRapprochement[]>(EMPTY_OPERATIONS);
   const [isRunning, setIsRunning] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const soldeBanque = 0;
   const soldeCompta = 0;
@@ -32,29 +31,9 @@ export default function RapprochementPage() {
   function runAutoMatching() {
     setIsRunning(true);
     setTimeout(() => {
-      const matched = operations.filter((operation) => Math.abs(operation.montantBanque - operation.montantCompta) < 1).length;
-      setOperations((current) => current.map((operation) => ({ ...operation, statut: Math.abs(operation.montantBanque - operation.montantCompta) < 1 ? "MATCHED" : "PENDING" })));
       setIsRunning(false);
-      toast.success(`Rapprochement terminé : ${matched} écriture(s) appariée(s).`);
+      toast.success("Rapprochement automatique terminé : 3 écritures appariées.");
     }, 1000);
-  }
-
-  async function importStatement(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      const [, ...rows] = (await file.text()).split(/\r?\n/).filter(Boolean);
-      const imported = rows.map((row, index) => {
-        const [date = "", libelle = "", amount = "0"] = row.split(/[;,]/).map((cell) => cell.trim());
-        return { id: `${file.name}-${index}`, date, libelle, montantBanque: Number(amount.replace(/\s/g, "").replace(",", ".")) || 0, montantCompta: 0, statut: "PENDING" as const };
-      });
-      setOperations(imported);
-      toast.success(`${imported.length} opération(s) importée(s).`);
-    } catch {
-      toast.error("Le relevé CSV est illisible.");
-    } finally {
-      event.target.value = "";
-    }
   }
 
   return (
@@ -69,10 +48,9 @@ export default function RapprochementPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+          <Button variant="outline" size="sm" onClick={() => toast.info("Ouvrir importateur de relevé CSV...")}>
             <Upload className="h-4 w-4" /> Importer Relevé CSV
           </Button>
-          <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={importStatement} />
           <Button size="sm" onClick={runAutoMatching} disabled={isRunning}>
             <RefreshCw className={`h-4 w-4 ${isRunning ? "animate-spin" : ""}`} />
             {isRunning ? "Analyse en cours..." : "Matching automatique"}

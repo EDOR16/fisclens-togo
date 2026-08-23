@@ -27,7 +27,7 @@ export default function PatentePage() {
             Contribution des patentes assise sur la valeur locative des locaux professionnels et le CA
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => window.open("https://www.otr.tg/index.php/fr/documentation/sur-les-impots/derniers-publications/formulaires.html", "_blank", "noopener,noreferrer")}>
+        <Button variant="outline" size="sm" onClick={() => toast.info("Téléchargement formulaire patente...") }>
           <Download className="h-4 w-4" /> Formulaire OTR
         </Button>
       </div>

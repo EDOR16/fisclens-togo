@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Highlight, LegalRef, Stamp } from "@/components/landing/ui";
 import { useUI, Switchers } from "@/lib/ui-providers";
+import { GoogleSignInButton } from "@/components/google-sign-in-button";
 
 // ─── Données constantes ───────────────────────────────────────────────────────
 
@@ -29,24 +30,26 @@ const inputCls =
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function RegisterPage() {
-  const { t } = useUI();
+  const { t, theme } = useUI();
 
-  // 1. Initialisation avec régime par défaut pour éviter erreur Zod
   const [f, setF] = useState({
     tenantName: "",
     email: "",
-    regime: "REEL_NORMAL",
+    regime: "",
     password: "",
     confirm: "",
     cgu: false,
     conf: false,
   });
-
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
 
   const set = (k: string, v: unknown) => setF((s) => ({ ...s, [k]: v }));
   const s = score(f.password);
+
+  // Le bouton Google exige les mêmes prérequis que l'inscription classique :
+  // un nom de dossier, un régime fiscal et les deux consentements légaux.
+  const googleReady = f.tenantName.trim().length >= 2 && !!f.regime && f.cgu && f.conf;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,47 +60,35 @@ export default function RegisterPage() {
     if (s < 3)
       return setErr("Mot de passe trop faible (12 caractères min., majuscules, chiffres, symbole).");
 
-    try {
-      const res = await fetch("/api/v1/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: f.tenantName, // ✅ Correction : companyName attendu par le backend
-          email: f.email,
-          regime: f.regime,
-          password: f.password,
-          cgu: f.cgu,
-          confidentialite: f.conf,
-          role: "GERANT",
-          nif: ""
-        }),
-      });
+    const res = await fetch("/api/v1/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tenantName: f.tenantName,
+        email: f.email,
+        regime: f.regime,
+        password: f.password,
+        cgu: f.cgu,
+        confidentialite: f.conf,
+      }),
+    });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        // ✅ Affiche le message d'erreur précis du serveur (Zod)
-        const errorMsg = data.details?._errors?.[0] || data.message || "Erreur inconnue";
-        return setErr(errorMsg);
-      }
-
-      setOk(true);
-    } catch (error) {
-      setErr("Impossible de joindre le serveur.");
-    }
+    if (!res.ok) return setErr("Inscription impossible — vérifiez les champs ou l'email.");
+    setOk(true);
   }
 
   return (
-    <main className="paper-ruled min-h-screen font-body" style={{ color: "var(--ink)" }}>
+    <main className={`${theme === "ink" ? "ink-ruled" : "paper-ruled"} min-h-screen font-body`} style={{ color: theme === "ink" ? "var(--paper)" : "var(--ink)" }}>
 
       {/* ── En-tête ── */}
       <header className="mx-auto flex max-w-6xl items-center gap-3 px-6 pt-10">
+        {/* Logo flat uniquement sur papier (règle de marque) */}
         <span className="grid h-10 w-10 place-items-center rounded-lg font-mono text-lg font-semibold"
           style={{ background: "var(--ink)", color: "var(--bg)" }}>
           F
         </span>
         <p className="font-display text-xl font-semibold">
-          <span style={{ color: "var(--ink)" }}>Fisc</span><span className="text-lens-red">Lens</span>&nbsp;
+          FiscLens&nbsp;
           <span style={{ color: "var(--stamp)" }}>Togo</span>
         </p>
         <div className="ml-auto flex items-center gap-4">
@@ -105,6 +96,7 @@ export default function RegisterPage() {
             style={{ color: "var(--inkSoft)" }}>
             {t("no_sim")}
           </p>
+          {/* Bascule langue + fond */}
           <Switchers />
         </div>
       </header>
@@ -129,7 +121,7 @@ export default function RegisterPage() {
           </ul>
         </div>
 
-        {/* Formulaire */}
+        {/* Formulaire = reçu perforé — toujours ivoire sur les deux fonds */}
         <div className="receipt rotate-[0.6deg] rounded-sm p-8">
           <div className="flex items-start justify-between">
             <h2 className="font-display text-2xl font-semibold">
@@ -172,7 +164,7 @@ export default function RegisterPage() {
                 {t("regime")} <LegalRef>détermine votre calendrier</LegalRef>
                 <select className={inputCls + " cursor-pointer"} value={f.regime}
                   onChange={(e) => set("regime", e.target.value)} required>
-                  {/* Option vide retirée car défaut est REEL_NORMAL, mais on peut la garder si on veut forcer le choix */}
+                  <option value="">{t("regime_ph")}</option>
                   {REGIMES.map((r) => (
                     <option key={r.value} value={r.value}>{t(r.labelKey)}</option>
                   ))}
@@ -186,6 +178,7 @@ export default function RegisterPage() {
                   <input className={inputCls} type="password" value={f.password}
                     onChange={(e) => set("password", e.target.value)} required />
                 </label>
+                {/* Indicateur de force */}
                 <div className="mt-2 flex gap-1" aria-hidden>
                   {[0, 1, 2, 3].map((i) => (
                     <span key={i} className="h-1.5 flex-1 rounded" style={{
@@ -234,6 +227,22 @@ export default function RegisterPage() {
                 style={{ background: "#0B3D2E", color: "#FBF7EC" }}>
                 {t("submit")}
               </button>
+
+              <div className="flex items-center gap-3 py-1">
+                <span className="h-px flex-1" style={{ background: "rgba(11,61,46,.15)" }} />
+                <span className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--inkSoft)" }}>ou</span>
+                <span className="h-px flex-1" style={{ background: "rgba(11,61,46,.15)" }} />
+              </div>
+
+              <GoogleSignInButton
+                companyName={f.tenantName}
+                regime={(f.regime || "REEL_NORMAL") as "REEL_NORMAL" | "RSI" | "TPU"}
+                cguAccepted={f.cgu}
+                confidentialiteAccepted={f.conf}
+                disabled={!googleReady}
+                label={googleReady ? "Continuer avec Google" : "Remplissez le nom, le régime et les consentements"}
+                className="w-full flex items-center justify-center gap-2 rounded-full border py-3.5 font-mono text-sm transition hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
 
               <p className="text-center font-mono text-xs">
                 <a href="/login" className="underline decoration-2"

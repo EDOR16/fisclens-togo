@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { formatAmount, formatDate } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Search, Download, BookOpen } from "lucide-react";
-import { exportGrandLivrePdf } from "@/lib/export/pdf-generator";
 
 type GrandLivreLine = {
   id: string;
@@ -44,11 +43,6 @@ export default function GrandLivrePage() {
   const totalCredit = currentAccountData.lines.reduce((acc, l) => acc + l.credit, 0);
   const soldeFinal = totalDebit - totalCredit;
 
-  const handleExport = () => {
-    exportGrandLivrePdf("Entreprise", selectedAccount, currentAccountData.libelle, computedLines);
-    toast.success("Grand livre PDF téléchargé.");
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -60,7 +54,7 @@ export default function GrandLivrePage() {
             Détail chronologique des mouvements et solde progressif par compte SYSCOHADA
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExport}>
+        <Button variant="outline" size="sm" onClick={() => toast.info("Export PDF en cours...") }>
           <Download className="h-4 w-4" /> Exporter PDF
         </Button>
       </div>

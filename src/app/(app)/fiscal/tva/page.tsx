@@ -8,8 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { formatAmount } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Receipt, Download, FileText, CheckCircle2 } from "lucide-react";
-import { api } from "@/lib/api-client";
-import { exportTvaDeclarationPdf } from "@/lib/export/pdf-generator";
 
 export default function TvaPage() {
   const [periode, setPeriode] = useState("2025-08");
@@ -24,16 +22,6 @@ export default function TvaPage() {
 
   const tvaNetteDue = 0;
   const creditReportable = 0;
-
-  const downloadTvaPdf = async (deductionsOnly = false) => {
-    try {
-      const data = await api.get<any>(`/fiscal/tva?periode=${periode}`);
-      exportTvaDeclarationPdf(data.tenant.name, data.tenant.nif, data.periode, data.calculation);
-      toast.success(deductionsOnly ? "État des déductions téléchargé." : "Déclaration TVA téléchargée.");
-    } catch {
-      toast.error("Impossible de générer le PDF TVA.");
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -52,10 +40,10 @@ export default function TvaPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => void downloadTvaPdf(true)}>
+          <Button variant="outline" size="sm" onClick={() => toast.info("Affichage état des déductions...") }>
             <FileText className="h-4 w-4" /> État des déductions
           </Button>
-          <Button size="sm" onClick={() => void downloadTvaPdf()}>
+          <Button size="sm" onClick={() => toast.info("Téléchargement formulaire OTR...") }>
             <Download className="h-4 w-4" /> Télécharger formulaire OTR (PDF)
           </Button>
         </div>

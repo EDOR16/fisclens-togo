@@ -10,8 +10,6 @@ import { formatAmount, formatFcfa, formatDate } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Users, Calculator, Download, Play, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { api } from "@/lib/api-client";
-import { exportPayrollPdf } from "@/lib/export/pdf-generator";
 
 type TabType = "runs" | "simulation" | "annuelle";
 
@@ -30,16 +28,6 @@ export default function IrppPage() {
   const irppEstime = baseImposable > 75000 ? Math.floor((baseImposable - 75000) * 0.15 / 10) * 10 : 0;
   const netEstime = simuBrut - cnssSal - irppEstime;
 
-  const exportPayroll = async () => {
-    try {
-      const data = await api.get<any>("/fiscal/irpp");
-      exportPayrollPdf(data.tenant.name, new Date().toISOString().slice(0, 7), data.employees);
-      toast.success("État récapitulatif téléchargé.");
-    } catch {
-      toast.error("Impossible de générer l'état récapitulatif.");
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -57,10 +45,10 @@ export default function IrppPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => void exportPayroll()}>
+          <Button variant="outline" size="sm" onClick={() => toast.info("Export état récapitulatif...") }>
             <Download className="h-4 w-4" /> État récapitulatif
           </Button>
-          <Button size="sm" onClick={() => setTab("simulation")}>
+          <Button size="sm" onClick={() => toast.info("Ouvrir formulaire de paie...") }>
             <Play className="h-4 w-4" /> Nouveau run de paie
           </Button>
         </div>

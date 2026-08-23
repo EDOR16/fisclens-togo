@@ -5,7 +5,16 @@ import { hash } from "bcryptjs";
 import crypto from "crypto";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// ✅ Lazy init : le client n'est créé qu'au moment de l'appel réel,
+// jamais au chargement du module — évite de casser `next build`
+// (étape "Collecting page data") quand RESEND_API_KEY est absente.
+function getResendClient(): Resend {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY manquant — configurez-le dans .env pour activer l'envoi d'emails");
+  }
+  return new Resend(apiKey);
+}
 
 // Validation stricte de l'email entrant
 const ForgotPasswordSchema = z.object({
@@ -57,6 +66,7 @@ export async function POST(req: NextRequest) {
 
     // 5. Envoi de l'email transactionnel via Resend SANDBOX
     // ⚠️ MODE TEST : L'email sera délivré à une adresse de test Resend, pas à user.email
+    const resend = getResendClient();
     const response = await resend.emails.send({
       from: "FiscLens Togo <onboarding@resend.dev>", // Domaine sandbox gratuit
       to: ["delivered@resend.dev"], // Adresse de test obligatoire en sandbox

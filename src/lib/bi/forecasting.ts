@@ -241,8 +241,8 @@ export async function simulateWhatIf(
   });
   const avgMarginPercent = ((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0))
     ? ((((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0)) - (marginAgg._sum.montantHT || 0)) /
-      ((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0))) *
-    100
+        ((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0))) *
+      100
     : 20;
 
   const projectedMargin = Math.round((projectedCA * avgMarginPercent) / 100);

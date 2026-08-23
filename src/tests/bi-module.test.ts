@@ -93,7 +93,7 @@ describe("Module BI - Import Ventes", () => {
     const result = validateSalesImport(buffer);
 
     expect(result.success).toBe(false);
-    expect(result.errors[0].reason).toContain("Incohérence TVA");
+    expect(result.errors[0]!.reason).toContain("Incohérence TVA");
   });
 
   it("should detect TTC calculation errors", () => {
@@ -116,7 +116,7 @@ describe("Module BI - Import Ventes", () => {
     const result = validateSalesImport(buffer);
 
     expect(result.success).toBe(false);
-    expect(result.errors[0].reason).toContain("Incohérence TTC");
+    expect(result.errors[0]!.reason).toContain("Incohérence TTC");
   });
 
   it("should detect duplicate invoices", () => {
@@ -174,7 +174,7 @@ describe("Module BI - Import Ventes", () => {
     const result = validateSalesImport(buffer);
 
     expect(result.success).toBe(false);
-    expect(result.errors[0].reason).toContain("Date invalide");
+    expect(result.errors[0]!.reason).toContain("Date invalide");
   });
 });
 
@@ -190,7 +190,7 @@ describe("Module BI - Import Clients", () => {
         nom: "Entreprise ABC",
         segment: "VIP",
         zoneGeo: "Lomé",
-        encoursAutorise: 1000000,
+        encours_autorisé: 1000000,
       },
     ];
 
@@ -208,14 +208,14 @@ describe("Module BI - Import Clients", () => {
         nom: "Entreprise ABC",
         segment: "VIP",
         zoneGeo: "Lomé",
-        encoursAutorise: 1000000,
+        encours_autorisé: 1000000,
       },
       {
         code: "CLI-01", // Duplicate!
         nom: "Autre Entreprise",
         segment: "Normal",
         zoneGeo: "Kara",
-        encoursAutorise: 500000,
+        encours_autorisé: 500000,
       },
     ];
 
@@ -267,7 +267,7 @@ describe("Module BI - Import Produits", () => {
     const result = validateProductsImport(buffer);
 
     expect(result.success).toBe(false);
-    expect(result.errors[0].reason).toContain("invalides");
+    expect(result.errors[0]!.reason).toContain("invalides");
   });
 });
 
@@ -310,7 +310,7 @@ describe("Module BI - Forecasting", () => {
     // Pour maintenant, on valide juste la structure
     const mapeValues = [5, 8, 12, 3, 7, 10]; // MAPE scores
     const avgMape = mapeValues.reduce((a, b) => a + b, 0) / mapeValues.length;
-    
+
     expect(avgMape).toBeLessThan(15);
   });
 });

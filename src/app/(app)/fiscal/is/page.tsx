@@ -7,8 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { formatAmount } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Building, Download, Calendar, HelpCircle, CheckCircle2 } from "lucide-react";
-import { api } from "@/lib/api-client";
-import { exportIsDeclarationPdf } from "@/lib/export/pdf-generator";
 
 export default function IsPage() {
   const chiffreAffaires = 0;
@@ -24,16 +22,6 @@ export default function IsPage() {
   const acompteJuin = 0;
   const acompteSeptembre = 0;
   const soldeAvril = 0;
-
-  const downloadIsPdf = async () => {
-    try {
-      const data = await api.get<any>("/fiscal/is");
-      exportIsDeclarationPdf(data.tenant.name, data.exercice, data.calculation);
-      toast.success("Bordereau IS / IMF téléchargé.");
-    } catch {
-      toast.error("Impossible de générer le bordereau IS / IMF.");
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -51,7 +39,7 @@ export default function IsPage() {
             Détermination du résultat fiscal, comparaison IS 27% vs IMF 1% et échéancier des acomptes provisionnels
           </p>
         </div>
-        <Button size="sm" onClick={() => void downloadIsPdf()}>
+        <Button size="sm" onClick={() => toast.info("Téléchargement liasse fiscale OTR...") }>
           <Download className="h-4 w-4" /> Liasse Fiscale OTR (PDF)
         </Button>
       </div>

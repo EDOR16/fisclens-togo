@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Sidebar, Topbar } from "@/components/layout/sidebar";
 import { OfflineBadge } from "@/components/offline-badge";
 

@@ -257,13 +257,13 @@ export function exportPayrollPdf(
     `Entreprise : ${companyName} | Période : ${periode} | Réf : CGI Art. 26 & 74`
   );
 
-  const totalBrut    = employees.reduce((s, e) => s + e.payroll.salaireBrut, 0);
+  const totalBrut = employees.reduce((s, e) => s + e.payroll.salaireBrut, 0);
   const totalCnssSal = employees.reduce((s, e) => s + e.payroll.cnssSalariale, 0);
-  const totalAmuSal  = employees.reduce((s, e) => s + e.payroll.amuSalariale, 0);
+  const totalAmuSal = employees.reduce((s, e) => s + e.payroll.amuSalariale, 0);
   const totalCnssPat = employees.reduce((s, e) => s + e.payroll.cnssPatronale, 0);
-  const totalAmuPat  = employees.reduce((s, e) => s + e.payroll.amuPatronale, 0);
-  const totalIrpp    = employees.reduce((s, e) => s + e.payroll.irppNet, 0);
-  const totalNet     = employees.reduce((s, e) => s + e.payroll.netAPayer, 0);
+  const totalAmuPat = employees.reduce((s, e) => s + e.payroll.amuPatronale, 0);
+  const totalIrpp = employees.reduce((s, e) => s + e.payroll.irppNet, 0);
+  const totalNet = employees.reduce((s, e) => s + e.payroll.netAPayer, 0);
 
   const tableBody = employees.map((e) => [
     e.nom,
@@ -318,7 +318,7 @@ export function exportPayrollPdf(
 }
 
 // ---------------------------------------------------------------------------
-// 5. Export IS / IMF
+// 5. Export IS / MFP
 // ---------------------------------------------------------------------------
 
 export function exportIsDeclarationPdf(
@@ -329,9 +329,13 @@ export function exportIsDeclarationPdf(
   const doc = new jsPDF();
   addOfficialHeader(
     doc,
-    "BORDEREAU D'IMPÔT SUR LES SOCIÉTÉS (IS 27% & IMF 1%)",
+    "BORDEREAU D'IMPÔT SUR LES SOCIÉTÉS (IS 27% & MFP 1%)",
     `Entreprise : ${companyName} | Exercice fiscal : ${exercice} | CGI Togo`
   );
+
+  const soldeDeclaration =
+    isResult.impotExigible -
+    (isResult.acompte1 + isResult.acompte2 + isResult.acompte3 + isResult.acompte4);
 
   const isRows = [
     ["1", "Chiffre d'Affaires Annuel HT", formatAmount(isResult.chiffreAffairesHt) + " FCFA"],
@@ -339,17 +343,19 @@ export function exportIsDeclarationPdf(
     ["3", "Réintégrations fiscales (Charges non déductibles)", formatAmount(isResult.reintegrations) + " FCFA"],
     ["4", "Déductions fiscales (Produits exonérés)", formatAmount(isResult.deductions) + " FCFA"],
     ["5", "RÉSULTAT FISCAL IMPOSABLE", formatAmount(isResult.resultatFiscal) + " FCFA"],
-    ["6", "IS Théorique au taux normal (27%)", formatAmount(isResult.isTheorique) + " FCFA"],
-    ["7", "IMF Théorique (1% du CA, min 100k, max 5M FCFA)", formatAmount(isResult.imfTheorique) + " FCFA"],
-    ["8", `IMPÔT EXIGIBLE RETENU : MAX(IS, IMF) [${isResult.impotRetenu}]`, formatAmount(isResult.impotExigible) + " FCFA"],
-    ["9", "1er Acompte provisionnel (Échéance 30 Juin - 33%)", formatAmount(isResult.acompteJuin) + " FCFA"],
-    ["10", "2ème Acompte provisionnel (Échéance 30 Septembre - 33%)", formatAmount(isResult.acompteSeptembre) + " FCFA"],
-    ["11", "Solde de liquidation (Échéance 30 Avril N+1 - 34%)", formatAmount(isResult.soldeAvril) + " FCFA"],
+    ["6", "IS Théorique au taux normal (27%) [Art. 113 CGI]", formatAmount(isResult.isTheorique) + " FCFA"],
+    ["7", "MFP Théorique (1% du CA, plancher 20 000 FCFA) [Art. 120 CGI]", formatAmount(isResult.mfpTheorique) + " FCFA"],
+    ["8", `IMPÔT EXIGIBLE RETENU : MAX(IS, MFP) [${isResult.impotRetenu}]`, formatAmount(isResult.impotExigible) + " FCFA"],
+    ["9", "1er Acompte provisionnel (Échéance 31 Janvier - 25%) [Art. 114 CGI]", formatAmount(isResult.acompte1) + " FCFA"],
+    ["10", "2ème Acompte provisionnel (Échéance 31 Mai - 25%)", formatAmount(isResult.acompte2) + " FCFA"],
+    ["11", "3ème Acompte provisionnel (Échéance 31 Juillet - 25%)", formatAmount(isResult.acompte3) + " FCFA"],
+    ["12", "4ème Acompte provisionnel (Échéance 31 Octobre - 25%)", formatAmount(isResult.acompte4) + " FCFA"],
+    ["13", "Solde à la déclaration de résultat", formatAmount(soldeDeclaration) + " FCFA"],
   ];
 
   autoTable(doc, {
     startY: 44,
-    head: [["Réf", "Élément de liquidation IS / IMF", "Montant FCFA"]],
+    head: [["Réf", "Élément de liquidation IS / MFP", "Montant FCFA"]],
     body: isRows,
     headStyles: { fillColor: [22, 163, 74], textColor: 255 },
     columnStyles: {
@@ -360,5 +366,5 @@ export function exportIsDeclarationPdf(
     styles: { fontSize: 9, cellPadding: 3 },
   });
 
-  doc.save(`Bordereau_IS_IMF_${exercice}_${companyName.replace(/\s+/g, "_")}.pdf`);
+  doc.save(`Bordereau_IS_MFP_${exercice}_${companyName.replace(/\s+/g, "_")}.pdf`);
 }

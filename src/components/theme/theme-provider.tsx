@@ -33,7 +33,12 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
       setThemeState(savedTheme);
       applyThemeToDoc(savedTheme);
     } else {
-      applyThemeToDoc("dark");
+      // Aucune préférence enregistrée : respecter le thème système de l'utilisateur
+      // plutôt que d'imposer le sombre par défaut.
+      const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
+      const initial: ThemeMode = prefersLight ? "light" : "dark";
+      setThemeState(initial);
+      applyThemeToDoc(initial);
     }
 
     if (savedEnabled === "true") {

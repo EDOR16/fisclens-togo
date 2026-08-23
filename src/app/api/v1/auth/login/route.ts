@@ -1,13 +1,18 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/server/prisma";
-import { signJwt } from "@/lib/server/jwt"; // Assurez-vous que ce fichier existe et exporte signJwt
+import { signJwt } from "@/lib/server/jwt";
 
 const LoginInputSchema = z.object({
   email: z.string().email("Email invalide"),
   password: z.string().min(1, "Mot de passe requis"),
 });
+
+// Durée de vie du cookie alignée sur l'expiration du JWT (signJwt utilise "7d")
+const TOKEN_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,8 +61,11 @@ export async function POST(req: NextRequest) {
 
     // 3. Vérification mot de passe
     if (!user.passwordHash) {
-      console.error("[LOGIN_ERROR] User has no password hash");
-      return NextResponse.json({ error: "ACCOUNT_CONFIG_ERROR" }, { status: 500 });
+      // Compte créé via Google/Firebase : pas de mot de passe local à comparer
+      return NextResponse.json(
+        { error: "NO_PASSWORD_SET", message: "Ce compte utilise la connexion Google. Utilisez « Continuer avec Google »." },
+        { status: 401 }
+      );
     }
 
     const match = await bcrypt.compare(password, user.passwordHash);
@@ -73,7 +81,7 @@ export async function POST(req: NextRequest) {
     const tenantId = primaryMembership ? primaryMembership.tenantId : "";
     const role = primaryMembership ? primaryMembership.role : "GERANT";
 
-    // 5. Gestion 2FA
+    // 5. Gestion 2FA — pas de cookie posé tant que le TOTP n'est pas vérifié
     if (user.require2fa) {
       return NextResponse.json({
         token: "",
@@ -97,12 +105,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "TOKEN_GENERATION_FAILED" }, { status: 500 });
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       token,
       tenantId,
       require2fa: false,
       userId: user.id,
     });
+
+    // 7. Pose du cookie httpOnly — lu par middleware.ts lors des navigations plein-page.
+    //    Le token est aussi renvoyé en JSON ci-dessus pour les appels fetch (api-client.ts)
+    //    qui l'utilisent en header Authorization.
+    response.cookies.set("fl_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: TOKEN_MAX_AGE_SECONDS,
+    });
+
+    return response;
 
   } catch (err: unknown) {
     console.error("[LOGIN_CRITICAL_ERROR]", err);

@@ -3,6 +3,7 @@ import { Inter, Caveat, IBM_Plex_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { AppThemeProvider } from "@/components/theme/theme-provider";
+import { UIProvider } from "@/lib/ui-providers";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-body" });
@@ -38,13 +39,10 @@ export const metadata: Metadata = {
 // Reproduit exactement applyThemeToDoc() de theme-provider.tsx.
 // Exécuté en synchrone dans le <head>, avant hydratation React,
 // pour éviter le flash de thème par défaut (FOUC) constaté en production.
-// Si l'utilisateur n'a jamais choisi de thème, on respecte sa préférence
-// système (prefers-color-scheme) au lieu d'imposer le sombre.
 const THEME_INIT_SCRIPT = `
 (function() {
   try {
-    var saved = localStorage.getItem('fl_theme_mode');
-    var t = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    var t = localStorage.getItem('fl_theme_mode') || 'dark';
     var root = document.documentElement;
     root.classList.remove('dark', 'light', 'theme-midnight', 'theme-emerald');
     if (t === 'light') {
@@ -70,18 +68,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="font-sans antialiased">
-        <AppThemeProvider>
-          <AuthProvider>
-            {children}
-            <Toaster
-              position="top-right"
-              richColors
-              toastOptions={{
-                duration: 4000,
-              }}
-            />
-          </AuthProvider>
-        </AppThemeProvider>
+        <UIProvider>
+          <AppThemeProvider>
+            <AuthProvider>
+              {children}
+              <Toaster
+                position="top-right"
+                richColors
+                toastOptions={{
+                  duration: 4000,
+                }}
+              />
+            </AuthProvider>
+          </AppThemeProvider>
+        </UIProvider>
       </body>
     </html>
   );

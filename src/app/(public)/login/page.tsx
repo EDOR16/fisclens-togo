@@ -32,14 +32,20 @@ export default function LoginPage() {
 
       const data = await res.json().catch(() => ({}));
 
-      if (res.status === 401) return setErr(t("login_error"));
-      if (res.status === 202 || data.require2FA) {
+      if (res.status === 401) return setErr(data.message || t("login_error"));
+      if (res.status === 202 || data.require2FA || data.require2fa) {
         setNeed2FA(true);
         return;
       }
       if (!res.ok) return setErr(t("login_error"));
 
-      window.location.href = "/";
+      // Stockage du token pour les appels fetch (api-client.ts en Authorization: Bearer).
+      // Le cookie fl_token est déjà posé par le serveur pour les navigations plein-page
+      // (lu par middleware.ts) — window.location.href déclenche bien son envoi.
+      localStorage.setItem("fl_token", data.token);
+      localStorage.setItem("fl_tenant_id", data.tenantId);
+
+      window.location.href = "/dashboard";
     } finally {
       setLoading(false);
     }

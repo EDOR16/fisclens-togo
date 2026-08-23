@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { LogoAnimated } from "@/components/ui/logo-animated";
+import { Switchers, useUI } from "@/lib/ui-providers";
 import {
   ShieldCheck,
   Calculator,
@@ -29,11 +30,10 @@ import { formatFcfa } from "@/lib/utils";
 function LegalRef({ children, warn }: { children: React.ReactNode; warn?: boolean }) {
   return (
     <span
-      className={`inline-block ml-1.5 px-1.5 py-0.5 rounded border text-[10px] font-mono tracking-tight ${
-        warn
+      className={`inline-block ml-1.5 px-1.5 py-0.5 rounded border text-[10px] font-mono tracking-tight ${warn
           ? "border-amber-600/50 text-amber-700 bg-amber-50"
           : "border-[#0B3D2E]/30 text-[#33604C] bg-white/60"
-      }`}
+        }`}
     >
       {children}
     </span>
@@ -90,10 +90,16 @@ function getProchaineEcheance() {
 }
 
 export default function GrandLivreLandingPage() {
+  const { theme } = useUI(); // Récupérer le thème du contexte
+
   // Simulateur Fiscal Interactif
   const [caMensuel, setCaMensuel] = useState(5_000_000); // 5 000 000 FCFA
   const [margeEstimee, setMargeEstimee] = useState(30); // 30%
   const [activePersona, setActivePersona] = useState<"gerant" | "expert" | "artisan" | "daf">("gerant");
+
+  const bgClass = theme === "ink"
+    ? "bg-slate-950 text-slate-100"
+    : "bg-[#FBF7EC] text-[#0B3D2E]";
 
   // Calculs fiscaux rigoureux (CGI Togo / SYSCOHADA)
   const calc = useMemo(() => {
@@ -101,7 +107,7 @@ export default function GrandLivreLandingPage() {
     const tvaCollectee = Math.round(caMensuel * 0.18); // 18% standard
     const beneficeEstime = Math.max(0, caAnnuel * (margeEstimee / 100));
     const isTheorique = Math.round(beneficeEstime * 0.27); // IS 27%
-    const imf = Math.max(200_000, Math.round(caAnnuel * 0.01)); // IMF 1% plancher 200 000 F
+    const imf = Math.max(200_000, Math.min(5_000_000, Math.round(caAnnuel * 0.01))); // IMF 1% plancher 200k, plafond 5M [CGI Togo]
     const impotDu = Math.max(isTheorique, imf);
     const regleRetenue = isTheorique >= imf ? "IS (27%)" : "IMF (1% plancher)";
 
@@ -119,11 +125,11 @@ export default function GrandLivreLandingPage() {
   const echeance = useMemo(() => getProchaineEcheance(), []);
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-slate-950 font-sans text-slate-100 selection:bg-blue-600 selection:text-white">
+    <div className={`min-h-screen relative overflow-hidden font-sans selection:bg-blue-600 selection:text-white ${bgClass}`}>
       {/* Decorative background blobs */}
       <div className="absolute top-0 left-0 h-[600px] w-[600px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-blue-600/10 blur-[120px]" />
       <div className="absolute top-1/4 right-0 h-[500px] w-[500px] translate-x-1/3 translate-y-1/3 rounded-full bg-lens-red/10 blur-[120px]" />
-      
+
       {/* ========================================================================= */}
       {/* 1. TOP BAR : RÉFÉRENCES RÉGLEMENTAIRES SOURCÉES                         */}
       {/* ========================================================================= */}
@@ -169,6 +175,7 @@ export default function GrandLivreLandingPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <Switchers />
             <Link href="/login">
               <button className="px-5 py-2 rounded-full text-xs font-mono font-bold text-[#0B3D2E] border border-[#0B3D2E]/30 hover:bg-[#0B3D2E]/5 transition-colors">
                 Connexion
@@ -295,7 +302,7 @@ export default function GrandLivreLandingPage() {
 
                 <div className="flex items-center justify-between">
                   <span>
-                    IS Estimé (27% du bénéfice)
+                    IS Estimé (27% du bénéfice annuel projeté)
                     <LegalRef>CGI IS</LegalRef>
                   </span>
                   <span className="font-bold text-sm">
@@ -306,7 +313,7 @@ export default function GrandLivreLandingPage() {
                 <div className="flex items-center justify-between">
                   <span>
                     IMF (1% du CA annuel)
-                    <LegalRef warn>plancher 200k F</LegalRef>
+                    <LegalRef warn>plancher 200k F, plafond 5M F</LegalRef>
                   </span>
                   <span className="font-bold text-sm">
                     {formatFcfa(calc.imf)}

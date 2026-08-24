@@ -1,5 +1,5 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth, GoogleAuthProvider, signInWithPopup, type Auth } from "firebase/auth";
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -10,16 +10,39 @@ const firebaseConfig = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Évite la double initialisation en dev (Next.js Fast Refresh)
-export const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
-export const firebaseAuth = getAuth(firebaseApp);
+// Initialisation sécurisée et lazy pour éviter les erreurs au moment du build statique / SSG (ex: Vercel)
+export function getFirebaseApp(): FirebaseApp | null {
+    if (typeof window === "undefined") return null;
+    if (!firebaseConfig.apiKey) return null;
+    try {
+        return getApps().length ? getApp() : initializeApp(firebaseConfig);
+    } catch (e) {
+        console.error("[FIREBASE_INIT_ERROR]", e);
+        return null;
+    }
+}
+
+export function getFirebaseAuth(): Auth | null {
+    const app = getFirebaseApp();
+    if (!app) return null;
+    try {
+        return getAuth(app);
+    } catch (e) {
+        console.error("[FIREBASE_AUTH_ERROR]", e);
+        return null;
+    }
+}
 
 /**
  * Ouvre le popup Google, retourne l'ID token Firebase à envoyer
  * à /api/v1/auth/firebase pour vérification côté serveur.
  */
 export async function signInWithGoogle(): Promise<string> {
+    const auth = getFirebaseAuth();
+    if (!auth) {
+        throw new Error("La connexion Google n'est pas disponible (clé Firebase non configurée).");
+    }
     const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(firebaseAuth, provider);
+    const result = await signInWithPopup(auth, provider);
     return result.user.getIdToken();
 }

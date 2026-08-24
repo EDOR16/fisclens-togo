@@ -100,11 +100,21 @@ export async function POST(req: NextRequest) {
       tenantId,
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       token,
       tenantId,
       usedBackupCode: usedBackupIndex !== -1,
     });
+
+    response.cookies.set("fl_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60,
+    });
+
+    return response;
   } catch (err: unknown) {
     console.error("[2FA_VERIFY_ERROR]", err);
     return NextResponse.json(

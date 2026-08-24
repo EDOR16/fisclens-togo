@@ -8,6 +8,12 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum SubscriptionPlan {
+  STARTER
+  PRO
+  PREMIUM
+}
+
 model User {
   id               String   @id @default(cuid())
   email            String   @unique
@@ -40,6 +46,7 @@ model Tenant {
   regime         String   @default("REEL_NORMAL") // REEL_NORMAL, RSI, TPU
   nif            String?
   exerciceOuvert Boolean  @default(true)
+  plan           SubscriptionPlan @default(STARTER)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

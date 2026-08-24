@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, BookOpen, Receipt, AlertTriangle,
   BarChart3, CalendarDays, Settings, LogOut, ChevronsUpDown,
-  Users, ChevronRight, Building2, Sun, Moon,
+  Users, ChevronRight, Building2, Sun, Moon, Calculator,
 } from "lucide-react";
 import { useAuth, useHasRole, type Role } from "@/lib/auth-context";
 import { useAppTheme } from "@/components/theme/theme-provider";
@@ -55,6 +55,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "IS / IMF", href: "/fiscal/is", icon: ChevronRight },
       { label: "Patente", href: "/fiscal/patente", icon: ChevronRight },
       { label: "Déclarations", href: "/fiscal/declarations", icon: ChevronRight },
+      { label: "Simulateur fiscal", href: "/fiscal/simulateur", icon: Calculator },
     ],
   },
   {

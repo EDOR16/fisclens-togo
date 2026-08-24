@@ -35,15 +35,19 @@ export default function LoginPage() {
       if (res.status === 401) return setErr(data.message || t("login_error"));
       if (res.status === 202 || data.require2FA || data.require2fa) {
         setNeed2FA(true);
+        if (data.userId) {
+          sessionStorage.setItem("fl_2fa_uid", data.userId);
+        }
         return;
       }
-      if (!res.ok) return setErr(t("login_error"));
+      if (!res.ok) return setErr(data.message || t("login_error"));
 
       // Stockage du token pour les appels fetch (api-client.ts en Authorization: Bearer).
       // Le cookie fl_token est déjà posé par le serveur pour les navigations plein-page
       // (lu par middleware.ts) — window.location.href déclenche bien son envoi.
       localStorage.setItem("fl_token", data.token);
       localStorage.setItem("fl_tenant_id", data.tenantId);
+      sessionStorage.removeItem("fl_2fa_uid");
 
       window.location.href = "/dashboard";
     } finally {
@@ -122,12 +126,12 @@ export default function LoginPage() {
                 {t("totp")} <LegalRef>TOTP</LegalRef>
                 <input
                   className={inputCls}
-                  inputMode="numeric"
-                  pattern="\d{6}"
-                  maxLength={6}
+                  inputMode="text"
+                  maxLength={10}
                   value={totp}
-                  placeholder="000000"
-                  onChange={(e) => setTotp(e.target.value.replace(/\D/g, ""))}
+                  placeholder="000000 ou code de secours"
+                  onChange={(e) => setTotp(e.target.value)}
+                  autoFocus
                   required
                 />
                 <p className="mt-1 text-[10px] normal-case text-inkSoft">{t("login_2fa_hint")}</p>

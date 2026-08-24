@@ -64,11 +64,11 @@ export function calculateTogoTva(input: TvaCalculationInput): TvaCalculationResu
 // ---------------------------------------------------------------------------
 // 2. MODULE IRPP & PAIE TOGO (CGI Art. 26 & 74 / CNSS / AMU)
 // ---------------------------------------------------------------------------
-// Taux de cotisations sociales (source : CNSS Togo / décret AMU) :
+// Taux de cotisations sociales (source : CNSS Togo / Décret n° 2023-096/PR AMU) :
 //   CNSS vieillesse-invalidité : 4% ouvrier + 15% patronal
-//   AMU (Assurance Maladie Universelle) : 1% ouvrier + 2.5% patronal
-//   Total prélèvement salarié   : 4% CNSS + 1% AMU = 5%
-//   Total charge patronale      : 15% CNSS + 2.5% AMU = 17.5%
+//   AMU (Assurance Maladie Universelle) : 5% ouvrier + 5% patronal
+//   Total prélèvement salarié   : 4% CNSS + 5% AMU = 9%
+//   Total charge patronale      : 15% CNSS + 5% AMU = 20%
 // ---------------------------------------------------------------------------
 
 export type PayrollCalculationInput = {
@@ -83,11 +83,11 @@ export type PayrollCalculationResult = {
   cnssSalariale: number;    // 4%   — cotisation ouvrier CNSS
   cnssPatronale: number;    // 15%  — cotisation employeur CNSS (hors AMU)
   // ─── AMU (Assurance Maladie Universelle) ──────────────────
-  amuSalariale: number;     // 1%   — ouvrier AMU
-  amuPatronale: number;     // 2.5% — employeur AMU
+  amuSalariale: number;     // 5%   — ouvrier AMU [Décret 2023-096/PR]
+  amuPatronale: number;     // 5%   — employeur AMU
   // ─── Agrégats ─────────────────────────────────────────────
-  totalRetenueSalariale: number;  // cnssSalariale + amuSalariale (5%)
-  totalChargePatronale: number;   // cnssPatronale + amuPatronale (17.5%)
+  totalRetenueSalariale: number;  // cnssSalariale + amuSalariale (9%)
+  totalChargePatronale: number;   // cnssPatronale + amuPatronale (20%)
   coutTotalEmployeur: number;     // salaireBrut + totalChargePatronale
   brutApresCotisations: number;   // salaireBrut - totalRetenueSalariale
   abattementFraisPro: number;     // 28% plafonné à 833 333 FCFA/mois
@@ -115,8 +115,8 @@ const TRANCHES_IRPP_MENSUEL = [
 const TAUX = {
   CNSS_SAL: 0.04,   // 4%    ouvrier CNSS vieillesse-invalidité
   CNSS_PAT: 0.15,   // 15%   patronal CNSS (hors AMU)
-  AMU_SAL: 0.01,   // 1%    ouvrier AMU
-  AMU_PAT: 0.025,  // 2.5%  patronal AMU
+  AMU_SAL: 0.05,    // 5%    ouvrier AMU [Décret 2023-096/PR]
+  AMU_PAT: 0.05,    // 5%    patronal AMU
 } as const;
 
 export function calculateTogoPayroll(input: PayrollCalculationInput): PayrollCalculationResult {
@@ -125,12 +125,12 @@ export function calculateTogoPayroll(input: PayrollCalculationInput): PayrollCal
   // ─── Cotisations salariales ───────────────────────────────
   const cnssSalariale = Math.round(salaireBrut * TAUX.CNSS_SAL);
   const amuSalariale = Math.round(salaireBrut * TAUX.AMU_SAL);
-  const totalRetenueSalariale = cnssSalariale + amuSalariale; // 5%
+  const totalRetenueSalariale = cnssSalariale + amuSalariale; // 9%
 
   // ─── Charges patronales ───────────────────────────────────
   const cnssPatronale = Math.round(salaireBrut * TAUX.CNSS_PAT);
   const amuPatronale = Math.round(salaireBrut * TAUX.AMU_PAT);
-  const totalChargePatronale = cnssPatronale + amuPatronale;  // 17.5%
+  const totalChargePatronale = cnssPatronale + amuPatronale;  // 20%
   const coutTotalEmployeur = salaireBrut + totalChargePatronale;
 
   // ─── Base IRPP ────────────────────────────────────────────

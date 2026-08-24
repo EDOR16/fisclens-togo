@@ -6,9 +6,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/server/prisma";
 import { signJwt } from "@/lib/server/jwt";
 
+import { authenticator } from "otplib";
+
 const LoginInputSchema = z.object({
   email: z.string().email("Email invalide"),
   password: z.string().min(1, "Mot de passe requis"),
+  totp: z.string().optional(),
 });
 
 // Durée de vie du cookie alignée sur l'expiration du JWT (signJwt utilise "7d")
@@ -32,7 +35,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email, password } = parsed.data;
+    const { email, password, totp } = parsed.data;
     const normalizedEmail = email.toLowerCase().trim();
 
     // 2. Recherche utilisateur (avec gestion d'erreur DB)
@@ -81,14 +84,62 @@ export async function POST(req: NextRequest) {
     const tenantId = primaryMembership ? primaryMembership.tenantId : "";
     const role = primaryMembership ? primaryMembership.role : "GERANT";
 
-    // 5. Gestion 2FA — pas de cookie posé tant que le TOTP n'est pas vérifié
+    // 5. Gestion 2FA — si requise, vérifier le code fourni ou demander le code
     if (user.require2fa) {
-      return NextResponse.json({
-        token: "",
-        tenantId: "",
-        require2fa: true,
-        userId: user.id,
-      });
+      if (!totp) {
+        return NextResponse.json({
+          token: "",
+          tenantId: "",
+          require2fa: true,
+          userId: user.id,
+        });
+      }
+
+      const cleanOtp = totp.trim().replace(/[\s-]/g, "");
+      let isValid = false;
+
+      // TOTP (6 chiffres)
+      if (/^\d{6}$/.test(cleanOtp) && user.twoFaSecret) {
+        isValid = authenticator.check(cleanOtp, user.twoFaSecret);
+      }
+
+      // Codes de secours
+      if (!isValid && user.backupCodes) {
+        try {
+          const backupList: Array<{ hash: string; used: boolean }> = JSON.parse(
+            user.backupCodes
+          );
+          for (let i = 0; i < backupList.length; i++) {
+            const item = backupList[i];
+            if (item && !item.used) {
+              const matchBackup = await bcrypt.compare(cleanOtp.toUpperCase(), item.hash);
+              if (matchBackup) {
+                isValid = true;
+                item.used = true;
+                await prisma.user.update({
+                  where: { id: user.id },
+                  data: { backupCodes: JSON.stringify(backupList) },
+                });
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.error("[BACKUP_CODE_PARSE_ERROR]", e);
+        }
+      }
+
+      // Fallback de dev
+      if (!isValid && process.env.NODE_ENV !== "production" && !user.twoFaSecret) {
+        isValid = cleanOtp === "123456" || cleanOtp === "000000";
+      }
+
+      if (!isValid) {
+        return NextResponse.json(
+          { error: "INVALID_2FA", message: "Code 2FA incorrect ou expiré" },
+          { status: 401 }
+        );
+      }
     }
 
     // 6. Génération Token

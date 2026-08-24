@@ -7,6 +7,14 @@ export interface ProvisionInput {
   ownerUserId: string;
   regime: Regime;
   nif?: string;
+  rccm?: string;
+  cnssNumber?: string;
+  centreFiscal?: string;
+  formeJuridique?: string;
+  secteurActivite?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
   role?: string;
   ip?: string;
   userAgent?: string;
@@ -131,6 +139,14 @@ export async function provisionTenant(input: ProvisionInput) {
           name: input.tenantName,
           regime: input.regime,
           nif: input.nif || null,
+          rccm: input.rccm || null,
+          cnssNumber: input.cnssNumber || null,
+          centreFiscal: input.centreFiscal || "DPME Lomé",
+          formeJuridique: input.formeJuridique || "SARL",
+          secteurActivite: input.secteurActivite || null,
+          phone: input.phone || null,
+          address: input.address || null,
+          city: input.city || "Lomé",
           exerciceOuvert: true,
         },
       });

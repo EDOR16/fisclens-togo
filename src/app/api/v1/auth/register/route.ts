@@ -15,6 +15,14 @@ const RegisterInputSchema = z.object({
     .min(10, "Le mot de passe doit contenir au moins 10 caractères pour la sécurité des données financières"),
   regime: z.enum(["REEL_NORMAL", "RSI", "TPU"]).default("REEL_NORMAL"),
   nif: z.string().optional(),
+  rccm: z.string().optional(),
+  cnssNumber: z.string().optional(),
+  centreFiscal: z.string().optional(),
+  formeJuridique: z.string().optional(),
+  secteurActivite: z.string().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
   role: z.enum(["GERANT", "COMPTABLE", "CABINET"]).default("GERANT"),
   cgu: z.literal(true, {
     errorMap: () => ({ message: "Vous devez accepter les Conditions Générales d'Utilisation" }),
@@ -38,7 +46,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { companyName, email, password, regime, nif, role } = parsed.data;
+    const {
+      companyName,
+      email,
+      password,
+      regime,
+      nif,
+      rccm,
+      cnssNumber,
+      centreFiscal,
+      formeJuridique,
+      secteurActivite,
+      phone,
+      address,
+      city,
+      role,
+    } = parsed.data;
     const normalizedEmail = email.toLowerCase().trim();
 
     // 1. Vérifier si l'utilisateur existe déjà
@@ -75,6 +98,14 @@ export async function POST(req: NextRequest) {
       ownerUserId: user.id,
       regime,
       nif,
+      rccm,
+      cnssNumber,
+      centreFiscal,
+      formeJuridique,
+      secteurActivite,
+      phone,
+      address,
+      city,
       role,
       ip: clientIp,
       userAgent,

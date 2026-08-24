@@ -93,6 +93,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/parametres",
     icon: Settings,
     children: [
+      { label: "Fiche Entreprise (CFE / OTR)", href: "/parametres/entreprise", icon: ChevronRight },
       { label: "Plan de comptes", href: "/parametres/plan-comptes", icon: ChevronRight },
       { label: "Paramètres fiscaux", href: "/parametres/parametres-fiscaux", icon: ChevronRight, roles: ["ADMIN_SYS"] },
       { label: "Utilisateurs", href: "/parametres/utilisateurs", icon: ChevronRight, roles: ["GERANT"] },

@@ -45,10 +45,18 @@ model Tenant {
   name           String
   regime         String   @default("REEL_NORMAL") // REEL_NORMAL, RSI, TPU
   nif            String?
-  exerciceOuvert Boolean  @default(true)
+  rccm           String?
+  cnssNumber     String?
+  centreFiscal   String?          @default("DPME Lomé") // DGE, DPME, DPI Golfe, DPI Agoè-Nyivé, Régions
+  formeJuridique String?          @default("SARL") // EI, SARL, SAS, SA, ETS...
+  secteurActivite String?
+  phone          String?
+  address        String?
+  city           String?          @default("Lomé")
+  exerciceOuvert Boolean          @default(true)
   plan           SubscriptionPlan @default(STARTER)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   userTenants         UserTenant[]
   ecritures           Ecriture[]

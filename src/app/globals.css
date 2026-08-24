@@ -334,3 +334,265 @@
   background-clip: text;
   animation: shimmer 4s linear infinite;
 }
+
+/* =========================================================================
+   CAHIER / GRAND LIVRE — Design System complet pour l'interface app
+   Étend le style cahier de la landing à TOUT l'espace de travail.
+   ========================================================================= */
+
+/* ── Sidebar cahier ────────────────────────────────────────────────────── */
+.sidebar-ledger {
+  background-color: #FBF7EC;
+  background-image:
+    /* marge rouge à droite de la sidebar */
+    linear-gradient(270deg, transparent 0px, #B3261E 1px, #B3261E 2px, transparent 3px),
+    /* lignes horizontales du grand livre */
+    repeating-linear-gradient(
+      transparent, transparent 31px,
+      #E6DEC8 31px, #E6DEC8 32px
+    );
+  border-right: 2px solid #E6DEC8;
+}
+
+.dark .sidebar-ledger,
+.theme-midnight .sidebar-ledger,
+.theme-emerald .sidebar-ledger {
+  background-color: #0B3D2E;
+  background-image:
+    linear-gradient(270deg, transparent 0px, #FCD116 1px, #FCD116 2px, transparent 3px),
+    repeating-linear-gradient(
+      transparent, transparent 31px,
+      rgba(251,247,236,.08) 31px, rgba(251,247,236,.08) 32px
+    );
+  border-right: 2px solid rgba(251,247,236,.12);
+}
+
+/* ── Nav item actif — onglet à encoche cahier ──────────────────────────── */
+.nav-ledger-active {
+  position: relative;
+  background: rgba(21, 122, 70, 0.12);
+  color: #157A46;
+  font-weight: 600;
+  border-radius: 0 6px 6px 0;
+  margin-right: 8px;
+}
+
+.nav-ledger-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #157A46;
+  border-radius: 0 2px 2px 0;
+}
+
+.dark .nav-ledger-active,
+.theme-midnight .nav-ledger-active,
+.theme-emerald .nav-ledger-active {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.dark .nav-ledger-active::before,
+.theme-midnight .nav-ledger-active::before,
+.theme-emerald .nav-ledger-active::before {
+  background: #22c55e;
+}
+
+/* ── Card grand livre (lignes + marge) ─────────────────────────────────── */
+.card-ledger {
+  position: relative;
+  background-color: #FDFAF1;
+  background-image:
+    linear-gradient(90deg, transparent 28px, #B3261E 28px, #B3261E 29px, transparent 30px),
+    repeating-linear-gradient(
+      transparent, transparent 27px,
+      #EDE8D9 27px, #EDE8D9 28px
+    );
+  border: 1px solid #E6DEC8;
+  box-shadow: 0 2px 8px rgba(11, 61, 46, 0.06), 0 1px 3px rgba(11, 61, 46, 0.04);
+}
+
+.dark .card-ledger,
+.theme-midnight .card-ledger,
+.theme-emerald .card-ledger {
+  background-color: rgba(11, 61, 46, 0.6);
+  background-image:
+    linear-gradient(90deg, transparent 28px, #FCD116 28px, #FCD116 29px, transparent 30px),
+    repeating-linear-gradient(
+      transparent, transparent 27px,
+      rgba(251,247,236,.06) 27px, rgba(251,247,236,.06) 28px
+    );
+  border: 1px solid rgba(251,247,236,.10);
+  box-shadow: 0 2px 12px rgba(0,0,0,.25);
+}
+
+/* ── KPI card — reçu style grand livre ────────────────────────────────── */
+.card-kpi-ledger {
+  position: relative;
+  background: #FDFAF1;
+  border: 1px solid #E2D9C2;
+  border-top: 3px solid #157A46;
+  box-shadow: 0 4px 16px -4px rgba(11, 61, 46, 0.15);
+  overflow: visible;
+}
+
+.card-kpi-ledger::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0, transparent 4px,
+    #E2D9C2 4px, #E2D9C2 8px
+  );
+}
+
+.dark .card-kpi-ledger,
+.theme-midnight .card-kpi-ledger,
+.theme-emerald .card-kpi-ledger {
+  background: rgba(11, 61, 46, 0.7);
+  border-color: rgba(251,247,236,.12);
+  border-top-color: #22c55e;
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.35);
+}
+
+/* ── En-tête de section "chapitre" ─────────────────────────────────────── */
+.chapter-heading {
+  position: relative;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #B3261E;
+  font-family: var(--font-hand), cursive;
+  color: #0B3D2E;
+}
+
+.chapter-heading::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #E6DEC8;
+}
+
+.dark .chapter-heading,
+.theme-midnight .chapter-heading,
+.theme-emerald .chapter-heading {
+  color: #FBF7EC;
+  border-bottom-color: #FCD116;
+}
+
+/* ── Tableau lignes grand livre (alternance ivoire/crème) ──────────────── */
+.table-ledger tbody tr:nth-child(odd)  { background-color: #FDFAF1; }
+.table-ledger tbody tr:nth-child(even) { background-color: #F5F0E4; }
+.table-ledger tbody tr:hover           { background-color: #EDE8D9; }
+.table-ledger th {
+  background: #0B3D2E;
+  color: #FBF7EC;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dark .table-ledger tbody tr:nth-child(odd)  { background-color: rgba(11,61,46,.6); }
+.dark .table-ledger tbody tr:nth-child(even) { background-color: rgba(11,61,46,.4); }
+.dark .table-ledger tbody tr:hover           { background-color: rgba(34,197,94,.10); }
+.dark .table-ledger th { background: rgba(11,61,46,.9); }
+
+/* ── Onglet-cahier (tab indicator style intercalaire) ──────────────────── */
+.tab-cahier {
+  position: relative;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-radius: 4px 4px 0 0;
+  padding: 6px 16px;
+  border: 1px solid #E6DEC8;
+  border-bottom: none;
+  background: #F5F0E4;
+  color: #33604C;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tab-cahier[data-state="active"] {
+  background: #FDFAF1;
+  color: #0B3D2E;
+  font-weight: 700;
+  border-color: #E2D9C2;
+  box-shadow: 0 -2px 0 #157A46 inset;
+}
+
+/* ── Badge status comptable ────────────────────────────────────────────── */
+.badge-debit {
+  background: rgba(179, 38, 30, 0.10);
+  color: #B3261E;
+  border: 1px solid rgba(179, 38, 30, 0.25);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.badge-credit {
+  background: rgba(21, 122, 70, 0.10);
+  color: #157A46;
+  border: 1px solid rgba(21, 122, 70, 0.25);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+/* ── Numéro de ligne grand livre ───────────────────────────────────────── */
+.ledger-line-num {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6rem;
+  color: #B3261E;
+  opacity: 0.6;
+  user-select: none;
+  min-width: 2.5rem;
+  text-align: right;
+  padding-right: 8px;
+}
+
+/* ── Annotation manuscrite dans les marges ─────────────────────────────── */
+.margin-note {
+  font-family: var(--font-hand), cursive;
+  font-size: 0.8rem;
+  color: #B3261E;
+  transform: rotate(-2deg);
+  display: inline-block;
+  opacity: 0.85;
+}
+
+/* ── Fond global app — papier réglé ─────────────────────────────────────  */
+.app-paper-bg {
+  background-color: #F5F0E4;
+  background-image:
+    repeating-linear-gradient(
+      transparent, transparent 31px,
+      #E6DEC8 31px, #E6DEC8 32px
+    );
+  min-height: 100vh;
+}
+
+.dark .app-paper-bg,
+.theme-midnight .app-paper-bg,
+.theme-emerald .app-paper-bg {
+  background-color: #0a1628;
+  background-image:
+    repeating-linear-gradient(
+      transparent, transparent 31px,
+      rgba(255,255,255,.03) 31px, rgba(255,255,255,.03) 32px
+    );
+}

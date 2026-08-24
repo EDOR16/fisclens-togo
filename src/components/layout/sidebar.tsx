@@ -201,19 +201,20 @@ export function Sidebar() {
   const { user, logout } = useAuth();
 
   return (
-    <aside className="flex h-screen w-60 shrink-0 flex-col border-r bg-card">
-      {/* Logo — cliquable pour retour au landing */}
+    <aside className="sidebar-ledger flex h-screen w-60 shrink-0 flex-col">
+      {/* Logo — Grand livre style */}
       <Link
         href="/"
-        className="flex items-center gap-2 px-4 py-4 border-b hover:bg-accent transition-colors group"
+        className="flex items-center gap-2.5 px-4 py-4 border-b border-[#E6DEC8] dark:border-[rgba(251,247,236,.12)] hover:bg-[rgba(21,122,70,.06)] transition-colors group"
         title="Retour à l'accueil"
       >
-        <div className="h-8 w-8 rounded-lg bg-brand-600 flex items-center justify-center shrink-0 group-hover:bg-brand-700 transition-colors">
-          <span className="text-white font-bold text-sm">F</span>
+        {/* Tampon circulaire */}
+        <div className="stamp-circle shrink-0" style={{ borderColor: "#157A46", color: "#157A46", width: 32, height: 32, fontSize: 14 }}>
+          <span className="font-extrabold">F</span>
         </div>
         <div>
-          <span className="font-semibold text-sm">FiscLens</span>
-          <span className="text-xs text-muted-foreground ml-1">Togo</span>
+          <span className="font-semibold text-sm text-[#0B3D2E] dark:text-[#FBF7EC]" style={{ fontFamily: "var(--font-hand), cursive" }}>FiscLens</span>
+          <span className="text-[10px] font-mono ml-1 text-[#33604C] dark:text-[#BFD8CC] tracking-widest uppercase">Togo</span>
         </div>
       </Link>
 
@@ -233,24 +234,27 @@ export function Sidebar() {
 
       {/* Pied de sidebar — utilisateur */}
       {user && (
-        <div className="border-t px-3 py-3">
+        <div className="border-t border-[#E6DEC8] dark:border-[rgba(251,247,236,.12)] px-3 py-3">
+          {/* Annotation manuscrite de rôle */}
+          <div className="margin-note mb-2 text-[10px]">{user.role}</div>
           <div className="flex items-center gap-2.5 mb-2">
-            <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
-              <span className="text-brand-700 text-xs font-semibold">
-                {user.name.charAt(0).toUpperCase()}
-              </span>
+            <div
+              className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs"
+              style={{ background: "#157A46", color: "#FDFAF1" }}
+            >
+              {user.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name}</p>
+              <p className="text-sm font-semibold truncate text-[#0B3D2E] dark:text-[#FBF7EC]">{user.name}</p>
               <RoleBadge role={user.role} />
             </div>
           </div>
           <button
             onClick={logout}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-[#B3261E] hover:bg-[rgba(179,38,30,.08)] transition-colors font-mono tracking-wide"
           >
             <LogOut className="h-3.5 w-3.5" />
-            Se déconnecter
+            Déconnexion
           </button>
         </div>
       )}
@@ -286,8 +290,21 @@ export function Topbar({ title }: { title?: string }) {
   const { user, expertMode, toggleExpertMode } = useAuth();
 
   return (
-    <header className="flex h-14 items-center justify-between border-b bg-card px-6">
-      <h1 className="text-base font-semibold text-foreground">{title}</h1>
+    <header
+      className="flex h-14 items-center justify-between px-6"
+      style={{
+        background: "#FDFAF1",
+        borderBottom: "2px solid #E6DEC8",
+        backgroundImage: "repeating-linear-gradient(transparent, transparent 27px, #EDE8D9 27px, #EDE8D9 28px)",
+      }}
+    >
+      {/* Titre en style chapitre */}
+      <h1
+        className="text-base font-semibold text-[#0B3D2E] dark:text-[#FBF7EC]"
+        style={{ fontFamily: "var(--font-hand), cursive", fontSize: "1.1rem" }}
+      >
+        {title}
+      </h1>
 
       <div className="flex items-center gap-3">
         {/* Statut réseau */}

@@ -125,25 +125,44 @@ export default function GrandLivreLandingPage() {
   const echeance = useMemo(() => getProchaineEcheance(), []);
 
   return (
-    <div className={`min-h-screen relative overflow-hidden font-sans selection:bg-blue-600 selection:text-white ${bgClass}`}>
-      {/* Decorative background blobs */}
-      <div className="absolute top-0 left-0 h-[600px] w-[600px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-blue-600/10 blur-[120px]" />
-      <div className="absolute top-1/4 right-0 h-[500px] w-[500px] translate-x-1/3 translate-y-1/3 rounded-full bg-lens-red/10 blur-[120px]" />
+    <div
+      className={`min-h-screen relative overflow-hidden font-sans selection:bg-[#FCD116] selection:text-[#0B3D2E] ${bgClass}`}
+      style={theme !== "ink" ? {
+        backgroundImage: [
+          /* marge rouge verticale grand livre */
+          "linear-gradient(90deg, transparent 72px, #B3261E 72px, #B3261E 74px, transparent 74px)",
+          /* lignes horizontales du cahier */
+          "repeating-linear-gradient(transparent, transparent 31px, #E6DEC8 31px, #E6DEC8 32px)",
+        ].join(", "),
+      } : {
+        backgroundImage: [
+          "linear-gradient(90deg, transparent 88px, #FCD116 88px, #FCD116 90px, transparent 90px)",
+          "repeating-linear-gradient(transparent, transparent 31px, rgba(251,247,236,.08) 31px, rgba(251,247,236,.08) 32px)",
+        ].join(", "),
+      }}
+    >
 
       {/* ========================================================================= */}
       {/* 1. TOP BAR : RÉFÉRENCES RÉGLEMENTAIRES SOURCÉES                         */}
       {/* ========================================================================= */}
-      <div className="relative z-30 bg-black/40 backdrop-blur-md text-slate-300 text-xs py-2.5 px-4 border-b border-white/10">
+      <div
+        className="relative z-30 text-xs py-2.5 px-4 border-b-2"
+        style={{
+          background: "#0B3D2E",
+          borderColor: "#157A46",
+          backgroundImage: "repeating-linear-gradient(transparent, transparent 27px, rgba(251,247,236,.06) 27px, rgba(251,247,236,.06) 28px)",
+        }}
+      >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-2 font-mono text-[11px]">
-            <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-            <span className="text-white font-semibold">RÉFÉRENTIEL TOGO :</span>
+          <div className="flex items-center gap-2 font-mono text-[11px] text-[#BFD8CC]">
+            <span className="h-2 w-2 rounded-full bg-[#FCD116] animate-pulse" />
+            <span className="text-[#FBF7EC] font-bold tracking-widest uppercase">Référentiel Togo :</span>
             <span className="opacity-90">
               SYSCOHADA Révisé · CGI Togo (IS 27%, TVA 18%, IRPP art. 74) · OTR Formulaires CA3
             </span>
           </div>
-          <div className="font-mono text-[11px]">
-            <span>Lomé, République Togolaise</span>
+          <div className="font-mono text-[11px] text-[#BFD8CC]">
+            Lomé, République Togolaise
           </div>
         </div>
       </div>
@@ -419,7 +438,14 @@ export default function GrandLivreLandingPage() {
       {/* 5. "LA PREUVE PAR L'ARTICLE" : LE MOTEUR FISCAL TOGOLAIS EXPOSÉ           */}
       {/* ========================================================================= */}
       <section id="preuve" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto space-y-12">
-        <div className="text-center space-y-3 max-w-3xl mx-auto">
+        <div className="text-center space-y-3 max-w-3xl mx-auto relative">
+          {/* Annotation manuscrite en marge */}
+          <div
+            className="margin-note absolute -left-8 top-2 hidden lg:block text-[11px]"
+            style={{ fontFamily: "var(--font-hand), cursive" }}
+          >
+            Art. de loi →
+          </div>
           <Stamp>ARGUMENT DE VENTE N°1</Stamp>
           <h2 className="font-hand text-5xl sm:text-6xl text-[#0B3D2E] tracking-tight">
             La preuve par l&apos;article de loi.
@@ -509,55 +535,80 @@ export default function GrandLivreLandingPage() {
       {/* ========================================================================= */}
       {/* 6. "CONÇU POUR LE RÉEL TOGOLAIS" (4 QUITTANCES DE CONCEPTION)             */}
       {/* ========================================================================= */}
-      <section className="py-16 px-4 sm:px-6 max-w-7xl mx-auto space-y-10">
+      <section
+        className="py-16 px-4 sm:px-6 max-w-7xl mx-auto space-y-10"
+        style={{
+          position: "relative",
+        }}
+      >
         <div className="text-center space-y-2 max-w-2xl mx-auto">
-          <h2 className="font-hand text-5xl text-[#0B3D2E]">
+          {/* Numéro de chapitre style grand livre */}
+          <div className="font-mono text-[10px] text-[#B3261E] tracking-[0.3em] uppercase mb-2 opacity-70">
+            § Chapitre III — Fonctionnalités
+          </div>
+          <h2 className="chapter-heading font-hand text-5xl text-[#0B3D2E] inline-block">
             Conçu pour le réel togolais.
           </h2>
-          <p className="text-xs sm:text-sm text-[#33604C]">
+          <p className="text-xs sm:text-sm text-[#33604C] mt-4">
             Pas une adaptation superficielle d&apos;un logiciel européen : <span className="text-ink">Fisc</span><span className="text-[#B3261E] font-bold">Lens</span> répond aux réalités quotidiennes de Lomé, Kara et de l&apos;intérieur.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="receipt-card p-6 rounded-xl font-mono space-y-3">
-            <div className="h-8 w-8 rounded-full bg-[#157A46]/10 text-[#157A46] flex items-center justify-center font-bold">
-              01
+          {/* Carte 01 */}
+          <div className="receipt-card p-6 rounded-xl font-mono space-y-3 relative" style={{ borderTop: "3px solid #157A46" }}>
+            <div className="absolute -top-3 left-5">
+              <span className="font-mono text-[10px] bg-[#157A46] text-[#FBF7EC] px-2 py-0.5 rounded">01</span>
             </div>
-            <h3 className="font-bold text-sm text-[#0B3D2E]">Saisie Hors-Ligne Résiliente</h3>
+            <h3 className="font-bold text-sm text-[#0B3D2E] pt-2">Saisie Hors-Ligne Résiliente</h3>
             <p className="text-xs text-[#33604C] leading-relaxed">
               Continuez à saisir vos pièces et factures même en cas de coupure internet. Synchronisation automatique dès le retour de la connexion.
             </p>
+            <div className="pt-2 border-t border-dashed border-[#E2D9C2]">
+              <LegalRef>Loi n-2018-26 · Données locales</LegalRef>
+            </div>
           </div>
 
-          <div className="receipt-card p-6 rounded-xl font-mono space-y-3">
-            <div className="h-8 w-8 rounded-full bg-[#FCD116]/30 text-[#0B3D2E] flex items-center justify-center font-bold">
-              02
+          {/* Carte 02 */}
+          <div className="receipt-card p-6 rounded-xl font-mono space-y-3 relative" style={{ borderTop: "3px solid #FCD116" }}>
+            <div className="absolute -top-3 left-5">
+              <span className="font-mono text-[10px] bg-[#FCD116] text-[#0B3D2E] px-2 py-0.5 rounded">02</span>
             </div>
-            <h3 className="font-bold text-sm text-[#0B3D2E]">T-Money & Flooz Intégrés</h3>
+            <h3 className="font-bold text-sm text-[#0B3D2E] pt-2">T-Money &amp; Flooz Intégrés</h3>
             <p className="text-xs text-[#33604C] leading-relaxed">
               Rapprochement automatisé des encaissements et paiements mobiles avec génération de la quittance comptable conforme.
             </p>
+            <div className="pt-2 border-t border-dashed border-[#E2D9C2]">
+              <LegalRef>Togocel · Moov Africa · SYSCOHADA</LegalRef>
+            </div>
           </div>
 
-          <div className="receipt-card p-6 rounded-xl font-mono space-y-3">
-            <div className="h-8 w-8 rounded-full bg-[#0B3D2E]/10 text-[#0B3D2E] flex items-center justify-center font-bold">
-              03
+          {/* Carte 03 */}
+          <div className="receipt-card p-6 rounded-xl font-mono space-y-3 relative" style={{ borderTop: "3px solid #0B3D2E" }}>
+            <div className="absolute -top-3 left-5">
+              <span className="font-mono text-[10px] bg-[#0B3D2E] text-[#FBF7EC] px-2 py-0.5 rounded">03</span>
             </div>
-            <h3 className="font-bold text-sm text-[#0B3D2E]">Monnaie XOF au Franc Près</h3>
+            <h3 className="font-bold text-sm text-[#0B3D2E] pt-2">Monnaie XOF au Franc Près</h3>
             <p className="text-xs text-[#33604C] leading-relaxed">
               Zéro centime flottant, calculs entiers stricts en Francs CFA (XOF) conformément aux normes bancaires de l&apos;UEMOA.
             </p>
+            <div className="pt-2 border-t border-dashed border-[#E2D9C2]">
+              <LegalRef>BCEAO · UEMOA · XOF</LegalRef>
+            </div>
           </div>
 
-          <div className="receipt-card p-6 rounded-xl font-mono space-y-3">
-            <div className="h-8 w-8 rounded-full bg-[#157A46]/10 text-[#157A46] flex items-center justify-center font-bold">
-              04
+          {/* Carte 04 */}
+          <div className="receipt-card p-6 rounded-xl font-mono space-y-3 relative" style={{ borderTop: "3px solid #B3261E" }}>
+            <div className="absolute -top-3 left-5">
+              <span className="font-mono text-[10px] bg-[#B3261E] text-[#FBF7EC] px-2 py-0.5 rounded">04</span>
             </div>
-            <h3 className="font-bold text-sm text-[#0B3D2E]">Télétransmission CA3-OTR</h3>
+            <h3 className="font-bold text-sm text-[#0B3D2E] pt-2">Télétransmission CA3-OTR</h3>
             <p className="text-xs text-[#33604C] leading-relaxed">
               Export prêt pour la télé-déclaration OTR avec contrôle de cohérence entre CA déclaré et écritures de classe 7.
             </p>
+            <div className="pt-2 border-t border-dashed border-[#E2D9C2]">
+              <LegalRef>OTR · CGI art. 74 · CA3</LegalRef>
+            </div>
           </div>
         </div>
       </section>
@@ -752,31 +803,56 @@ export default function GrandLivreLandingPage() {
       {/* ========================================================================= */}
       {/* 9. FOOTER "LE GRAND LIVRE"                                                */}
       {/* ========================================================================= */}
-      <footer className="border-t-2 border-[#0B3D2E]/20 bg-[#FDFAF1] py-14 px-4 sm:px-6 text-xs text-[#33604C] font-mono">
+      <footer
+        className="border-t-2 border-[#0B3D2E] py-14 px-4 sm:px-6 text-xs text-[#33604C] font-mono"
+        style={{
+          background: "#FDFAF1",
+          backgroundImage: [
+            "linear-gradient(90deg, transparent 72px, #B3261E 72px, #B3261E 74px, transparent 74px)",
+            "repeating-linear-gradient(transparent, transparent 31px, #E6DEC8 31px, #E6DEC8 32px)",
+          ].join(", "),
+        }}
+      >
         <div className="max-w-7xl mx-auto space-y-10">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <LogoAnimated size="sm" />
               <p className="text-[11px] max-w-md text-[#33604C]">
-                Le Grand Livre Comptable & Moteur de Conformité Fiscale de la République Togolaise.
+                Le Grand Livre Comptable &amp; Moteur de Conformité Fiscale de la République Togolaise.
               </p>
+              {/* Tampon SYSCOHADA */}
+              <div className="flex gap-3 items-center mt-2">
+                <div className="stamp-badge" style={{ borderColor: "#157A46", color: "#157A46", fontSize: "0.55rem", transform: "rotate(-3deg)" }}>
+                  SYSCOHADA Révisé
+                </div>
+                <div className="stamp-badge" style={{ borderColor: "#B3261E", color: "#B3261E", fontSize: "0.55rem", transform: "rotate(2deg)" }}>
+                  OTR Conforme
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-6 text-xs font-bold text-[#0B3D2E]">
-              <Link href="/login" className="hover:underline">Espace Connexion</Link>
-              <Link href="/register" className="hover:underline">Créer un Dossier Réel</Link>
-              <a href="#simulateur" className="hover:underline">Simulateur Fiscal</a>
-              <a href="#preuve" className="hover:underline">Moteur IRPP</a>
-              <a href="#tarifs" className="hover:underline">Tarifs</a>
+            <div className="space-y-4">
+              {/* Annotation manuscrite */}
+              <div className="margin-note text-[11px]" style={{ fontFamily: "var(--font-hand), cursive" }}>
+                Navigation
+              </div>
+              <div className="flex flex-wrap gap-4 text-xs font-bold text-[#0B3D2E]">
+                <Link href="/login" className="hover:text-[#157A46] transition-colors">Espace Connexion</Link>
+                <Link href="/register" className="hover:text-[#157A46] transition-colors">Créer un Dossier Réel</Link>
+                <a href="#simulateur" className="hover:text-[#157A46] transition-colors">Simulateur Fiscal</a>
+                <a href="#preuve" className="hover:text-[#157A46] transition-colors">Moteur IRPP</a>
+                <a href="#tarifs" className="hover:text-[#157A46] transition-colors">Tarifs</a>
+              </div>
             </div>
           </div>
 
-          <div className="pt-6 border-t border-[#E2D9C2] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px]">
+          {/* Ligne de fermeture grand livre */}
+          <div className="pt-6 border-t-2 border-double border-[#0B3D2E]/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px]">
             <p>
-              © {new Date().getFullYear()} <span className="text-ink">Fisc</span><span className="text-[#B3261E] font-bold">Lens</span> Togo. Conçu conformément aux référentiels <strong>SYSCOHADA Révisé</strong>, <strong>CGI Togo</strong> et formulaires OTR.
+              © {new Date().getFullYear()} <span style={{ color: "#0B3D2E", fontWeight: 800 }}>Fisc</span><span style={{ color: "#B3261E", fontWeight: 800 }}>Lens</span> Togo. Conçu conformément aux référentiels <strong>SYSCOHADA Révisé</strong>, <strong>CGI Togo</strong> et formulaires OTR.
             </p>
             <p className="font-bold text-[#0B3D2E]">
-              Protection des Données Financières · Loi n°2018-26 (Togo)
+              Protection des Données Financières · Loi n-2018-26 (Togo)
             </p>
           </div>
         </div>

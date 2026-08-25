@@ -51,7 +51,13 @@ export async function POST(req: NextRequest) {
       });
     } catch (dbError) {
       console.error("[LOGIN_DB_ERROR]", dbError);
-      return NextResponse.json({ error: "DB_CONNECTION_FAILED" }, { status: 503 });
+      return NextResponse.json(
+        {
+          error: "DB_CONNECTION_FAILED",
+          message: "Connexion à la base de données impossible. Veuillez vérifier la configuration de la base de données sur Vercel (DATABASE_URL).",
+        },
+        { status: 503 }
+      );
     }
 
     if (!user) {

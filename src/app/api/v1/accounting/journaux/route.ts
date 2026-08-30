@@ -44,6 +44,8 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
       date: e.date,
       piece: e.piece,
       journal: e.journal,
+      documentUrl: e.documentUrl,
+      documentName: e.documentName,
       accountCode: l.accountCode,
       libelle: l.libelle,
       debit: l.debit,

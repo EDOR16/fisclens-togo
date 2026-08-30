@@ -89,15 +89,17 @@ model UserTenant {
 }
 
 model Ecriture {
-  id        String   @id @default(cuid())
-  tenantId  String
-  journal   String // ACHATS, VENTES, BANQUE, CAISSE, OD, PAIE
-  date      String // YYYY-MM-DD
-  piece     String
-  libelle   String?
-  status    String   @default("VALIDE") // BROUILLON, VALIDE, CLOTURE
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String         @id @default(cuid())
+  tenantId     String
+  journal      String // ACHATS, VENTES, BANQUE, CAISSE, OD, PAIE
+  date         String // YYYY-MM-DD
+  piece        String
+  libelle      String?
+  status       String         @default("VALIDE") // BROUILLON, VALIDE, CLOTURE
+  documentUrl  String? // URL ou Base64 de la pièce justificative (Facture/Reçu)
+  documentName String? // Nom original du fichier (ex: Facture_FOURN_001.pdf)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   lines  EcritureLine[]

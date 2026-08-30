@@ -19,6 +19,8 @@ const EntryFormSchema = z.object({
   journal: z.enum(["ACHATS", "VENTES", "BANQUE", "CAISSE", "OD", "PAIE"]),
   date: z.string().min(1, "Date requise"),
   piece: z.string().min(1, "N° de pièce requis"),
+  documentUrl: z.string().optional(),
+  documentName: z.string().optional(),
   lines: z.array(LineSchema).min(2, "Minimum 2 lignes"),
 });
 
@@ -50,7 +52,7 @@ export const POST = withGuard(async (req: NextRequest, { tenantId, user }) => {
     );
   }
 
-  const { journal, date, piece, lines } = parsed.data;
+  const { journal, date, piece, documentUrl, documentName, lines } = parsed.data;
 
   // 1. Contrôle strict d'équilibre comptable SYSCOHADA : Σ Débit === Σ Crédit
   const totalDebit = lines.reduce((acc, l) => acc + l.debit, 0);
@@ -106,6 +108,8 @@ export const POST = withGuard(async (req: NextRequest, { tenantId, user }) => {
         date,
         piece,
         libelle: lines[0]?.libelle ?? `Écriture ${piece}`,
+        documentUrl: documentUrl || null,
+        documentName: documentName || null,
         status: "VALIDE",
         lines: {
           create: lines.map((l) => ({

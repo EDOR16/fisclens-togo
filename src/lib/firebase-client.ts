@@ -13,7 +13,10 @@ const firebaseConfig = {
 // Initialisation sécurisée et lazy pour éviter les erreurs au moment du build statique / SSG (ex: Vercel)
 export function getFirebaseApp(): FirebaseApp | null {
     if (typeof window === "undefined") return null;
-    if (!firebaseConfig.apiKey) return null;
+    if (!firebaseConfig.apiKey) {
+        console.warn("[FIREBASE] NEXT_PUBLIC_FIREBASE_API_KEY non définie");
+        return null;
+    }
     try {
         return getApps().length ? getApp() : initializeApp(firebaseConfig);
     } catch (e) {
@@ -40,9 +43,28 @@ export function getFirebaseAuth(): Auth | null {
 export async function signInWithGoogle(): Promise<string> {
     const auth = getFirebaseAuth();
     if (!auth) {
-        throw new Error("La connexion Google n'est pas disponible (clé Firebase non configurée).");
+        throw new Error("Configuration Firebase manquante (vérifiez les variables NEXT_PUBLIC_FIREBASE_*).");
     }
+
     const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    return result.user.getIdToken();
+    provider.setCustomParameters({
+        prompt: "select_account",
+    });
+
+    try {
+        const result = await signInWithPopup(auth, provider);
+        return await result.user.getIdToken(true);
+    } catch (error: any) {
+        console.error("[FIREBASE_SIGNIN_ERROR]", error);
+        if (error.code === "auth/popup-closed-by-user") {
+            throw new Error("La fenêtre de connexion Google a été fermée.");
+        }
+        if (error.code === "auth/unauthorized-domain") {
+            throw new Error(`Ce domaine (${window.location.hostname}) n'est pas autorisé dans la console Firebase (Authentication > Settings > Authorized domains).`);
+        }
+        if (error.code === "auth/popup-blocked") {
+            throw new Error("Le popup de connexion Google a été bloqué par votre navigateur.");
+        }
+        throw new Error(error.message || "Erreur d'authentification Google");
+    }
 }

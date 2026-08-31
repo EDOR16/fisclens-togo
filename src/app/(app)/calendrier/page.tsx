@@ -44,7 +44,7 @@ export default function CalendrierPage() {
       echeance: `${currentYear}-09-15`,
       type: "IRPP / Social",
       regime: "Tous régimes employeurs",
-      description: "Versement des retenues à la source sur salaires et des cotisations sociales (CNSS 19% + AMU 10%).",
+      description: "Versement des retenues IRPP et des cotisations sociales (Part salariale 9% [CNSS 4% + AMU 5%] & Part patronale 20% [CNSS 15% + AMU 5%]).",
       lien: "/fiscal/irpp",
       statut: "URGENT",
       joursRestants: 15,

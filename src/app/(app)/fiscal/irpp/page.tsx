@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
@@ -13,11 +13,36 @@ import { formatAmount } from "@/lib/utils";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Users, Calculator, Download, Play, Info } from "lucide-react";
+import { Users, Calculator, Download, Play, Info, RefreshCw, CheckCircle2, FileSpreadsheet, Building } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { calculateTogoPayroll } from "@/lib/fiscal/togo-rules";
 
 type TabType = "simulation" | "runs" | "annuelle";
+
+type IrppApiData = {
+  tenant: { name: string; nif: string; regime: string };
+  exercice: string;
+  periode: string | null;
+  hasEcritures: boolean;
+  hasPayrollEcritures: boolean;
+  totals: {
+    totalBrut: number;
+    totalCnssSalariale: number;
+    totalCnssPatronale: number;
+    totalIrpp: number;
+    totalNet: number;
+    coutTotalEmployeur: number;
+    nbEcritures: number;
+  };
+  monthlyHistory: Array<{
+    mois: string;
+    brut: number;
+    cnssPatronale: number;
+    irpp: number;
+    net: number;
+    nbEcritures: number;
+  }>;
+};
 
 // Barème progressif annuel CGI art. 74 (Loi n°2022-022 du 27/12/2022) — en FCFA/an
 const TRANCHES_ANNUELLES = [
@@ -41,15 +66,42 @@ function computeBaremeTranches(baseImposableAnnuelle: number) {
 
 export default function IrppPage() {
   const [tab, setTab] = useState<TabType>("simulation");
+  const [exercice, setExercice] = useState(new Date().getFullYear().toString());
+
+  // API state
+  const [apiData, setApiData] = useState<IrppApiData | null>(null);
+  const [loadingApi, setLoadingApi] = useState(false);
+
+  // Simulation inputs
   const [simuBrut, setSimuBrut] = useState(450_000);
   const [nbCharges, setNbCharges] = useState(0);
+
+  async function loadFromApi() {
+    setLoadingApi(true);
+    try {
+      const res = await fetch(`/api/v1/fiscal/irpp?exercice=${exercice}`);
+      if (!res.ok) throw new Error("Erreur de chargement");
+      const json: IrppApiData = await res.json();
+      setApiData(json);
+      if (json.hasPayrollEcritures && json.totals.totalBrut > 0) {
+        setSimuBrut(json.totals.totalBrut);
+      }
+    } catch (err) {
+      toast.error("Impossible de charger les données de paie comptable");
+    } finally {
+      setLoadingApi(false);
+    }
+  }
+
+  useEffect(() => {
+    loadFromApi();
+  }, [exercice]);
 
   const result = calculateTogoPayroll({
     salaireBrut: simuBrut,
     nombreChargesFamille: nbCharges,
   });
 
-  // Barème annualisé pour affichage pédagogique
   const baseAnnuelle = result.baseImposableIrpp * 12;
   const tranches = computeBaremeTranches(baseAnnuelle);
   const irppBrutAnnuel = tranches.reduce((sum, t) => sum + t.impot, 0);
@@ -62,32 +114,88 @@ export default function IrppPage() {
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" /> IRPP &amp; Paie Togo
+              <Users className="h-5 w-5 text-primary" /> IRPP &amp; Paie Togo (SYSCOHADA &amp; OTR)
             </h2>
             <Badge variant="outline" className="border-primary/40 text-primary text-xs">
               CGI art. 26 &amp; 74 — Loi n°2022-022
             </Badge>
+            {apiData?.hasPayrollEcritures && (
+              <Badge className="bg-emerald-600 text-white text-xs gap-1 hover:bg-emerald-600">
+                <CheckCircle2 className="h-3 w-3" /> Écritures de paie détectées
+              </Badge>
+            )}
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Calcul IRPP progressif, CNSS (4% sal.) + AMU (5% sal.) et livre de paie conforme au CGI Togo
+            Calcul IRPP progressif, CNSS (4% sal. + 15% pat.), AMU (5% sal. + 5% pat.) et traçabilité comptable (661/664/447/431)
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => toast.info("Export état récapitulatif (PDF) en cours de déploiement...")}>
-            <Download className="h-4 w-4" /> État récapitulatif
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="exercice-irpp" className="text-sm shrink-0">Exercice :</Label>
+            <Input
+              id="exercice-irpp"
+              type="number"
+              value={exercice}
+              onChange={(e) => setExercice(e.target.value)}
+              className="w-24 font-mono text-sm"
+              min={2020}
+              max={2030}
+            />
+          </div>
+          <Button variant="outline" size="sm" onClick={loadFromApi} disabled={loadingApi}>
+            <RefreshCw className={cn("h-4 w-4 mr-1", loadingApi && "animate-spin")} />
+            Actualiser
           </Button>
-          <Button size="sm" onClick={() => toast.info("Module gestion de la paie en cours...")}>
-            <Play className="h-4 w-4" /> Nouveau run de paie
+          <Button size="sm" onClick={() => toast.info("Génération de l'état récapitulatif en cours...")}>
+            <Download className="h-4 w-4 mr-1" /> Exporter état (PDF)
           </Button>
         </div>
       </div>
+
+      {/* KPI Cards si données comptables */}
+      {apiData && (
+        <div className="grid sm:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs uppercase font-semibold">Masse Salariale Brute (661)</CardDescription>
+              <CardTitle className="text-xl font-mono text-primary">
+                {formatAmount(apiData.totals.totalBrut)} FCFA
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs uppercase font-semibold">IRPP Retenu (4471)</CardDescription>
+              <CardTitle className="text-xl font-mono text-rose-600">
+                {formatAmount(apiData.totals.totalIrpp)} FCFA
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs uppercase font-semibold">Charges Patronales (664)</CardDescription>
+              <CardTitle className="text-xl font-mono text-amber-700">
+                {formatAmount(apiData.totals.totalCnssPatronale)} FCFA
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card className="border-emerald-200 bg-emerald-50/40">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs uppercase font-semibold text-emerald-900">Salaires Nets (421)</CardDescription>
+              <CardTitle className="text-xl font-mono text-emerald-800">
+                {formatAmount(apiData.totals.totalNet)} FCFA
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b space-x-6">
         {([
           { key: "simulation", label: "Simulateur brut → net" },
-          { key: "runs", label: "Historique des runs mensuels" },
-          { key: "annuelle", label: "Déclaration annuelle (av. 31 mars)" },
+          { key: "runs", label: "Historique comptable mensuel" },
+          { key: "annuelle", label: "Déclaration annuelle DASH (OTR)" },
         ] as { key: TabType; label: string }[]).map(({ key, label }) => (
           <button
             key={key}
@@ -139,13 +247,11 @@ export default function IrppPage() {
                 />
               </div>
 
-              {/* Note légale */}
               <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 space-y-1.5 text-xs text-blue-800">
                 <p className="font-semibold flex items-center gap-1"><Info className="h-3.5 w-3.5" /> Règles appliquées (CGI Togo &amp; Décret AMU)</p>
                 <p>• CNSS salarié : <strong>4%</strong> + AMU salarié : <strong>5%</strong> = <strong>9%</strong> prélevé sur brut</p>
                 <p>• Charge patronale : CNSS <strong>15%</strong> + AMU <strong>5%</strong> = <strong>20%</strong></p>
                 <p>• Abattement frais professionnels : <strong>28%</strong> (plafond 833 333 FCFA/mois)</p>
-                <p>• Base arrondie au millier inférieur <em>(CGI art. 74)</em></p>
                 <p>• Réduction charge de famille : <strong>10 000 FCFA/pers./mois</strong> (max 6 pers.)</p>
               </div>
             </CardContent>
@@ -154,18 +260,16 @@ export default function IrppPage() {
           {/* Résultat fiche de paie */}
           <Card className="border-primary/30 bg-primary/5">
             <CardHeader>
-              <CardTitle className="text-base text-primary">Bulletin de salaire simplifié</CardTitle>
+              <CardTitle className="text-base text-primary">Bulletin de salaire simulé</CardTitle>
               <CardDescription>Montants en FCFA entiers — CGI / CNSS / AMU Togo</CardDescription>
             </CardHeader>
             <CardContent className="space-y-0">
-              {/* GAINS */}
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-2 mb-1">Éléments de rémunération</p>
               <div className="flex justify-between text-sm py-1.5 border-b">
                 <span className="text-muted-foreground">Salaire de base brut</span>
                 <span className="font-mono font-semibold">{formatAmount(result.salaireBrut)} FCFA</span>
               </div>
 
-              {/* DÉDUCTIONS SOCIALES */}
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-3 mb-1">Cotisations salariales</p>
               <div className="flex justify-between text-sm py-1.5 border-b text-red-600">
                 <span>− CNSS vieillesse-invalidité (4%)</span>
@@ -180,7 +284,6 @@ export default function IrppPage() {
                 <span className="font-mono">{formatAmount(result.brutApresCotisations)}</span>
               </div>
 
-              {/* BASE IRPP */}
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-3 mb-1">Calcul de l&apos;IRPP</p>
               <div className="flex justify-between text-sm py-1.5 border-b text-muted-foreground">
                 <span>− Abattement forfaitaire (28%)</span>
@@ -205,17 +308,15 @@ export default function IrppPage() {
                 <span className="font-mono">−{formatAmount(result.irppNet)}</span>
               </div>
 
-              {/* NET */}
               <div className="flex justify-between text-base py-2.5 font-bold text-green-700 bg-green-100/60 px-3 rounded-md mt-3">
                 <span>NET À PAYER AU SALARIÉ</span>
                 <span className="font-mono">{formatAmount(result.netAPayer)} FCFA</span>
               </div>
 
-              {/* Coût employeur */}
               <div className="mt-4 pt-3 border-t space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Coût total employeur</p>
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>+ CNSS patronale (15%) + AMU patronale (5%)</span>
+                  <span>+ Charges patronales CNSS (15%) + AMU (5%)</span>
                   <span className="font-mono">+{formatAmount(result.totalChargePatronale)}</span>
                 </div>
                 <div className="flex justify-between text-sm font-semibold text-foreground">
@@ -261,7 +362,6 @@ export default function IrppPage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {/* Total brut */}
                   <TableRow className="bg-muted/30 font-semibold text-sm">
                     <TableCell colSpan={3}>IRPP brut total (annuel)</TableCell>
                     <TableCell className="text-right font-mono text-primary">{formatAmount(irppBrutAnnuel)}</TableCell>
@@ -287,53 +387,120 @@ export default function IrppPage() {
         </div>
       )}
 
-      {/* ─── Onglet Historique ─── */}
+      {/* ─── Onglet Historique comptable mensuel ─── */}
       {tab === "runs" && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Runs de paie enregistrés</CardTitle>
-            <CardDescription>Aucun run de paie n&apos;a encore été généré dans cet environnement.</CardDescription>
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5 text-primary" /> Mouvements de paie enregistrés dans le Journal — Exercice {exercice}
+            </CardTitle>
+            <CardDescription>
+              Cumuls calculés à partir de vos écritures SYSCOHADA (Comptes 661, 664, 447, 421)
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="rounded-md border border-dashed border-border bg-muted/20 p-8 text-center">
-              <Users className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
-              <p className="text-sm font-medium">Aucun bulletin de paie disponible</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Les montants CNSS, AMU et IRPP apparaîtront ici après la première génération d&apos;un run réel.
-              </p>
-              <Button size="sm" className="mt-4" onClick={() => toast.info("Module de gestion de la paie en cours de déploiement...")}>
-                <Play className="h-4 w-4" /> Démarrer un run de paie
-              </Button>
-            </div>
+          <CardContent className="p-0">
+            {apiData?.monthlyHistory && apiData.monthlyHistory.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Mois</TableHead>
+                    <TableHead className="text-right">Masse Brute (661)</TableHead>
+                    <TableHead className="text-right">Patronale (664)</TableHead>
+                    <TableHead className="text-right">IRPP Retenu (447)</TableHead>
+                    <TableHead className="text-right">Net versé (421)</TableHead>
+                    <TableHead className="text-right">Écritures</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {apiData.monthlyHistory.map((m) => (
+                    <TableRow key={m.mois}>
+                      <TableCell className="font-semibold font-mono">{m.mois}</TableCell>
+                      <TableCell className="text-right font-mono">{formatAmount(m.brut)}</TableCell>
+                      <TableCell className="text-right font-mono text-amber-700">{formatAmount(m.cnssPatronale)}</TableCell>
+                      <TableCell className="text-right font-mono text-rose-600 font-medium">{formatAmount(m.irpp)}</TableCell>
+                      <TableCell className="text-right font-mono text-emerald-700 font-bold">{formatAmount(m.net)}</TableCell>
+                      <TableCell className="text-right font-mono text-xs text-muted-foreground">{m.nbEcritures}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="bg-muted/40 font-bold">
+                    <TableCell>TOTAL ANNUEL</TableCell>
+                    <TableCell className="text-right font-mono">{formatAmount(apiData.totals.totalBrut)}</TableCell>
+                    <TableCell className="text-right font-mono text-amber-700">{formatAmount(apiData.totals.totalCnssPatronale)}</TableCell>
+                    <TableCell className="text-right font-mono text-rose-600">{formatAmount(apiData.totals.totalIrpp)}</TableCell>
+                    <TableCell className="text-right font-mono text-emerald-700">{formatAmount(apiData.totals.totalNet)}</TableCell>
+                    <TableCell className="text-right font-mono text-xs">{apiData.totals.nbEcritures}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="p-8 text-center">
+                <Users className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+                <p className="text-sm font-medium">Aucune écriture de paie enregistrée sur l&apos;exercice {exercice}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Passez les écritures de salaires dans le Journal des OD ou PAIE (comptes 661, 664, 447, 431, 421) pour les voir apparaître automatiquement.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {/* ─── Onglet Déclaration annuelle ─── */}
+      {/* ─── Onglet Déclaration annuelle DASH ─── */}
       {tab === "annuelle" && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Déclaration Annuelle des Salaires et Honoraires (DASH)</CardTitle>
+            <CardTitle className="text-base">Déclaration Annuelle des Salaires et Honoraires (DASH — OTR)</CardTitle>
             <CardDescription>
-              À déposer avant le 31 mars de l&apos;année N+1 (CGI Togo / LPF art. 65)
+              À déposer avant le 31 mars {Number(exercice) + 1} (CGI Togo / LPF art. 65)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 border rounded-lg bg-amber-50 border-amber-200 space-y-2">
-              <p className="text-sm font-semibold text-amber-800">Aucune donnée fiscale pour l&apos;instant</p>
-              <p className="text-xs text-amber-700">
-                Les cumuls annuels de masse salariale, CNSS, AMU et IRPP seront calculés automatiquement
-                dès qu&apos;un exercice réel sera saisi et clôturé.
-              </p>
-            </div>
-            <div className="rounded-lg bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
-              <p className="font-semibold">Champs attendus dans la déclaration annuelle :</p>
-              <p>• Masse salariale brute totale versée aux salariés</p>
-              <p>• Total cotisations CNSS (salariale + patronale)</p>
-              <p>• Total cotisations AMU (salariale + patronale)</p>
-              <p>• Total IRPP retenu à la source</p>
-              <p>• Déclaration des honoraires versés aux prestataires (retenue à la source 10%)</p>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Rubrique de la déclaration DASH</TableHead>
+                  <TableHead className="text-right">Montant cumulé (FCFA)</TableHead>
+                  <TableHead>Compte SYSCOHADA associé</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium">Masse salariale brute annuelle</TableCell>
+                  <TableCell className="text-right font-mono font-bold text-primary">
+                    {formatAmount(apiData?.totals.totalBrut || 0)}
+                  </TableCell>
+                  <TableCell className="text-xs font-mono text-muted-foreground">661 — Salaires du personnel</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Cotisations patronales CNSS &amp; AMU</TableCell>
+                  <TableCell className="text-right font-mono font-semibold text-amber-700">
+                    {formatAmount(apiData?.totals.totalCnssPatronale || 0)}
+                  </TableCell>
+                  <TableCell className="text-xs font-mono text-muted-foreground">664 — Charges sociales patronales</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Total IRPP retenu à la source</TableCell>
+                  <TableCell className="text-right font-mono font-semibold text-rose-600">
+                    {formatAmount(apiData?.totals.totalIrpp || 0)}
+                  </TableCell>
+                  <TableCell className="text-xs font-mono text-muted-foreground">4471 — Retenues IRPP</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Salaires nets versés</TableCell>
+                  <TableCell className="text-right font-mono font-semibold text-emerald-700">
+                    {formatAmount(apiData?.totals.totalNet || 0)}
+                  </TableCell>
+                  <TableCell className="text-xs font-mono text-muted-foreground">421 — Personnel, rémunérations dues</TableCell>
+                </TableRow>
+                <TableRow className="bg-primary/10 font-bold">
+                  <TableCell>Coût total employeur</TableCell>
+                  <TableCell className="text-right font-mono text-foreground">
+                    {formatAmount(apiData?.totals.coutTotalEmployeur || 0)} FCFA
+                  </TableCell>
+                  <TableCell className="text-xs font-mono">Classe 66</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}

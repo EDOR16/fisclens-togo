@@ -46,3 +46,5 @@ prisma/dev.db*
 .vscode/*
 !.vscode/settings.json
 .idea
+
+.vercel

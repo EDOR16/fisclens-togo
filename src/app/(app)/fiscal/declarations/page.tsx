@@ -6,15 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  FileText, Download, CheckCircle2, Clock, AlertCircle, RefreshCw,
-  Receipt, Building, Users, TrendingUp, ExternalLink
+  FileText, CheckCircle2, Clock, AlertCircle, RefreshCw,
+  Receipt, Building, Users, ExternalLink, Home, Car, DollarSign, Calculator
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { formatAmount } from "@/lib/utils";
+import { cn, formatAmount } from "@/lib/utils";
 import Link from "next/link";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type DeclarationStatut = "A_PRODUIRE" | "A_JOUR" | "EN_RETARD";
 
@@ -35,14 +32,17 @@ type FiscalSummary = {
   };
   irpp: {
     disponible: boolean;
+    irppMensuel: number;
+  };
+  patente: {
+    montantEstime: number;
+    disponible: boolean;
   };
   hasEcritures: boolean;
   tenantName: string;
   tenantNif: string;
   tenantRegime: string;
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getStatutBadge(statut: DeclarationStatut) {
   if (statut === "A_JOUR") {
@@ -84,15 +84,16 @@ export default function DeclarationsPage() {
   async function loadData() {
     setLoading(true);
     try {
-      // Charger TVA, IS et infos tenant en parallèle
-      const [tvaRes, isRes, efRes] = await Promise.all([
+      const [tvaRes, isRes, irppRes, efRes] = await Promise.all([
         fetch(`/api/v1/fiscal/tva?periode=${currentMonth}`),
         fetch(`/api/v1/fiscal/is?exercice=${currentYear}`),
+        fetch("/api/v1/fiscal/irpp"),
         fetch("/api/v1/accounting/etats-financiers"),
       ]);
 
       const tvaData = tvaRes.ok ? await tvaRes.json() : null;
       const isData = isRes.ok ? await isRes.json() : null;
+      const irppData = irppRes.ok ? await irppRes.json() : null;
       const efData = efRes.ok ? await efRes.json() : null;
 
       setData({
@@ -111,7 +112,12 @@ export default function DeclarationsPage() {
           disponible: !!isData,
         },
         irpp: {
-          disponible: false,
+          disponible: !!irppData?.dashSummary,
+          irppMensuel: irppData?.dashSummary?.totalIrppRetenu ?? 0,
+        },
+        patente: {
+          montantEstime: Math.round((efData?.compteDeResultat?.chiffreAffaires || 0) * 0.007),
+          disponible: !!efData?.compteDeResultat?.chiffreAffaires,
         },
         hasEcritures: !!(efData?.hasData),
         tenantName: tvaData?.tenant?.name ?? isData?.tenant?.name ?? "Entreprise",
@@ -129,15 +135,15 @@ export default function DeclarationsPage() {
     loadData();
   }, []);
 
-  // ─── Déclarations générées dynamiquement ─────────────────────────────────
-
+  // ─── Référentiel Exhaustif de Déclarations OTR Togo ───
   const declarations = data ? [
     {
       id: "tva-mensuelle",
-      nom: "Déclaration TVA mensuelle (CA3)",
+      nom: "Déclaration TVA mensuelle (Bordereau CA3)",
       periode: data.tva.periode,
       echeance: `${data.tva.periode}-15`,
-      type: "TVA",
+      type: "TVA 18%",
+      reference: "CGI art. 195 & LPF art. 60",
       montant: data.tva.tvaNetteDue,
       lien: "/fiscal/tva",
       disponible: data.tva.disponible,
@@ -145,11 +151,51 @@ export default function DeclarationsPage() {
       couleur: "text-blue-600",
     },
     {
+      id: "irpp-paie-mensuelle",
+      nom: "Versement mensuel IRPP & Cotisations Sociales (CNSS 4% + AMU 5%)",
+      periode: data.tva.periode,
+      echeance: `${data.tva.periode}-15`,
+      type: "IRPP / Paie",
+      reference: "CGI art. 74 & LPF art. 99",
+      montant: data.irpp.irppMensuel,
+      lien: "/fiscal/irpp",
+      disponible: data.irpp.disponible,
+      icone: Users,
+      couleur: "text-emerald-600",
+    },
+    {
+      id: "retenues-rsr-loyers",
+      nom: "Retenues à la source (RSR 3%/5%/20% & Retenue Loyers 8,75%)",
+      periode: data.tva.periode,
+      echeance: `${data.tva.periode}-15`,
+      type: "Retenues LPF",
+      reference: "LPF art. 99 & 100",
+      montant: 0,
+      lien: "/fiscal/simulateur",
+      disponible: true,
+      icone: DollarSign,
+      couleur: "text-cyan-600",
+    },
+    {
+      id: "patente-annuelle",
+      nom: "Droit de Patente annuel (Bordereau de liquidation)",
+      periode: String(currentYear),
+      echeance: `${currentYear}-03-31`,
+      type: "Patente",
+      reference: "CGI art. 250 & 254",
+      montant: data.patente.montantEstime,
+      lien: "/fiscal/patente",
+      disponible: data.patente.disponible,
+      icone: Building,
+      couleur: "text-amber-600",
+    },
+    {
       id: "is-annuel",
-      nom: `Impôt sur les Sociétés — Liasse fiscale (${data.is.exercice})`,
+      nom: `Impôt sur les Sociétés (IS 27% / IMF 1%) — Liasse GUDEF`,
       periode: data.is.exercice,
       echeance: `${Number(data.is.exercice) + 1}-04-30`,
-      type: "IS",
+      type: "IS / Liasse",
+      reference: "CGI art. 113 & LPF art. 17, 49",
       montant: data.is.impotExigible,
       lien: "/fiscal/is",
       disponible: data.is.disponible,
@@ -158,10 +204,24 @@ export default function DeclarationsPage() {
     },
     {
       id: "is-acompte-1",
-      nom: `1er Acompte IS (25% de l'IS N-1)`,
-      periode: data.is.exercice,
-      echeance: `${data.is.exercice}-03-31`,
+      nom: "1er Acompte Provisionnel IS (25% de l'impôt N-1)",
+      periode: String(currentYear),
+      echeance: `${currentYear}-03-31`,
       type: "IS Acompte",
+      reference: "CGI art. 114 & LPF art. 55",
+      montant: Math.round(data.is.impotExigible * 0.25),
+      lien: "/fiscal/is",
+      disponible: data.is.disponible,
+      icone: Building,
+      couleur: "text-purple-400",
+    },
+    {
+      id: "is-acompte-2",
+      nom: "2ème Acompte Provisionnel IS (25%)",
+      periode: String(currentYear),
+      echeance: `${currentYear}-06-30`,
+      type: "IS Acompte",
+      reference: "CGI art. 114 & LPF art. 55",
       montant: Math.round(data.is.impotExigible * 0.25),
       lien: "/fiscal/is",
       disponible: data.is.disponible,
@@ -170,15 +230,42 @@ export default function DeclarationsPage() {
     },
     {
       id: "irpp-dash",
-      nom: "DASH — Déclaration Annuelle des Salaires",
-      periode: String(currentYear),
-      echeance: `${currentYear}-03-31`,
-      type: "IRPP / Paie",
+      nom: "DASH — Déclaration Annuelle des Salaires et Rémunérations",
+      periode: String(currentYear - 1),
+      echeance: `${currentYear}-01-31`,
+      type: "DAS / DASH",
+      reference: "LPF art. 28",
       montant: 0,
       lien: "/fiscal/irpp",
-      disponible: false,
+      disponible: data.irpp.disponible,
       icone: Users,
       couleur: "text-orange-600",
+    },
+    {
+      id: "taxes-foncieres",
+      nom: "Taxes Foncières (TFPB 7,5% & TFPNB 0,5%) & Taxe d'Habitation",
+      periode: String(currentYear),
+      echeance: `${currentYear}-03-31`,
+      type: "Foncier / Local",
+      reference: "CGI art. 275, 276, 296",
+      montant: 0,
+      lien: "/fiscal/simulateur",
+      disponible: true,
+      icone: Home,
+      couleur: "text-teal-600",
+    },
+    {
+      id: "tvm-annuelle",
+      nom: "Taxe sur les Véhicules à Moteur (TVM)",
+      periode: String(currentYear),
+      echeance: `${currentYear}-03-31`,
+      type: "TVM",
+      reference: "CGI art. 162 & LPF art. 58",
+      montant: 0,
+      lien: "/fiscal/simulateur",
+      disponible: true,
+      icone: Car,
+      couleur: "text-emerald-700",
     },
   ] : [];
 
@@ -190,25 +277,32 @@ export default function DeclarationsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" /> Centre des Déclarations Fiscales &amp; Exports OTR
+            <FileText className="h-5 w-5 text-primary" /> Centre des Déclarations Fiscales OTR — République Togolaise
           </h2>
           <p className="text-sm text-muted-foreground">
-            Montants calculés automatiquement depuis vos écritures comptables SYSCOHADA
+            Suivi et liquidation de tous les impôts, droits et taxes selon le Livre Pratique OTR 2026.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
-          <RefreshCw className={cn("h-4 w-4 mr-1.5", loading && "animate-spin")} />
-          Actualiser
-        </Button>
+        <div className="flex gap-2">
+          <Link href="/fiscal/simulateur">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+              <Calculator className="h-4 w-4" /> Simulateur Fiscal Global
+            </Button>
+          </Link>
+          <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
+            <RefreshCw className={cn("h-4 w-4 mr-1.5", loading && "animate-spin")} />
+            Actualiser
+          </Button>
+        </div>
       </div>
 
       {/* Dossier infos */}
       {data && (
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-4 gap-4">
           <Card className="border-primary/20 bg-primary/5">
             <CardHeader className="pb-2">
-              <CardDescription className="text-xs uppercase font-semibold">Dossier fiscal</CardDescription>
-              <CardTitle className="text-base">{data.tenantName}</CardTitle>
+              <CardDescription className="text-xs uppercase font-semibold">Dossier OTR</CardDescription>
+              <CardTitle className="text-base truncate">{data.tenantName}</CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground space-y-0.5">
               <p>NIF : <strong>{data.tenantNif || "Non renseigné"}</strong></p>
@@ -221,7 +315,7 @@ export default function DeclarationsPage() {
           )}>
             <CardHeader className="pb-2">
               <CardDescription className="text-xs uppercase font-semibold text-blue-800">
-                TVA Net à reverser — {data.tva.periode}
+                TVA Nette Due — {data.tva.periode}
               </CardDescription>
               <CardTitle className="text-xl font-mono text-blue-900">
                 {formatAmount(data.tva.tvaNetteDue)} FCFA
@@ -235,7 +329,7 @@ export default function DeclarationsPage() {
           <Card className="border-purple-200 bg-purple-50/40">
             <CardHeader className="pb-2">
               <CardDescription className="text-xs uppercase font-semibold text-purple-800">
-                IS / IMF — Exercice {data.is.exercice}
+                IS / IMF — {data.is.exercice}
               </CardDescription>
               <CardTitle className="text-xl font-mono text-purple-900">
                 {formatAmount(data.is.impotExigible)} FCFA
@@ -245,44 +339,50 @@ export default function DeclarationsPage() {
               Résultat fiscal : {formatAmount(data.is.resultatFiscal)} FCFA ({data.is.impotRetenu})
             </CardContent>
           </Card>
+
+          <Card className="border-amber-200 bg-amber-50/40">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs uppercase font-semibold text-amber-800">
+                Droit de Patente ({currentYear})
+              </CardDescription>
+              <CardTitle className="text-xl font-mono text-amber-900">
+                {formatAmount(data.patente.montantEstime)} FCFA
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground">
+              Estimation sur le CA réalisé (CGI art. 254)
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* Tableau des déclarations */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Toutes les déclarations réglementaires — Exercice {currentYear}</CardTitle>
+          <CardTitle className="text-base">Échéancier &amp; Tableau Général des Obligations Fiscales OTR</CardTitle>
           <CardDescription>
-            {data?.hasEcritures
-              ? "Montants issus de vos écritures SYSCOHADA. Cliquez sur une ligne pour accéder au module détaillé."
-              : "Aucune écriture comptable trouvée. Saisissez des écritures pour générer les montants fiscaux."}
+            Toutes les déclarations légales d&apos;une entreprise togolaise. Cliquez sur « Ouvrir » pour liquider ou simuler l&apos;impôt correspondant.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
             <div className="p-12 text-center">
               <RefreshCw className="h-8 w-8 animate-spin mx-auto text-primary mb-3" />
-              <p className="text-sm text-muted-foreground">Calcul des montants depuis la comptabilité...</p>
-            </div>
-          ) : declarations.length === 0 ? (
-            <div className="rounded-md border border-dashed border-border bg-muted/20 m-6 p-6 text-center">
-              <p className="font-semibold">Aucune déclaration disponible</p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Les formulaires TVA, IS et IRPP seront générés dès que des écritures comptables seront saisies.
-              </p>
+              <p className="text-sm text-muted-foreground">Calcul des montants fiscaux depuis la comptabilité...</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8"></TableHead>
-                  <TableHead>Déclaration</TableHead>
+                  <TableHead>Obligation Fiscale</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Période / Exercice</TableHead>
-                  <TableHead>Échéance légale</TableHead>
+                  <TableHead>Référence Légale</TableHead>
+                  <TableHead>Période</TableHead>
+                  <TableHead>Échéance Légale</TableHead>
                   <TableHead className="text-right">Montant (FCFA)</TableHead>
                   <TableHead>Statut</TableHead>
-                  <TableHead className="w-28">Action</TableHead>
+                  <TableHead className="w-24">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -290,7 +390,7 @@ export default function DeclarationsPage() {
                   const statut = getEcheanceStatus(d.echeance);
                   const Icon = d.icone;
                   return (
-                    <TableRow key={d.id} className={cn(!d.disponible && "opacity-60")}>
+                    <TableRow key={d.id} className={cn(!d.disponible && "opacity-75")}>
                       <TableCell>
                         <Icon className={cn("h-4 w-4", d.couleur)} />
                       </TableCell>
@@ -298,9 +398,10 @@ export default function DeclarationsPage() {
                       <TableCell>
                         <Badge variant="outline" className="text-xs">{d.type}</Badge>
                       </TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground">{d.reference}</TableCell>
                       <TableCell className="font-mono text-xs">{d.periode}</TableCell>
-                      <TableCell className={cn("text-xs", statut === "EN_RETARD" && "text-red-600 font-semibold")}>
-                        {new Date(d.echeance).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
+                      <TableCell className={cn("text-xs font-medium", statut === "EN_RETARD" && "text-red-600 font-bold")}>
+                        {new Date(d.echeance).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
                       </TableCell>
                       <TableCell className="text-right font-mono font-semibold">
                         {d.montant > 0 ? (
@@ -326,18 +427,26 @@ export default function DeclarationsPage() {
         </CardContent>
       </Card>
 
-      {/* Note légale */}
-      <Card className="border-amber-200 bg-amber-50/40">
-        <CardContent className="pt-4 flex gap-3 text-sm text-amber-800">
-          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-amber-600" />
+      {/* Synthèse des délais OTR */}
+      <Card className="border-emerald-200 bg-emerald-50/30">
+        <CardContent className="pt-4 flex gap-3 text-sm text-emerald-950">
+          <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5 text-emerald-600" />
           <div className="space-y-1">
-            <p className="font-semibold">Rappel des obligations déclaratives OTR — Togo (CGI / LPF)</p>
-            <ul className="text-xs space-y-0.5 list-disc list-inside text-amber-700">
-              <li><strong>TVA (CA3)</strong> : Dépôt et paiement avant le <strong>15 du mois suivant</strong> (art. 209 CGI)</li>
-              <li><strong>IS / Acomptes</strong> : 4 acomptes aux 31/03, 30/06, 30/09, 31/12 — Solde avant le <strong>30 avril N+1</strong></li>
-              <li><strong>IRPP / Paie (CNSS+AMU)</strong> : Versement mensuel avant le <strong>15 du mois suivant</strong></li>
-              <li><strong>DASH</strong> : Déclaration Annuelle des Salaires avant le <strong>31 mars N+1</strong></li>
-            </ul>
+            <p className="font-bold">Calendrier des Déclarations et Télépaiement sur E-Taxe (LPF Chapitre 5)</p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs pt-1 text-emerald-900">
+              <div className="bg-white/60 p-2 rounded border border-emerald-200">
+                <strong>15 du mois</strong> : TVA, TAF, TCA, RSR, RSNR, Retenues Loyers, Accises
+              </div>
+              <div className="bg-white/60 p-2 rounded border border-emerald-200">
+                <strong>31 janvier</strong> : Déclaration Annuelle des Salaires (DAS / DASH)
+              </div>
+              <div className="bg-white/60 p-2 rounded border border-emerald-200">
+                <strong>31 mars</strong> : IRPP, TPU, Patente (Personnes Physiques), TVM
+              </div>
+              <div className="bg-white/60 p-2 rounded border border-emerald-200">
+                <strong>30 avril</strong> : Liasse Fiscale IS (GUDEF), Patente (Personnes Morales)
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

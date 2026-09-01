@@ -18,17 +18,17 @@ export function FiscalSimulator() {
     const tvaDeductible = Math.round(chargesHT * 0.18);
     const tvaNette = Math.max(0, tvaCollectee - tvaDeductible);
 
-    // 2. CNSS Togo (Employeur 17.5%, Employé 4%)
-    const cnssPatronale = Math.round(masseSalariale * 0.175);
-    const cnssSalariale = Math.round(masseSalariale * 0.04);
+    // 2. Cotisations Sociales Togo (Patronal 20% = 15% CNSS + 5% AMU | Salarial 9% = 4% CNSS + 5% AMU)
+    const cnssPatronale = Math.round(masseSalariale * 0.20);
+    const cnssSalariale = Math.round(masseSalariale * 0.09);
     const totalCnss = cnssPatronale + cnssSalariale;
 
-    // 3. Résultat fiscal & IS / IMF (CGI Togo)
+    // 3. Résultat fiscal & IS / IMF (CGI Togo : IS 27% vs IMF 1% plancher 20 000 F)
     const totalCharges = chargesHT + masseSalariale + cnssPatronale;
     const resultatFiscal = Math.max(0, caHT - totalCharges);
 
     const is27 = Math.round(resultatFiscal * 0.27);
-    const imf1 = Math.max(200_000, Math.round(caHT * 0.01)); // Minimum forfaitaire OTR 200k
+    const imf1 = Math.max(20_000, Math.round(caHT * 0.01)); // Minimum forfaitaire CGI art. 120
     const isAPayer = Math.max(is27, imf1);
 
     const resultatNet = caHT - totalCharges - isAPayer;

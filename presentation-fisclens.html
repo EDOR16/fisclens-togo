@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FiscLens Togo — Présentation Officielle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy:   #0F172A;
+      --navy2:  #1E293B;
+      --navy3:  #334155;
+      --green:  #10B981;
+      --green2: #059669;
+      --green3: #D1FAE5;
+      --gold:   #F59E0B;
+      --red:    #EF4444;
+      --white:  #FFFFFF;
+      --gray50: #F8FAFC;
+      --gray100:#F1F5F9;
+      --gray200:#E2E8F0;
+      --gray400:#94A3B8;
+      --gray600:#475569;
+      --gray800:#1E293B;
+      --radius: 12px;
+      --shadow: 0 4px 24px rgba(15,23,42,0.12);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #e2e8f0; color: var(--navy); font-size: 14px; line-height: 1.6; }
+    @media print {
+      body { font-size: 12px; background: white; }
+      .page { page-break-after: always; page-break-inside: avoid; margin: 0 !important; box-shadow: none !important; }
+      .no-print { display: none !important; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+    .page { width: 210mm; min-height: 297mm; margin: 0 auto 32px; background: white; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+    /* COVER */
+    .cover { background: linear-gradient(145deg, #0F172A 0%, #0D2137 55%, #0a3d2e 100%); min-height: 297mm; display: flex; flex-direction: column; justify-content: space-between; color: white; }
+    .cover-header { padding: 44px 52px 28px; display: flex; justify-content: space-between; align-items: center; }
+    .cover-logo-area { display: flex; align-items: center; gap: 12px; }
+    .cover-logo-icon { width: 48px; height: 48px; background: var(--green); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .cover-logo-text { font-size: 20px; font-weight: 800; color: white; }
+    .cover-logo-text span { color: var(--green); }
+    .cover-badge { background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.4); color: var(--green); padding: 5px 14px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+    .cover-hero { padding: 16px 52px 36px; flex: 1; }
+    .cover-tag { display: inline-block; background: rgba(16,185,129,.2); border-left: 3px solid var(--green); color: var(--green); padding: 5px 12px; font-size: 10.5px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 22px; }
+    .cover-title { font-family: 'Playfair Display', serif; font-size: 48px; font-weight: 800; line-height: 1.1; color: white; margin-bottom: 16px; }
+    .cover-title em { color: var(--green); font-style: normal; }
+    .cover-subtitle { font-size: 15px; color: rgba(255,255,255,.65); max-width: 520px; margin-bottom: 40px; }
+    .cover-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 36px; }
+    .cover-stat { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: var(--radius); padding: 18px 14px; text-align: center; }
+    .cover-stat-num { font-size: 26px; font-weight: 800; color: var(--green); display: block; }
+    .cover-stat-label { font-size: 10.5px; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }
+    .cover-modules { display: flex; gap: 10px; flex-wrap: wrap; }
+    .cover-module-pill { background: rgba(16,185,129,.12); border: 1px solid rgba(16,185,129,.3); color: rgba(255,255,255,.85); padding: 7px 15px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+    .cover-footer { padding: 22px 52px; border-top: 1px solid rgba(255,255,255,.08); display: flex; justify-content: space-between; align-items: center; }
+    .cover-footer-left { color: rgba(255,255,255,.4); font-size: 11px; }
+    .cover-footer-right { color: var(--green); font-size: 12px; font-weight: 600; }
+    .cover-deco { position: absolute; top: -80px; right: -80px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(16,185,129,.15) 0%, transparent 70%); pointer-events: none; }
+    /* INNER PAGES */
+    .inner-page { min-height: 297mm; padding: 40px 52px; display: flex; flex-direction: column; }
+    .section-tag { display: inline-flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 700; color: var(--green2); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
+    .section-tag::before { content: ''; display: block; width: 18px; height: 2px; background: var(--green); }
+    .section-title { font-size: 26px; font-weight: 800; color: var(--navy); line-height: 1.2; margin-bottom: 8px; }
+    .section-title span { color: var(--green2); }
+    .section-desc { font-size: 13px; color: var(--gray600); max-width: 580px; margin-bottom: 28px; }
+    .divider { height: 2px; background: linear-gradient(to right, var(--green), transparent); margin-bottom: 28px; }
+    /* MODULES */
+    .modules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+    .module-card { border: 1px solid var(--gray200); border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; }
+    .module-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .module-card.green::before { background: var(--green); }
+    .module-card.navy::before  { background: var(--navy); }
+    .module-card.gold::before  { background: var(--gold); }
+    .module-card.red::before   { background: var(--red); }
+    .module-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; font-size: 18px; }
+    .module-card.green .module-icon { background: var(--green3); }
+    .module-card.navy  .module-icon { background: #DBEAFE; }
+    .module-card.gold  .module-icon { background: #FEF3C7; }
+    .module-card.red   .module-icon { background: #FEE2E2; }
+    .module-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 5px; }
+    .module-desc { font-size: 11.5px; color: var(--gray600); line-height: 1.5; margin-bottom: 10px; }
+    .module-features { list-style: none; }
+    .module-features li { font-size: 11px; color: var(--gray600); padding: 2.5px 0; display: flex; align-items: flex-start; gap: 5px; }
+    .module-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+    /* TABLE */
+    .feature-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    .feature-table th { background: var(--navy); color: white; padding: 11px 14px; font-size: 11.5px; font-weight: 600; text-align: left; }
+    .feature-table td { padding: 10px 14px; font-size: 11.5px; color: var(--gray600); border-bottom: 1px solid var(--gray100); }
+    .feature-table tr:hover td { background: var(--gray50); }
+    /* TAX CARDS */
+    .tax-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+    .tax-card { background: var(--gray50); border: 1px solid var(--gray200); border-radius: var(--radius); padding: 16px; text-align: center; }
+    .tax-rate { font-size: 28px; font-weight: 800; color: var(--navy); }
+    .tax-rate span { color: var(--green); font-size: 16px; }
+    .tax-name { font-size: 11.5px; font-weight: 600; color: var(--gray600); margin-top: 4px; }
+    .tax-base { font-size: 10px; color: var(--gray400); margin-top: 2px; }
+    /* STEPS */
+    .steps { display: flex; flex-direction: column; gap: 0; margin-bottom: 28px; }
+    .step { display: flex; gap: 18px; padding: 16px 0; border-bottom: 1px solid var(--gray100); }
+    .step:last-child { border-bottom: none; }
+    .step-num { width: 34px; height: 34px; border-radius: 50%; background: var(--green); color: white; font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .step-title { font-size: 13.5px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+    .step-desc { font-size: 12px; color: var(--gray600); }
+    .step-url { display: inline-block; margin-top: 5px; font-size: 10.5px; color: var(--green2); font-weight: 600; background: var(--green3); padding: 2px 9px; border-radius: 5px; }
+    /* HIGHLIGHT BOX */
+    .highlight-box { background: linear-gradient(135deg, var(--navy) 0%, #0D2137 100%); border-radius: var(--radius); padding: 24px 28px; color: white; margin-bottom: 20px; }
+    .highlight-box h3 { font-size: 17px; font-weight: 800; margin-bottom: 10px; color: var(--green); }
+    .highlight-box p { font-size: 12.5px; color: rgba(255,255,255,.75); line-height: 1.6; }
+    /* INFO COLS */
+    .info-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .info-col-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 10px; padding-bottom: 7px; border-bottom: 2px solid var(--green); }
+    .info-list { list-style: none; }
+    .info-list li { font-size: 12px; color: var(--gray600); padding: 4.5px 0; display: flex; align-items: flex-start; gap: 7px; border-bottom: 1px solid var(--gray100); }
+    .info-list li:last-child { border-bottom: none; }
+    .info-list li .bullet { color: var(--green); font-weight: 700; flex-shrink: 0; }
+    /* CTA */
+    .cta-box { background: linear-gradient(135deg, #059669 0%, #0F172A 100%); border-radius: 14px; padding: 32px 36px; color: white; text-align: center; margin-top: auto; }
+    .cta-box h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .cta-box p { font-size: 13px; color: rgba(255,255,255,.75); margin-bottom: 20px; }
+    .cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .cta-btn { padding: 11px 26px; border-radius: 999px; font-size: 13px; font-weight: 700; text-decoration: none; display: inline-block; }
+    .cta-btn.primary { background: white; color: var(--navy); }
+    .cta-btn.secondary { background: transparent; border: 2px solid rgba(255,255,255,.4); color: white; }
+    .contact-info { display: flex; gap: 28px; justify-content: center; margin-top: 20px; }
+    .contact-item .label { font-size: 10px; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: 1px; }
+    .contact-item .value { font-size: 12.5px; color: var(--green); font-weight: 700; }
+    /* COMPARISON */
+    .comparison-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; border: 1px solid var(--gray200); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+    .comp-head { padding: 14px; font-size: 12.5px; font-weight: 700; text-align: center; border-bottom: 1px solid var(--gray200); }
+    .comp-col:first-child .comp-head { background: var(--gray100); color: var(--gray600); }
+    .comp-col:nth-child(2) .comp-head { background: var(--gray50); color: var(--gray600); }
+    .comp-col:nth-child(3) .comp-head { background: var(--navy); color: white; }
+    .comp-row { padding: 10px 14px; font-size: 11.5px; color: var(--gray600); border-bottom: 1px solid var(--gray100); text-align: center; }
+    .comp-col:first-child .comp-row { text-align: left; font-weight: 500; color: var(--navy); }
+    .comp-col:nth-child(3) .comp-row { color: var(--green2); font-weight: 600; }
+    .comp-check { color: var(--green); font-size: 15px; }
+    .comp-cross  { color: var(--red); font-size: 15px; }
+    /* QUOTE */
+    .quote-box { background: var(--gray50); border-left: 4px solid var(--green); padding: 18px 22px; border-radius: 0 var(--radius) var(--radius) 0; margin: 20px 0; }
+    .quote-box p { font-size: 14px; font-style: italic; color: var(--navy); font-weight: 500; line-height: 1.6; }
+    .quote-box cite { display: block; font-size: 11px; color: var(--gray400); margin-top: 6px; font-style: normal; }
+    /* PAGE FOOTER */
+    .page-footer { margin-top: auto; padding-top: 20px; border-top: 1px solid var(--gray200); display: flex; justify-content: space-between; align-items: center; }
+    .page-footer-logo { font-size: 13px; font-weight: 800; color: var(--navy); }
+    .page-footer-logo span { color: var(--green); }
+    .page-footer-page { font-size: 10.5px; color: var(--gray400); }
+    /* PRINT BTN */
+    .print-btn { position: fixed; bottom: 28px; right: 28px; background: var(--green); color: white; border: none; padding: 13px 22px; border-radius: 999px; font-size: 13.5px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 20px rgba(16,185,129,.4); display: flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; z-index: 100; }
+    .print-btn:hover { background: var(--green2); transform: translateY(-2px); }
+  </style>
+</head>
+<body>
+
+<!-- PAGE 1 — COUVERTURE -->
+<div class="page">
+  <div class="cover">
+    <div class="cover-deco"></div>
+    <div class="cover-header">
+      <div class="cover-logo-area">
+        <div class="cover-logo-icon">🔍</div>
+        <div class="cover-logo-text">Fisc<span>Lens</span> Togo</div>
+      </div>
+      <div class="cover-badge">🇹🇬 Made for Togo</div>
+    </div>
+    <div class="cover-hero">
+      <div class="cover-tag">Présentation officielle · 2025</div>
+      <h1 class="cover-title">
+        La comptabilité<br/>
+        &amp; la fiscalité<br/>
+        <em>simplifiées</em><br/>
+        pour le Togo
+      </h1>
+      <p class="cover-subtitle">
+        FiscLens Togo est une plateforme en ligne complète qui aide les entreprises et 
+        cabinets comptables togolais à gérer leur comptabilité SYSCOHADA, leurs obligations 
+        fiscales, leur paie et leurs analyses financières — le tout en un seul endroit.
+      </p>
+      <div class="cover-stats">
+        <div class="cover-stat"><span class="cover-stat-num">7</span><div class="cover-stat-label">Modules intégrés</div></div>
+        <div class="cover-stat"><span class="cover-stat-num">100%</span><div class="cover-stat-label">Normes Togo</div></div>
+        <div class="cover-stat"><span class="cover-stat-num">24/7</span><div class="cover-stat-label">Disponible en ligne</div></div>
+        <div class="cover-stat"><span class="cover-stat-num">🔒</span><div class="cover-stat-label">Sécurisé &amp; chiffré</div></div>
+      </div>
+      <div class="cover-modules">
+        <div class="cover-module-pill">📒 Comptabilité SYSCOHADA</div>
+        <div class="cover-module-pill">🧾 Fiscalité Togo</div>
+        <div class="cover-module-pill">💰 Gestion de Paie</div>
+        <div class="cover-module-pill">📊 Business Intelligence</div>
+        <div class="cover-module-pill">🔍 Contrôle &amp; Audit</div>
+        <div class="cover-module-pill">📅 Calendrier fiscal</div>
+        <div class="cover-module-pill">🤖 Analyse IA</div>
+      </div>
+    </div>
+    <div class="cover-footer">
+      <div class="cover-footer-left">© 2025 FiscLens Togo · Tous droits réservés · Document confidentiel</div>
+      <div class="cover-footer-right">🌐 fisclens-togo.vercel.app</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2 — À PROPOS -->
+<div class="page">
+  <div class="inner-page">
+    <div class="section-tag">À propos</div>
+    <h2 class="section-title">Qu'est-ce que <span>FiscLens Togo</span> ?</h2>
+    <p class="section-desc">Une solution SaaS pensée et construite exclusivement pour les réalités comptables, fiscales et réglementaires du Togo.</p>
+    <div class="divider"></div>
+
+    <div class="highlight-box">
+      <h3>🎯 Le problème que nous résolvons</h3>
+      <p>
+        La grande majorité des PME togolaises gèrent encore leur comptabilité sur des fichiers Excel complexes, 
+        risquant des erreurs, des oublis de déclarations et des pénalités fiscales. Les logiciels existants 
+        sont soit trop chers, soit conçus pour d'autres pays (France, OHADA général) sans prendre en compte 
+        les spécificités togolaises : TVA 18%, barème IRPP du CGI, cotisations CNSS/AMU 9%, patente…
+        <br/><br/>
+        <strong style="color:white">FiscLens Togo</strong> comble ce vide en proposant un outil local, 
+        abordable, en français, accessible depuis n'importe quel appareil connecté à internet.
+      </p>
+    </div>
+
+    <div class="info-cols">
+      <div>
+        <div class="info-col-title">🏢 Qui peut utiliser FiscLens ?</div>
+        <ul class="info-list">
+          <li><span class="bullet">▸</span> PME et TPE togolaises (commerce, services, industrie)</li>
+          <li><span class="bullet">▸</span> Cabinets d'expertise comptable</li>
+          <li><span class="bullet">▸</span> Gérants de sociétés (SARL, SA, SNC)</li>
+          <li><span class="bullet">▸</span> Associations et ONG enregistrées</li>
+          <li><span class="bullet">▸</span> Auto-entrepreneurs et professions libérales</li>
+          <li><span class="bullet">▸</span> Étudiants en comptabilité et finance</li>
+        </ul>
+      </div>
+      <div>
+        <div class="info-col-title">✅ Ce que FiscLens vous évite</div>
+        <ul class="info-list">
+          <li><span class="bullet">▸</span> Oubli de déclarations TVA, IS, IRPP</li>
+          <li><span class="bullet">▸</span> Erreurs dans le calcul des salaires et charges sociales</li>
+          <li><span class="bullet">▸</span> Manque de lisibilité sur la santé financière</li>
+          <li><span class="bullet">▸</span> Perte de pièces comptables (factures, justificatifs)</li>
+          <li><span class="bullet">▸</span> Pénalités fiscales pour retard ou erreur</li>
+          <li><span class="bullet">▸</span> Coût élevé des logiciels étrangers non adaptés</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="quote-box">
+      <p>« FiscLens Togo, c'est votre comptable et votre conseiller fiscal disponibles 24h/24, directement depuis votre navigateur — sans installation, sans matériel, sans formation complexe. »</p>
+      <cite>— Vision FiscLens Togo</cite>
+    </div>
+
+    <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius: var(--radius); padding: 14px 18px; font-size: 12px; font-weight: 600; color: #1E40AF; margin-bottom: 8px;">
+      📘 Conforme au Plan Comptable SYSCOHADA · Barèmes CGI Togo 2024 · Taux OTR officiels · Cotisations CNSS/AMU
+    </div>
+
+    <div class="page-footer">
+      <div class="page-footer-logo">Fisc<span>Lens</span> Togo</div>
+      <div class="page-footer-page">Page 2 / 6 · fisclens-togo.vercel.app</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3 — MODULES -->
+<div class="page">
+  <div class="inner-page">
+    <div class="section-tag">Fonctionnalités</div>
+    <h2 class="section-title">Les <span>7 modules</span> intégrés</h2>
+    <p class="section-desc">Chaque module est interconnecté — les écritures comptables alimentent automatiquement les déclarations fiscales et les tableaux de bord financiers.</p>
+    <div class="divider"></div>
+
+    <div class="modules-grid">
+      <div class="module-card green">
+        <div class="module-icon">📒</div>
+        <div class="module-title">Comptabilité SYSCOHADA</div>
+        <div class="module-desc">Saisie complète des écritures selon le Plan Comptable OHADA avec plan de comptes togolais intégré.</div>
+        <ul class="module-features">
+          <li>Saisie d'écritures avec pièce jointe (PDF/Image)</li>
+          <li>Journal, Grand Livre, Balance des comptes</li>
+          <li>États financiers : Bilan &amp; Compte de résultat</li>
+          <li>Lettrage et rapprochement automatique</li>
+          <li>Plan de comptes SYSCOHADA pré-chargé</li>
+        </ul>
+      </div>
+      <div class="module-card navy">
+        <div class="module-icon">🧾</div>
+        <div class="module-title">Fiscalité Togo</div>
+        <div class="module-desc">Calcul automatique de tous les impôts et taxes selon les barèmes officiels togolais.</div>
+        <ul class="module-features">
+          <li>TVA 18% — collectée et déductible</li>
+          <li>Impôt sur les Sociétés (IS 27%) ou IMF 1%</li>
+          <li>IRPP — barème progressif CGI art. 74</li>
+          <li>Patente — valeur locative + chiffre d'affaires</li>
+          <li>Centre de déclarations fiscal unifié</li>
+        </ul>
+      </div>
+      <div class="module-card gold">
+        <div class="module-icon">💰</div>
+        <div class="module-title">Gestion de Paie</div>
+        <div class="module-desc">Calcul des bulletins de salaire conformément aux règles sociales togolaises (CNSS / AMU).</div>
+        <ul class="module-features">
+          <li>Salaire brut → net avec IRPP à la source</li>
+          <li>Cotisations salariales : 9% (4% CNSS + 5% AMU)</li>
+          <li>Charges patronales : 20% (15% CNSS + 5% AMU)</li>
+          <li>Génération déclaration DASH mensuelle</li>
+          <li>Écritures comptables automatiques (421, 431, 661)</li>
+        </ul>
+      </div>
+      <div class="module-card green">
+        <div class="module-icon">📊</div>
+        <div class="module-title">Business Intelligence (BI)</div>
+        <div class="module-desc">Tableaux de bord visuels pour piloter votre activité en temps réel.</div>
+        <ul class="module-features">
+          <li>Dashboard KPI : revenus, charges, résultat net</li>
+          <li>Graphiques mensuels et annuels comparatifs</li>
+          <li>Analyse IA des performances financières</li>
+          <li>Suivi clients et fournisseurs</li>
+          <li>Alertes sur les seuils critiques</li>
+        </ul>
+      </div>
+      <div class="module-card red">
+        <div class="module-icon">🔍</div>
+        <div class="module-title">Contrôle &amp; Audit</div>
+        <div class="module-desc">Détection automatique des anomalies et risques comptables.</div>
+        <ul class="module-features">
+          <li>Détection des doublons de pièces comptables</li>
+          <li>Alertes sur les pièces sans justificatif joint</li>
+          <li>Analyse du risque client (créances douteuses)</li>
+          <li>Journal des accès et modifications (audit trail)</li>
+        </ul>
+      </div>
+      <div class="module-card navy">
+        <div class="module-icon">📅</div>
+        <div class="module-title">Calendrier Réglementaire</div>
+        <div class="module-desc">Toutes les échéances fiscales et sociales du Togo.</div>
+        <ul class="module-features">
+          <li>Calendrier mensuel des obligations OTR</li>
+          <li>Rappels : TVA, IS, IRPP, CNSS, Patente…</li>
+          <li>Dates officielles de l'exercice fiscal togolais</li>
+          <li>Export et impression du planning annuel</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div class="page-footer-logo">Fisc<span>Lens</span> Togo</div>
+      <div class="page-footer-page">Page 3 / 6 · fisclens-togo.vercel.app</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 4 — RÉFÉRENTIEL FISCAL -->
+<div class="page">
+  <div class="inner-page">
+    <div class="section-tag">Référentiel fiscal</div>
+    <h2 class="section-title">Les taux officiels <span>intégrés</span></h2>
+    <p class="section-desc">FiscLens Togo est pré-configuré avec tous les taux fiscaux et sociaux officiels du Togo. Aucune saisie manuelle des taux nécessaire.</p>
+    <div class="divider"></div>
+
+    <div class="tax-grid">
+      <div class="tax-card"><div class="tax-rate">18<span>%</span></div><div class="tax-name">TVA (Taux normal)</div><div class="tax-base">Sur les ventes de biens et services</div></div>
+      <div class="tax-card"><div class="tax-rate">27<span>%</span></div><div class="tax-name">IS — Impôt sur les Sociétés</div><div class="tax-base">Sur le bénéfice imposable annuel</div></div>
+      <div class="tax-card"><div class="tax-rate">1<span>%</span></div><div class="tax-name">IMF (minimum garanti)</div><div class="tax-base">Sur CA si IS &lt; IMF</div></div>
+      <div class="tax-card"><div class="tax-rate">4<span>%</span></div><div class="tax-name">CNSS Salariale</div><div class="tax-base">Retenue sur salaire brut</div></div>
+      <div class="tax-card"><div class="tax-rate">5<span>%</span></div><div class="tax-name">AMU — Assurance Maladie</div><div class="tax-base">Retenue sur salaire brut</div></div>
+      <div class="tax-card"><div class="tax-rate">20<span>%</span></div><div class="tax-name">Charges Patronales</div><div class="tax-base">15% CNSS + 5% AMU (employeur)</div></div>
+    </div>
+
+    <div class="section-tag" style="margin-top:4px">Barème IRPP 2024 (CGI art. 74)</div>
+    <table class="feature-table" style="margin-top: 10px">
+      <thead>
+        <tr>
+          <th>Tranche de revenu annuel imposable (FCFA)</th>
+          <th>Taux IRPP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>De 0 à 900 000 FCFA</td><td><strong>0% — Exonéré</strong></td></tr>
+        <tr><td>De 900 001 à 1 800 000 FCFA</td><td><strong>7%</strong></td></tr>
+        <tr><td>De 1 800 001 à 3 000 000 FCFA</td><td><strong>12%</strong></td></tr>
+        <tr><td>De 3 000 001 à 6 000 000 FCFA</td><td><strong>20%</strong></td></tr>
+        <tr><td>De 6 000 001 à 12 000 000 FCFA</td><td><strong>27%</strong></td></tr>
+        <tr><td>Au-delà de 12 000 000 FCFA</td><td><strong>35%</strong></td></tr>
+      </tbody>
+    </table>
+
+    <div class="info-cols">
+      <div style="background: var(--gray50); border: 1px solid var(--gray200); border-radius: var(--radius); padding: 18px;">
+        <div class="info-col-title">📅 Échéances fiscales clés (Togo)</div>
+        <ul class="info-list">
+          <li><span class="bullet">▸</span> <strong>20 du mois</strong> — Déclaration TVA mensuelle</li>
+          <li><span class="bullet">▸</span> <strong>20 du mois</strong> — CNSS/AMU/IRPP sur paie</li>
+          <li><span class="bullet">▸</span> <strong>30 avril</strong> — Déclaration IS annuelle</li>
+          <li><span class="bullet">▸</span> <strong>31 mars</strong> — Patente annuelle</li>
+          <li><span class="bullet">▸</span> <strong>31 janvier</strong> — DISA (salaires annuels)</li>
+        </ul>
+      </div>
+      <div style="background: linear-gradient(135deg,#0F172A,#0D2137); border-radius: var(--radius); padding: 18px; color: white;">
+        <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px;padding-bottom:7px;border-bottom:2px solid rgba(16,185,129,.3);">🤖 Calcul automatique</div>
+        <p style="font-size:11.5px;color:rgba(255,255,255,.75);line-height:1.65;">
+          FiscLens calcule automatiquement tous ces montants dès que vous saisissez vos écritures comptables.
+          Plus besoin de calculatrice ou de mémoriser les barèmes — le logiciel fait tout et vous présente 
+          un récapitulatif clair de vos obligations fiscales du mois.
+        </p>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div class="page-footer-logo">Fisc<span>Lens</span> Togo</div>
+      <div class="page-footer-page">Page 4 / 6 · fisclens-togo.vercel.app</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 5 — GUIDE DE DÉMARRAGE -->
+<div class="page">
+  <div class="inner-page">
+    <div class="section-tag">Guide de démarrage</div>
+    <h2 class="section-title">Comment <span>commencer</span> en 5 minutes ?</h2>
+    <p class="section-desc">Pas d'installation, pas de formation complexe. Vous démarrez directement depuis votre navigateur internet sur n'importe quel ordinateur ou tablette.</p>
+    <div class="divider"></div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <div class="step-title">Accédez au site et créez votre compte</div>
+          <div class="step-desc">Ouvrez votre navigateur et allez sur FiscLens Togo. Cliquez sur <strong>« Créer un compte »</strong> et connectez-vous avec votre compte Google (Gmail) en un seul clic — ou créez un compte avec votre e-mail et un mot de passe.</div>
+          <span class="step-url">🌐 fisclens-togo.vercel.app/register</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <div class="step-title">Renseignez les informations de votre entreprise</div>
+          <div class="step-desc">Saisissez le nom de votre société, votre NIF, votre régime d'imposition (Réel Normal, RSI ou TPU). FiscLens configure automatiquement votre espace de travail avec le plan de comptes SYSCOHADA adapté.</div>
+          <span class="step-url">⚙️ Paramètres → Profil entreprise</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <div class="step-title">Commencez à saisir vos écritures comptables</div>
+          <div class="step-desc">Allez dans <strong>Comptabilité → Saisie des écritures</strong>. Saisissez votre première écriture (achat, vente, paiement…) avec la date, le compte débité/crédité, le montant et le libellé. Joignez la facture PDF ou photo directement dans le formulaire.</div>
+          <span class="step-url">📒 Comptabilité → Journal des Écritures</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <div class="step-title">Consultez vos obligations fiscales du mois</div>
+          <div class="step-desc">Allez dans <strong>Fiscal → Centre des Déclarations</strong> pour voir en un coup d'œil tous les montants à déclarer : TVA, IRPP retenu sur salaires, cotisations CNSS/AMU, acomptes IS. Chaque ligne est cliquable pour voir le détail du calcul.</div>
+          <span class="step-url">🧾 Fiscal → Déclarations</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div>
+          <div class="step-title">Analysez vos performances depuis le Dashboard</div>
+          <div class="step-desc">Le tableau de bord affiche en temps réel : chiffre d'affaires, charges, bénéfice net, répartition fiscalité. L'analyse IA vous donne des recommandations personnalisées pour améliorer la santé financière de votre entreprise.</div>
+          <span class="step-url">📊 Dashboard → BI Analytics</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:var(--radius);padding:16px 20px;display:flex;gap:12px;align-items:flex-start;">
+      <div style="font-size:22px;flex-shrink:0;">💡</div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#065F46;margin-bottom:4px;">Astuce pour les non-comptables</div>
+        <div style="font-size:11.5px;color:#047857;line-height:1.6;">
+          Si vous n'êtes pas expert en comptabilité, pas de panique. FiscLens dispose d'un plan de comptes simplifié 
+          avec des libellés en français courant. Exemple : au lieu de chercher le compte 401, tapez simplement 
+          « Fournisseurs » dans la barre de recherche — le logiciel trouve le bon compte pour vous.
+        </div>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div class="page-footer-logo">Fisc<span>Lens</span> Togo</div>
+      <div class="page-footer-page">Page 5 / 6 · fisclens-togo.vercel.app</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 6 — COMPARAISON & CTA -->
+<div class="page">
+  <div class="inner-page">
+    <div class="section-tag">Pourquoi FiscLens</div>
+    <h2 class="section-title">FiscLens vs <span>autres solutions</span></h2>
+    <p class="section-desc">Comparé aux alternatives disponibles, FiscLens Togo offre le meilleur rapport fonctionnalités / adaptation locale / accessibilité.</p>
+    <div class="divider"></div>
+
+    <div class="comparison-grid">
+      <div class="comp-col">
+        <div class="comp-head">Critère</div>
+        <div class="comp-row">Conforme SYSCOHADA Togo</div>
+        <div class="comp-row">Calcul IRPP togolais</div>
+        <div class="comp-row">CNSS / AMU intégré (9%)</div>
+        <div class="comp-row">Pièces jointes factures</div>
+        <div class="comp-row">Accessible en ligne (web)</div>
+        <div class="comp-row">Calendrier fiscal Togo</div>
+        <div class="comp-row">Analyse IA financière</div>
+        <div class="comp-row">Sans installation requise</div>
+      </div>
+      <div class="comp-col">
+        <div class="comp-head">Excel / Manuel</div>
+        <div class="comp-row"><span class="comp-cross">✗</span> Partiel</div>
+        <div class="comp-row"><span class="comp-cross">✗</span> Manuel</div>
+        <div class="comp-row"><span class="comp-cross">✗</span> Manuel</div>
+        <div class="comp-row"><span class="comp-cross">✗</span> Non</div>
+        <div class="comp-row"><span class="comp-check">✓</span> Oui</div>
+        <div class="comp-row"><span class="comp-cross">✗</span> Non</div>
+        <div class="comp-row"><span class="comp-cross">✗</span> Non</div>
+        <div class="comp-row"><span class="comp-check">✓</span> Oui</div>
+      </div>
+      <div class="comp-col">
+        <div class="comp-head">✦ FiscLens Togo</div>
+        <div class="comp-row"><span class="comp-check">✓</span> 100% natif</div>
+        <div class="comp-row"><span class="comp-check">✓</span> Automatique</div>
+        <div class="comp-row"><span class="comp-check">✓</span> Intégré</div>
+        <div class="comp-row"><span class="comp-check">✓</span> PDF &amp; Image</div>
+        <div class="comp-row"><span class="comp-check">✓</span> 24h/24</div>
+        <div class="comp-row"><span class="comp-check">✓</span> Intégré</div>
+        <div class="comp-row"><span class="comp-check">✓</span> Gemini AI</div>
+        <div class="comp-row"><span class="comp-check">✓</span> Navigateur</div>
+      </div>
+    </div>
+
+    <div class="info-cols">
+      <div style="background:var(--gray50);border:1px solid var(--gray200);border-radius:var(--radius);padding:18px;">
+        <div class="info-col-title">🔐 Sécurité &amp; Confidentialité</div>
+        <ul class="info-list">
+          <li><span class="bullet">▸</span> Données hébergées en Europe (Supabase/AWS)</li>
+          <li><span class="bullet">▸</span> Chiffrement SSL/TLS sur toutes les connexions</li>
+          <li><span class="bullet">▸</span> Authentification sécurisée (Google / Email)</li>
+          <li><span class="bullet">▸</span> Option double authentification (2FA)</li>
+          <li><span class="bullet">▸</span> Journal d'audit de chaque action utilisateur</li>
+        </ul>
+      </div>
+      <div style="background:var(--gray50);border:1px solid var(--gray200);border-radius:var(--radius);padding:18px;">
+        <div class="info-col-title">📱 Compatibilité &amp; Accès</div>
+        <ul class="info-list">
+          <li><span class="bullet">▸</span> Fonctionne sur PC, Mac, tablette</li>
+          <li><span class="bullet">▸</span> Compatible Chrome, Firefox, Safari, Edge</li>
+          <li><span class="bullet">▸</span> Aucune installation requise</li>
+          <li><span class="bullet">▸</span> Connexion internet suffit</li>
+          <li><span class="bullet">▸</span> Mis à jour automatiquement</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="cta-box">
+      <h2>🚀 Prêt(e) à essayer FiscLens Togo ?</h2>
+      <p>Créez votre compte gratuitement en moins de 2 minutes.<br/>Aucune carte bancaire requise pour commencer.</p>
+      <div class="cta-buttons">
+        <a class="cta-btn primary" href="https://fisclens-togo.vercel.app/register">Créer mon compte — c'est gratuit</a>
+        <a class="cta-btn secondary" href="https://fisclens-togo.vercel.app">Explorer l'application</a>
+      </div>
+      <div class="contact-info">
+        <div class="contact-item"><div class="label">Site web</div><div class="value">fisclens-togo.vercel.app</div></div>
+        <div class="contact-item"><div class="label">E-mail</div><div class="value">kedorhonore@gmail.com</div></div>
+        <div class="contact-item"><div class="label">Pays</div><div class="value">🇹🇬 Togo</div></div>
+        <div class="contact-item"><div class="label">Version</div><div class="value">2025.1</div></div>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div class="page-footer-logo">Fisc<span>Lens</span> Togo</div>
+      <div class="page-footer-page">Page 6 / 6 · fisclens-togo.vercel.app</div>
+    </div>
+  </div>
+</div>
+
+<button class="print-btn no-print" onclick="window.print()">🖨️ Enregistrer en PDF</button>
+
+</body>
+</html>

@@ -7,11 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   FileText, CheckCircle2, Clock, AlertCircle, RefreshCw,
-  Receipt, Building, Users, ExternalLink, Home, Car, DollarSign, Calculator
-} from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatAmount } from "@/lib/utils";
 import Link from "next/link";
+import { CustomTaxDialog } from "@/components/fiscal/custom-tax-dialog";
+import { useAuth } from "@/lib/auth-context";
 
 type DeclarationStatut = "A_PRODUIRE" | "A_JOUR" | "EN_RETARD";
 
@@ -283,7 +283,8 @@ export default function DeclarationsPage() {
             Suivi et liquidation de tous les impôts, droits et taxes selon le Livre Pratique OTR 2026.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <CustomTaxDialog onAdded={loadData} />
           <Link href="/fiscal/simulateur">
             <Button variant="outline" size="sm" className="gap-1.5 text-xs">
               <Calculator className="h-4 w-4" /> Simulateur Fiscal Global

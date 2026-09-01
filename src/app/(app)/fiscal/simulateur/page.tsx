@@ -32,6 +32,7 @@ import {
   TAUX_TCA_TOGO,
 } from "@/lib/fiscal/togo-rules";
 import { formatAmount } from "@/lib/utils";
+import { CustomTaxDialog } from "@/components/fiscal/custom-tax-dialog";
 
 export default function SimulateurPage() {
   const [activeTab, setActiveTab] = useState("directs");
@@ -116,6 +117,9 @@ export default function SimulateurPage() {
           <p className="text-sm text-muted-foreground mt-1">
             Moteur de calcul complet couvrant l&apos;intégralité des 10+ impôts, droits, taxes, retenues et prélèvements en vigueur en République Togolaise.
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <CustomTaxDialog />
         </div>
       </div>
 

@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   FileText, CheckCircle2, Clock, AlertCircle, RefreshCw,
+  Receipt, Building, Users, ExternalLink, Home, Car, DollarSign, Calculator
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatAmount } from "@/lib/utils";
 import Link from "next/link";

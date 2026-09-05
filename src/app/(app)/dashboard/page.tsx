@@ -110,7 +110,7 @@ export default function DashboardPage() {
 
   return (
     <div
-      className="space-y-8 p-6"
+      className="space-y-6 sm:space-y-8 p-3 sm:p-5 md:p-6"
       style={{
         background: "#F5F0E4",
         backgroundImage: "repeating-linear-gradient(transparent, transparent 31px, #E6DEC8 31px, #E6DEC8 32px)",
@@ -118,37 +118,37 @@ export default function DashboardPage() {
       }}
     >
       {/* ── En-tête chapitre grand livre ── */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
         <div>
           <h2
-            className="chapter-heading text-2xl mb-1"
+            className="chapter-heading text-xl sm:text-2xl mb-1"
             style={{ fontFamily: "var(--font-hand), cursive", color: "#0B3D2E" }}
           >
             Tableau de bord comptable & fiscal
           </h2>
-          <p className="font-mono text-[10px] text-[#33604C] tracking-widest uppercase mt-3">
+          <p className="font-mono text-[10px] text-[#33604C] tracking-widest uppercase mt-1 sm:mt-3">
             SYSCOHADA Révisé · République Togolaise
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Button
             variant="outline"
             size="sm"
             onClick={fetchStats}
             disabled={loading}
-            className="bg-white/80 border-[#C8BEA8] text-[#0B3D2E] hover:bg-white"
+            className="bg-white/80 border-[#C8BEA8] text-[#0B3D2E] hover:bg-white text-xs"
           >
             <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", loading && "animate-spin")} />
             Actualiser
           </Button>
           <a href="/comptabilite/saisie">
-            <Button size="sm" className="bg-[#0B3D2E] hover:bg-[#157A46] text-white">
+            <Button size="sm" className="bg-[#0B3D2E] hover:bg-[#157A46] text-white text-xs">
               <PlusCircle className="h-4 w-4 mr-1.5" />
               Saisir écriture
             </Button>
           </a>
           <div
-            className="margin-note text-sm hidden md:block"
+            className="margin-note text-xs sm:text-sm hidden md:block"
             style={{ fontFamily: "var(--font-hand), cursive" }}
           >
             Données au {formatDate(new Date())}
@@ -157,7 +157,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── KPI Cards — style reçu perforé ── */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((stat) => {
           const Icon = stat.icon;
           return (

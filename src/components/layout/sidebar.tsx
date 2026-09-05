@@ -1,17 +1,70 @@
 "use client";
 
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, BookOpen, Receipt, AlertTriangle,
   BarChart3, CalendarDays, Settings, LogOut, ChevronsUpDown,
   Users, ChevronRight, Building2, Sun, Moon, Calculator,
+  Menu, X,
 } from "lucide-react";
 import { useAuth, useHasRole, type Role } from "@/lib/auth-context";
 import { useAppTheme } from "@/components/theme/theme-provider";
 import { cn } from "@/lib/utils";
 import { NetworkStatus } from "@/components/offline-badge";
 import { RoleBadge } from "@/components/fiscal-ui";
+
+// ---------------------------------------------------------------------------
+// Contexte d'état responsive de la Sidebar (Tiroir Mobile)
+// ---------------------------------------------------------------------------
+
+type SidebarContextType = {
+  isOpen: boolean;
+  open: () => void;
+  close: () => void;
+  toggle: () => void;
+};
+
+const SidebarContext = createContext<SidebarContextType>({
+  isOpen: false,
+  open: () => {},
+  close: () => {},
+  toggle: () => {},
+});
+
+export const useSidebar = () => useContext(SidebarContext);
+
+export function SidebarProvider({ children }: { children: React.ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Fermer automatiquement le menu lors d'un changement de page
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
+
+  // Fermer avec la touche Échap
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const open = useCallback(() => setIsOpen(true), []);
+  const close = useCallback(() => setIsOpen(false), []);
+  const toggle = useCallback(() => setIsOpen((prev) => !prev), []);
+
+  return (
+    <SidebarContext.Provider value={{ isOpen, open, close, toggle }}>
+      {children}
+    </SidebarContext.Provider>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Définition de la navigation — filtrée par rôle côté UI
@@ -105,12 +158,13 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Composants
+// Composants Navigation
 // ---------------------------------------------------------------------------
 
 function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { close } = useSidebar();
   const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
 
   // Filtre par rôle côté UI
@@ -121,11 +175,16 @@ function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
   return (
     <Link
       href={item.href as any}
+      onClick={() => {
+        if (typeof window !== "undefined" && window.innerWidth < 768) {
+          close();
+        }
+      }}
       className={cn(
         "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
         depth > 0 ? "ml-6 text-xs" : "",
         isActive
-          ? "bg-primary/10 text-primary"
+          ? "bg-primary/10 text-primary font-semibold"
           : "text-muted-foreground hover:bg-accent hover:text-foreground"
       )}
     >
@@ -138,6 +197,7 @@ function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
 function NavSection({ item }: { item: NavItem }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { close } = useSidebar();
   const isGroupActive = pathname.startsWith(item.href);
 
   if (item.roles && user && !item.roles.includes(user.role)) return null;
@@ -148,10 +208,15 @@ function NavSection({ item }: { item: NavItem }) {
     <div>
       <Link
         href={item.href as any}
+        onClick={() => {
+          if (!item.children && typeof window !== "undefined" && window.innerWidth < 768) {
+            close();
+          }
+        }}
         className={cn(
           "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
           isGroupActive
-            ? "bg-primary/10 text-primary"
+            ? "bg-primary/10 text-primary font-semibold"
             : "text-muted-foreground hover:bg-accent hover:text-foreground"
         )}
       >
@@ -181,7 +246,7 @@ function DossierSelector() {
   const currentTenant = user.tenants.find((t) => t.id === currentTenantId);
 
   return (
-    <div className="px-3 py-2 border-b">
+    <div className="px-3 py-2 border-b border-[#E6DEC8] dark:border-[rgba(251,247,236,.12)]">
       <p className="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
         Dossier client
       </p>
@@ -197,76 +262,114 @@ function DossierSelector() {
 }
 
 // ---------------------------------------------------------------------------
-// Sidebar principale
+// Sidebar principale (Drawer sur mobile avec croix, fixe sur desktop)
 // ---------------------------------------------------------------------------
 
 export function Sidebar() {
   const { user, logout } = useAuth();
+  const { isOpen, close } = useSidebar();
 
   return (
-    <aside className="sidebar-ledger flex h-screen w-60 shrink-0 flex-col">
-      {/* Logo — Grand livre style */}
-      <Link
-        href="/"
-        className="flex items-center gap-2.5 px-4 py-4 border-b border-[#E6DEC8] dark:border-[rgba(251,247,236,.12)] hover:bg-[rgba(21,122,70,.06)] transition-colors group"
-        title="Retour à l'accueil"
-      >
-        {/* Tampon circulaire */}
-        <div className="stamp-circle shrink-0" style={{ borderColor: "#157A46", color: "#157A46", width: 32, height: 32, fontSize: 14 }}>
-          <span className="font-extrabold">F</span>
-        </div>
-        <div>
-          <span className="font-semibold text-sm text-[#0B3D2E] dark:text-[#FBF7EC]" style={{ fontFamily: "var(--font-hand), cursive" }}>FiscLens</span>
-          <span className="text-[10px] font-mono ml-1 text-[#33604C] dark:text-[#BFD8CC] tracking-widest uppercase">Togo</span>
-        </div>
-      </Link>
+    <>
+      {/* Fond sombre transparent avec flou sur mobile quand le menu est ouvert */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity md:hidden animate-in fade-in"
+          onClick={close}
+          aria-hidden="true"
+        />
+      )}
 
-      {/* Sélecteur cabinet */}
-      <DossierSelector />
-
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-        {NAV_ITEMS.map((item) =>
-          item.children ? (
-            <NavSection key={item.href} item={item} />
-          ) : (
-            <NavLink key={item.href} item={item} />
-          )
+      {/* Barre verticale (Drawer sur mobile, colonne fixe sur desktop) */}
+      <aside
+        className={cn(
+          "sidebar-ledger flex h-screen w-72 md:w-60 shrink-0 flex-col transition-transform duration-300 ease-in-out",
+          // Position fixe sur mobile avec z-index élevé, statique sur écran standard (>= md)
+          "fixed inset-y-0 left-0 z-50 md:static md:translate-x-0",
+          isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         )}
-      </nav>
-
-      {/* Pied de sidebar — utilisateur */}
-      {user && (
-        <div className="border-t border-[#E6DEC8] dark:border-[rgba(251,247,236,.12)] px-3 py-3">
-          {/* Annotation manuscrite de rôle */}
-          <div className="margin-note mb-2 text-[10px]">{user.role}</div>
-          <div className="flex items-center gap-2.5 mb-2">
-            <div
-              className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs"
-              style={{ background: "#157A46", color: "#FDFAF1" }}
-            >
-              {user.name.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate text-[#0B3D2E] dark:text-[#FBF7EC]">{user.name}</p>
-              <RoleBadge role={user.role} />
-            </div>
-          </div>
-          <button
-            onClick={logout}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-[#B3261E] hover:bg-[rgba(179,38,30,.08)] transition-colors font-mono tracking-wide"
+      >
+        {/* En-tête : Logo + Bouton Croix (Fermer) */}
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#E6DEC8] dark:border-[rgba(251,247,236,.12)]">
+          <Link
+            href="/"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.innerWidth < 768) close();
+            }}
+            className="flex items-center gap-2.5 hover:bg-[rgba(21,122,70,.06)] transition-colors group rounded-md p-1 -ml-1"
+            title="Retour à l'accueil"
           >
-            <LogOut className="h-3.5 w-3.5" />
-            Déconnexion
+            {/* Tampon circulaire */}
+            <div className="stamp-circle shrink-0" style={{ borderColor: "#157A46", color: "#157A46", width: 32, height: 32, fontSize: 14 }}>
+              <span className="font-extrabold">F</span>
+            </div>
+            <div>
+              <span className="font-semibold text-sm text-[#0B3D2E] dark:text-[#FBF7EC]" style={{ fontFamily: "var(--font-hand), cursive" }}>FiscLens</span>
+              <span className="text-[10px] font-mono ml-1 text-[#33604C] dark:text-[#BFD8CC] tracking-widest uppercase">Togo</span>
+            </div>
+          </Link>
+
+          {/* Bouton croix pour fermer / réduire la barre verticale sur mobile */}
+          <button
+            onClick={close}
+            aria-label="Fermer le menu"
+            className="md:hidden flex h-8 w-8 items-center justify-center rounded-md border border-[#E6DEC8] dark:border-[rgba(251,247,236,.2)] text-[#0B3D2E] dark:text-[#FBF7EC] hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all"
+            title="Réduire la page verticale"
+          >
+            <X className="h-4 w-4" />
           </button>
         </div>
-      )}
-    </aside>
+
+        {/* Sélecteur cabinet */}
+        <DossierSelector />
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+          {NAV_ITEMS.map((item) =>
+            item.children ? (
+              <NavSection key={item.href} item={item} />
+            ) : (
+              <NavLink key={item.href} item={item} />
+            )
+          )}
+        </nav>
+
+        {/* Pied de sidebar — utilisateur */}
+        {user && (
+          <div className="border-t border-[#E6DEC8] dark:border-[rgba(251,247,236,.12)] px-3 py-3">
+            {/* Annotation manuscrite de rôle */}
+            <div className="margin-note mb-2 text-[10px]">{user.role}</div>
+            <div className="flex items-center gap-2.5 mb-2">
+              <div
+                className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs"
+                style={{ background: "#157A46", color: "#FDFAF1" }}
+              >
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate text-[#0B3D2E] dark:text-[#FBF7EC]">{user.name}</p>
+                <RoleBadge role={user.role} />
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                if (typeof window !== "undefined" && window.innerWidth < 768) close();
+                logout();
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-[#B3261E] hover:bg-[rgba(179,38,30,.08)] transition-colors font-mono tracking-wide"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Déconnexion
+            </button>
+          </div>
+        )}
+      </aside>
+    </>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Sélecteur de thème clair/sombre — visible, branché sur useAppTheme
+// Sélecteur de thème clair/sombre
 // ---------------------------------------------------------------------------
 
 function ThemeToggle() {
@@ -286,34 +389,47 @@ function ThemeToggle() {
 }
 
 // ---------------------------------------------------------------------------
-// Topbar
+// Topbar (avec barre de trois lignes / Hamburger sur mobile)
 // ---------------------------------------------------------------------------
 
 export function Topbar({ title }: { title?: string }) {
   const { user, expertMode, toggleExpertMode } = useAuth();
+  const { toggle } = useSidebar();
 
   return (
     <header
-      className="flex h-14 items-center justify-between px-6"
+      className="flex h-14 items-center justify-between px-3 sm:px-6 shrink-0"
       style={{
         background: "#FDFAF1",
         borderBottom: "2px solid #E6DEC8",
         backgroundImage: "repeating-linear-gradient(transparent, transparent 27px, #EDE8D9 27px, #EDE8D9 28px)",
       }}
     >
-      {/* Titre en style chapitre */}
-      <h1
-        className="text-base font-semibold text-[#0B3D2E] dark:text-[#FBF7EC]"
-        style={{ fontFamily: "var(--font-hand), cursive", fontSize: "1.1rem" }}
-      >
-        {title}
-      </h1>
+      <div className="flex items-center gap-2.5 min-w-0">
+        {/* Barre de trois lignes (Bouton Hamburger) — visible sur mobile */}
+        <button
+          onClick={toggle}
+          aria-label="Ouvrir le menu de navigation"
+          className="md:hidden flex h-9 w-9 items-center justify-center rounded-md border border-[#C8BEA8] bg-white/90 text-[#0B3D2E] shadow-sm hover:bg-white active:scale-95 transition-all shrink-0"
+          title="Ouvrir le menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
 
-      <div className="flex items-center gap-3">
+        {/* Titre en style chapitre */}
+        <h1
+          className="text-base font-semibold text-[#0B3D2E] dark:text-[#FBF7EC] truncate"
+          style={{ fontFamily: "var(--font-hand), cursive", fontSize: "1.1rem" }}
+        >
+          {title}
+        </h1>
+      </div>
+
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Statut réseau */}
         <NetworkStatus />
 
-        {/* Sélecteur clair/sombre — l'utilisateur choisit, rien n'est imposé */}
+        {/* Sélecteur clair/sombre */}
         <ThemeToggle />
 
         {/* Toggle mode expert (cabinet) */}
@@ -321,7 +437,7 @@ export function Topbar({ title }: { title?: string }) {
           <button
             onClick={toggleExpertMode}
             className={cn(
-              "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+              "hidden sm:inline-flex rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
               expertMode
                 ? "bg-blue-100 text-blue-800 hover:bg-blue-200"
                 : "bg-muted text-muted-foreground hover:bg-accent"
@@ -331,10 +447,14 @@ export function Topbar({ title }: { title?: string }) {
           </button>
         )}
 
-        {/* Notifications (placeholder) */}
-        <button className="relative rounded-full p-1.5 hover:bg-accent">
+        {/* Calendrier / Notifications */}
+        <Link
+          href="/calendrier"
+          className="relative rounded-full p-1.5 hover:bg-accent transition-colors"
+          title="Calendrier des échéances"
+        >
           <CalendarDays className="h-4 w-4 text-muted-foreground" />
-        </button>
+        </Link>
       </div>
     </header>
   );

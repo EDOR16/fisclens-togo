@@ -241,22 +241,32 @@ function NavSection({ item }: { item: NavItem }) {
 function DossierSelector() {
   const { user, currentTenantId, switchTenant } = useAuth();
   const isCabinet = useHasRole("CABINET");
-  if (!isCabinet || !user) return null;
-
-  const currentTenant = user.tenants.find((t) => t.id === currentTenantId);
+  const isAdmin = useHasRole("ADMIN_SYS") || user?.isSuperAdmin;
+  
+  if ((!isCabinet && !isAdmin) || !user || !user.tenants || user.tenants.length <= 1) return null;
 
   return (
     <div className="px-3 py-2 border-b border-[#E6DEC8] dark:border-[rgba(251,247,236,.12)]">
-      <p className="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
-        Dossier client
+      <p className="text-[10px] font-mono font-medium text-muted-foreground mb-1 uppercase tracking-wider">
+        {isAdmin ? "Dossier sous audit" : "Dossier client"}
       </p>
-      <button className="w-full flex items-center gap-2 rounded-md border px-2.5 py-2 text-sm hover:bg-accent transition-colors">
-        <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="flex-1 text-left truncate">
-          {currentTenant?.name ?? "Sélectionner un dossier"}
-        </span>
-        <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-      </button>
+      <div className="relative">
+        <select
+          value={currentTenantId ?? ""}
+          onChange={(e) => {
+            if (e.target.value) switchTenant(e.target.value);
+          }}
+          className="w-full appearance-none rounded-md border border-[#E6DEC8] dark:border-[rgba(251,247,236,.2)] bg-white/90 dark:bg-black/40 pl-8 pr-7 py-1.5 text-xs font-medium text-[#0B3D2E] dark:text-[#FBF7EC] shadow-sm hover:bg-white focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer truncate"
+        >
+          {user.tenants.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+        <Building2 className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <ChevronsUpDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+      </div>
     </div>
   );
 }

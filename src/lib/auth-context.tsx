@@ -30,6 +30,7 @@ export type SessionUser = {
   email: string;
   name: string;
   role: Role;
+  isSuperAdmin?: boolean;
   tenantIds: string[];
   tenants: TenantSummary[];
   require2fa: boolean;

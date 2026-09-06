@@ -1,26 +1,46 @@
 // src/app/api/v1/auth/me/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { withGuard } from "@/lib/server/with-guard";
-
 import { prisma } from "@/lib/server/prisma";
 
 export const dynamic = 'force-dynamic'; // Empêche le build-time execution
 
 export const GET = withGuard(async (req, ctx) => {
-  // Récupérer les vrais tenants de l'utilisateur
-  const userTenants = await prisma.userTenant.findMany({
-    where: { userId: ctx.userId },
-    include: { tenant: true },
-  });
+  let tenantIds: string[] = [];
+  let tenants: Array<{
+    id: string;
+    name: string;
+    regime: string;
+    exerciceOuvert: boolean;
+    plan: any;
+  }> = [];
 
-  const tenantIds = userTenants.map((ut) => ut.tenantId);
-  const tenants = userTenants.map((ut) => ({
-    id: ut.tenant.id,
-    name: ut.tenant.name,
-    regime: ut.tenant.regime,
-    exerciceOuvert: ut.tenant.exerciceOuvert,
-    plan: ut.tenant.plan,
-  }));
+  if (ctx.isSuperAdmin) {
+    const allTenants = await prisma.tenant.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    tenantIds = allTenants.map((t) => t.id);
+    tenants = allTenants.map((t) => ({
+      id: t.id,
+      name: t.name,
+      regime: t.regime,
+      exerciceOuvert: t.exerciceOuvert,
+      plan: t.plan,
+    }));
+  } else {
+    const userTenants = await prisma.userTenant.findMany({
+      where: { userId: ctx.userId },
+      include: { tenant: true },
+    });
+    tenantIds = userTenants.map((ut) => ut.tenantId);
+    tenants = userTenants.map((ut) => ({
+      id: ut.tenant.id,
+      name: ut.tenant.name,
+      regime: ut.tenant.regime,
+      exerciceOuvert: ut.tenant.exerciceOuvert,
+      plan: ut.tenant.plan,
+    }));
+  }
 
   return NextResponse.json({
     userId: ctx.userId,

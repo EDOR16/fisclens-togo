@@ -8,8 +8,10 @@ import {
   BookOpen, Receipt, CheckCircle2, Clock, Loader2, RefreshCw, PlusCircle
 } from "lucide-react";
 import { api } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AdminDashboard } from "@/components/admin/admin-dashboard";
 
 type DashboardStatsResponse = {
   chiffreAffaires: number;
@@ -48,8 +50,15 @@ const STATUS_BADGE: Record<string, React.ReactNode> = {
 };
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Si l'utilisateur connecté est SuperAdmin / ADMIN_SYS, afficher la vue Plateforme dédiée
+  if (user?.role === "ADMIN_SYS" || user?.isSuperAdmin) {
+    return <AdminDashboard />;
+  }
+
 
   const fetchStats = useCallback(async () => {
     setLoading(true);

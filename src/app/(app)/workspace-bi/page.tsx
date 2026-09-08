@@ -256,23 +256,6 @@ export default function WorkspaceBIPage() {
     margePercent: c.margePercent ?? 0,
   }));
 
-  // ── Injection de données de test en 1-clic ────────────────────────────────
-  const [isSeeding, setIsSeeding] = useState(false);
-
-  async function handleSeedDemoData() {
-    setIsSeeding(true);
-    try {
-      const res = await fetch("/api/v1/bi/seed-demo", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || data.error || "Échec de l'injection");
-      toast.success(data.message || "Données de test injectées avec succès !");
-      await fetchTabMetrics("all");
-    } catch (err: any) {
-      toast.error(err.message || "Erreur lors de l'injection des données démo");
-    } finally {
-      setIsSeeding(false);
-    }
-  }
 
   // ── Téléchargement direct du Classeur Complet Tout-en-un ──────────────────
   async function handleDownloadMasterWorkbook() {
@@ -350,16 +333,6 @@ export default function WorkspaceBIPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleSeedDemoData}
-            disabled={isSeeding}
-            className="bg-emerald-700 hover:bg-emerald-800 text-white flex items-center gap-1.5 text-xs shadow-sm font-semibold"
-          >
-            <Sparkles className={`h-3.5 w-3.5 ${isSeeding ? "animate-spin" : ""}`} />
-            {isSeeding ? "Injection en cours..." : "Charger données Démo (1-clic)"}
-          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -986,32 +959,7 @@ export default function WorkspaceBIPage() {
 
         {/* ─── 6. CHARGEMENT DES DONNÉES ─── */}
         <TabsContent value="import" className="space-y-6">
-          {/* Option 1 : Injection 1-clic */}
-          <Card className="p-6 bg-gradient-to-r from-emerald-900 via-[#0B3D2E] to-emerald-950 text-white border-emerald-800 shadow-md">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-emerald-400" />
-                  <h2 className="text-lg font-bold text-white">Option 1 — Remplissage automatique en 1-Clic</h2>
-                </div>
-                <p className="text-xs text-emerald-100/80 max-w-2xl leading-relaxed">
-                  Pas de fichier sous la main ? Cliquez sur ce bouton pour injecter instantanément un jeu complet de données de démonstration (8 produits, 8 clients togolais, 12 ventes et 8 achats).
-                </p>
-              </div>
-
-              <Button
-                onClick={handleSeedDemoData}
-                disabled={isSeeding}
-                size="lg"
-                className="bg-white hover:bg-emerald-50 text-emerald-900 font-bold shadow-md shrink-0 flex items-center gap-2 text-xs"
-              >
-                <Sparkles className={`h-4 w-4 ${isSeeding ? "animate-spin text-emerald-700" : "text-emerald-700"}`} />
-                {isSeeding ? "Génération en cours..." : "Générer les données de test (1-clic)"}
-              </Button>
-            </div>
-          </Card>
-
-          {/* Option 2 : Import unique avec 1 seul bouton */}
+          {/* Import unique avec 1 seul bouton */}
           <Card className="p-6 bg-white border border-border shadow-sm space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
               <div className="flex items-center gap-3">
@@ -1019,9 +967,9 @@ export default function WorkspaceBIPage() {
                   <Upload size={22} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-foreground">Option 2 — Importer votre fichier Excel unique</h2>
+                  <h2 className="text-lg font-bold text-foreground">Importer votre classeur d'activité Excel</h2>
                   <p className="text-xs text-muted-foreground">
-                    Glissez votre fichier ici : notre moteur analyse automatiquement les feuilles (Ventes, Achats, Produits, Clients)
+                    Glissez votre fichier ici : analyse automatique multi-onglets (Ventes, Achats, Produits, Clients)
                   </p>
                 </div>
               </div>

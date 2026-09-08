@@ -72,15 +72,17 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
     const contributionMarginPercent =
       totalCA > 0 ? (contributionMargin / totalCA) * 100 : 0;
 
-    const breakEvenPoint =
-      contributionMarginPercent > 0
-        ? Math.round(estimatedFixedCosts / (contributionMarginPercent / 100))
-        : 0;
+    // Si la marge contributive est négative ou nulle, le seuil de rentabilité est strictement non atteignable
+    const isAchievable = contributionMarginPercent > 0;
+    const breakEvenPoint = isAchievable
+      ? Math.round(estimatedFixedCosts / (contributionMarginPercent / 100))
+      : null;
 
     return NextResponse.json({
       success: true,
       data: {
         profitabilityByCategory,
+        categoryProfitability: profitabilityByCategory,
         productMargins: productMarginsList.sort((a, b) => b.margin - a.margin),
         breakEvenAnalysis: {
           totalCA,
@@ -89,6 +91,7 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
           contributionMargin,
           contributionMarginPercent: Math.round(contributionMarginPercent),
           breakEvenPoint,
+          isAchievable,
         },
       },
     });

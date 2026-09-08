@@ -614,6 +614,75 @@ export default function GrandLivreLandingPage() {
       </section>
 
       {/* ========================================================================= */}
+      {/* 6-BIS. REVUE FISCALE & CSP D'AUTO-ÉVALUATION (CONFORMITÉ SÉCURITÉ OTR)     */}
+      {/* ========================================================================= */}
+      <section className="py-16 px-4 sm:px-6 max-w-7xl mx-auto space-y-10">
+        <div className="rounded-2xl border-2 border-[#157A46] bg-[#FDFAF1] p-8 sm:p-10 relative overflow-hidden shadow-lg">
+          {/* Sceau en filigrane */}
+          <div className="absolute right-4 -bottom-6 opacity-5 pointer-events-none select-none">
+            <ShieldCheck className="w-80 h-80 text-[#0B3D2E]" />
+          </div>
+
+          <div className="relative z-10 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Stamp color="#157A46">SERVICE OFFICIEL OTR &amp; SYSCOHADA</Stamp>
+                  <LegalRef>CGI Togo · LPF art. 17, 45, 99</LegalRef>
+                </div>
+                <h3 className="font-mono text-2xl sm:text-3xl font-extrabold text-[#0B3D2E]">
+                  Revue Fiscale &amp; CSP d&apos;Auto-Évaluation
+                </h3>
+              </div>
+              <Link href={"/fiscal/revue-csp" as any}>
+                <button className="px-5 py-2.5 rounded-lg bg-[#157A46] hover:bg-[#0B3D2E] text-white font-mono text-xs font-bold transition flex items-center gap-2 shadow">
+                  <ShieldCheck className="w-4 h-4" /> Tester l&apos;Auto-Évaluation CSP
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </Link>
+            </div>
+
+            <p className="text-xs sm:text-sm text-[#33604C] max-w-3xl leading-relaxed">
+              Avant de télédéclarer votre <strong>Déclaration Statistique et Fiscale (DSF)</strong> à l&apos;OTR, soumettez vos comptes à notre audit automatisé en <strong>7 piliers de conformité</strong>. Annotez et annexez vos pièces justificatives, détectez les redressements potentiels et obtenez un <strong>Certificat d&apos;Auto-Évaluation scellé par empreinte SHA-256</strong>.
+            </p>
+
+            {/* 3 Blocs piliers */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-mono text-xs pt-2">
+              <div className="p-4 rounded-xl border border-[#E2D9C2] bg-white space-y-2">
+                <div className="flex items-center gap-2 text-[#0B3D2E] font-bold">
+                  <span className="w-6 h-6 rounded-full bg-[#157A46]/15 text-[#157A46] flex items-center justify-center text-xs">1</span>
+                  Audit 7 Piliers OTR
+                </div>
+                <p className="text-[11px] text-[#33604C]">
+                  Équilibre SYSCOHADA, TVA 18%, Règle max(IS, IMF), Retenues à la source (BNC/BIC/BPRE), Cotisations CNSS/AMU, et respect strict du plafond d&apos;espèces de 500 000 FCFA (LPF art. 45).
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-[#E2D9C2] bg-white space-y-2">
+                <div className="flex items-center gap-2 text-[#0B3D2E] font-bold">
+                  <span className="w-6 h-6 rounded-full bg-[#FCD116]/30 text-[#0B3D2E] flex items-center justify-center text-xs">2</span>
+                  Annexes Justificatives
+                </div>
+                <p className="text-[11px] text-[#33604C]">
+                  Importez et associez vos pièces de contrôle (Grand Livre, Balance générale, Relevés bancaires, Quittances OTR). Chaque fichier est scellé avec contrôle de somme de contrôle SHA-256.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-[#E2D9C2] bg-white space-y-2">
+                <div className="flex items-center gap-2 text-[#0B3D2E] font-bold">
+                  <span className="w-6 h-6 rounded-full bg-[#0B3D2E]/15 text-[#0B3D2E] flex items-center justify-center text-xs">3</span>
+                  Certificat Officiel A4
+                </div>
+                <p className="text-[11px] text-[#33604C]">
+                  Générez un certificat officiel avec note globale (A/B/C/D), statut de conformité partenariale et empreinte d&apos;intégrité à annexer à votre liasse fiscale OTR.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
       {/* 7. TARIFS EN 3 REÇUS PERFORÉS (MOCKUP 2 EXACT)                           */}
       {/* ========================================================================= */}
       <section id="tarifs" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto space-y-12">

@@ -321,9 +321,8 @@ describe("Module BI - Forecasting", () => {
 
 describe("Module BI - Reconciliation", () => {
   it("should detect discrepancy when BI CA != Account 701", () => {
-    // Test structure - implémentation complète nécessite DB
     const biCA = 1000000;
-    const account701 = 950000;
+    const account701 = 940000; // 60 000 d'écart > seuil de 5% (50 000)
     const discrepancy = Math.abs(biCA - account701);
     const threshold = (biCA * 5) / 100; // 5% seuil
 
@@ -332,7 +331,7 @@ describe("Module BI - Reconciliation", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Tests Alertes
+// Tests Alertes & Cohérence Financière
 // ---------------------------------------------------------------------------
 
 describe("Module BI - Alertes", () => {
@@ -358,5 +357,62 @@ describe("Module BI - Alertes", () => {
     const isExceeded = currentEncours > maxEncours;
 
     expect(isExceeded).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests Cohérence des 5 Régions du Togo & Seuil de Rentabilité
+// ---------------------------------------------------------------------------
+
+describe("Module BI - Cohérence Territoriale & Rentabilité", () => {
+  it("should normalize Grand Lomé and coastal towns into Région Maritime", async () => {
+    const { normalizeTogoRegion } = await import("@/lib/bi/togo-regions");
+
+    expect(normalizeTogoRegion("Grand Lomé")).toBe("Maritime");
+    expect(normalizeTogoRegion("Lomé Commune")).toBe("Maritime");
+    expect(normalizeTogoRegion("Golfe")).toBe("Maritime");
+    expect(normalizeTogoRegion("Aného")).toBe("Maritime");
+    expect(normalizeTogoRegion("Maritime")).toBe("Maritime");
+    expect(normalizeTogoRegion("Kpalimé")).toBe("Plateaux");
+    expect(normalizeTogoRegion("Sokodé")).toBe("Centrale");
+    expect(normalizeTogoRegion("Kara")).toBe("Kara");
+    expect(normalizeTogoRegion("Dapaong")).toBe("Savanes");
+  });
+
+  it("should calculate break-even as unachievable when contribution margin is negative", () => {
+    const totalCA = 20000000;
+    const totalCostAchat = 24200000; // Coûts > Ventes -> Marge négative -21%
+    const estimatedFixedCosts = Math.round(totalCA * 0.1);
+    const contributionMargin = totalCA - totalCostAchat;
+    const contributionMarginPercent = (contributionMargin / totalCA) * 100;
+
+    const isAchievable = contributionMarginPercent > 0;
+    const breakEvenPoint = isAchievable
+      ? Math.round(estimatedFixedCosts / (contributionMarginPercent / 100))
+      : null;
+
+    expect(contributionMarginPercent).toBeLessThan(0);
+    expect(isAchievable).toBe(false);
+    expect(breakEvenPoint).toBeNull();
+  });
+
+  it("should generate critical warning and deficit summary when margin is negative in fallbackRulesAnalysis", async () => {
+    const { fallbackRulesAnalysis } = await import("@/lib/integrations/qwen/bi-advisor");
+
+    const analysis = fallbackRulesAnalysis({
+      kpis: {
+        ca: 20000000,
+        margeBrute: -4200000,
+        margePercent: -21,
+        clientsActifs: 5,
+        trésorerie: 1000000,
+      },
+    });
+
+    // Vérifier l'absence formelle de mention "saine"
+    expect(analysis.summary.toLowerCase()).not.toContain("rentabilité saine");
+    expect(analysis.summary.toLowerCase()).toContain("marge brute négative");
+    expect(analysis.healthScore).toBeLessThan(50);
+    expect(analysis.insights.some((i) => i.title.includes("Marge brute négative"))).toBe(true);
   });
 });

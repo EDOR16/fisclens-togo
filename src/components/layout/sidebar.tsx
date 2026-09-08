@@ -7,7 +7,7 @@ import {
   LayoutDashboard, BookOpen, Receipt, AlertTriangle,
   BarChart3, CalendarDays, Settings, LogOut, ChevronsUpDown,
   Users, ChevronRight, Building2, Sun, Moon, Calculator,
-  Menu, X,
+  Menu, X, ShieldCheck, CreditCard, Activity, Sparkles,
 } from "lucide-react";
 import { useAuth, useHasRole, type Role } from "@/lib/auth-context";
 import { useAppTheme } from "@/components/theme/theme-provider";
@@ -89,7 +89,8 @@ const NAV_ITEMS: NavItem[] = [
     href: "/comptabilite",
     icon: BookOpen,
     children: [
-      { label: "Saisie", href: "/comptabilite/saisie", icon: ChevronRight, roles: ["GERANT", "COMPTABLE"] },
+      { label: "Scanner Facture (IA)", href: "/comptabilite/saisie?tab=ocr", icon: Sparkles, roles: ["GERANT", "COMPTABLE"] },
+      { label: "Saisie d'écritures", href: "/comptabilite/saisie?tab=manual", icon: ChevronRight, roles: ["GERANT", "COMPTABLE"] },
       { label: "Journaux", href: "/comptabilite/journaux", icon: ChevronRight },
       { label: "Grand livre", href: "/comptabilite/grand-livre", icon: ChevronRight },
       { label: "Balance", href: "/comptabilite/balance", icon: ChevronRight },
@@ -111,6 +112,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Retenues à la source", href: "/fiscal/retenues", icon: ChevronRight },
       { label: "Centre des Déclarations", href: "/fiscal/declarations", icon: ChevronRight },
       { label: "Simulateur Global OTR", href: "/fiscal/simulateur", icon: Calculator },
+      { label: "Revue Fiscale & CSP", href: "/fiscal/revue-csp", icon: ShieldCheck },
     ],
   },
   {
@@ -272,6 +274,53 @@ function DossierSelector() {
 }
 
 // ---------------------------------------------------------------------------
+// Section de navigation Admin (visible uniquement pour les SuperAdmins)
+// ---------------------------------------------------------------------------
+
+const ADMIN_NAV: Array<{ label: string; href: string; icon: React.ComponentType<{ className?: string }> }> = [
+  { label: "Dashboard Plateforme", href: "/dashboard",           icon: LayoutDashboard },
+  { label: "Entreprises Clientes", href: "/admin/tenants",       icon: Building2 },
+  { label: "Utilisateurs",         href: "/admin/utilisateurs",  icon: Users },
+  { label: "Audit Logs",           href: "/admin/audit-logs",    icon: Activity },
+  { label: "Abonnements & Plans",  href: "/admin/abonnements",   icon: CreditCard },
+];
+
+function AdminNavSection({ onClose }: { onClose: () => void }) {
+  const pathname = usePathname();
+
+  return (
+    <div className="mt-4 pt-3 border-t border-[#E6DEC8] dark:border-[rgba(251,247,236,.12)]">
+      <p className="px-3 mb-1.5 text-[9px] font-mono font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400 flex items-center gap-1">
+        <ShieldCheck className="h-2.5 w-2.5" />
+        Administration
+      </p>
+      {ADMIN_NAV.map((item) => {
+        const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+        const Icon = item.icon;
+        return (
+          <Link
+            key={item.href}
+            href={item.href as any}
+            onClick={() => {
+              if (typeof window !== "undefined" && window.innerWidth < 768) onClose();
+            }}
+            className={cn(
+              "flex items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium transition-colors",
+              isActive
+                ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 font-semibold"
+                : "text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+            )}
+          >
+            <Icon className="h-3.5 w-3.5 shrink-0" />
+            {item.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Sidebar principale (Drawer sur mobile avec croix, fixe sur desktop)
 // ---------------------------------------------------------------------------
 
@@ -341,6 +390,11 @@ export function Sidebar() {
             ) : (
               <NavLink key={item.href} item={item} />
             )
+          )}
+
+          {/* ── Section Administration (SuperAdmin uniquement) ── */}
+          {(user?.isSuperAdmin || user?.role === "ADMIN_SYS") && (
+            <AdminNavSection onClose={close} />
           )}
         </nav>
 

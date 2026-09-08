@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { formatFcfa, formatDate } from "@/lib/utils";
+import Link from "next/link";
 import {
   TrendingUp, TrendingDown, AlertTriangle, CalendarClock,
-  BookOpen, Receipt, CheckCircle2, Clock, Loader2, RefreshCw, PlusCircle
+  BookOpen, Receipt, CheckCircle2, Clock, Loader2, RefreshCw, PlusCircle, Sparkles
 } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
@@ -54,13 +55,10 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Si l'utilisateur connecté est SuperAdmin / ADMIN_SYS, afficher la vue Plateforme dédiée
-  if (user?.role === "ADMIN_SYS" || user?.isSuperAdmin) {
-    return <AdminDashboard />;
-  }
-
+  const isSuperAdmin = user?.role === "ADMIN_SYS" || user?.isSuperAdmin;
 
   const fetchStats = useCallback(async () => {
+    if (isSuperAdmin) return;
     setLoading(true);
     try {
       const res = await api.get<DashboardStatsResponse>("/accounting/dashboard-stats");
@@ -70,11 +68,14 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  // SuperAdmin → vue plateforme dédiée (après les hooks, jamais avant)
+  if (isSuperAdmin) return <AdminDashboard />;
 
   const ca = data?.chiffreAffaires ?? 0;
   const charges = data?.totalCharges ?? 0;
@@ -150,10 +151,16 @@ export default function DashboardPage() {
             <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", loading && "animate-spin")} />
             Actualiser
           </Button>
-          <a href="/comptabilite/saisie">
+          <Link href="/comptabilite/saisie?tab=ocr">
+            <Button size="sm" className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs shadow-sm">
+              <Sparkles className="h-3.5 w-3.5 mr-1.5 text-amber-300" />
+              Scanner Facture (IA)
+            </Button>
+          </Link>
+          <a href="/comptabilite/saisie?tab=manual">
             <Button size="sm" className="bg-[#0B3D2E] hover:bg-[#157A46] text-white text-xs">
               <PlusCircle className="h-4 w-4 mr-1.5" />
-              Saisir écriture
+              Saisie manuelle
             </Button>
           </a>
           <div

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,6 +28,7 @@ import * as XLSX from "xlsx";
 import { api, ApiException } from "@/lib/api-client";
 import { formatAmount } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { OcrInvoiceScanner } from "@/components/accounting/ocr-invoice-scanner";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -114,8 +116,16 @@ function BalanceControl({ lines }: { lines: EntryFormValues["lines"] }) {
 // Page Principale
 // ---------------------------------------------------------------------------
 
-export default function SaisiePage() {
-  const [activeTab, setActiveTab] = useState<"MANUAL" | "EXCEL" | "PDF">("MANUAL");
+function SaisieContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<"MANUAL" | "EXCEL" | "OCR">("OCR");
+
+  useEffect(() => {
+    if (tabParam === "manual") setActiveTab("MANUAL");
+    else if (tabParam === "excel") setActiveTab("EXCEL");
+    else if (tabParam === "ocr") setActiveTab("OCR");
+  }, [tabParam]);
 
   // Pièce jointe (Facture PDF / Image)
   const [attachedFile, setAttachedFile] = useState<{
@@ -397,44 +407,23 @@ export default function SaisiePage() {
     }
   };
 
-  // --- Assistant / Extraction Facture PDF ---
-  const [pdfDocType, setPdfDocType] = useState<"ACHAT" | "VENTE">("ACHAT");
-  const [pdfPiece, setPdfPiece] = useState("FAC-PDF-001");
-  const [pdfDate, setPdfDate] = useState(new Date().toISOString().slice(0, 10));
-  const [pdfTiers, setPdfTiers] = useState("Fournisseur / Client X");
-  const [pdfMontantHT, setPdfMontantHT] = useState<number>(100000);
-  const [pdfApplyTva, setPdfApplyTva] = useState(true);
-
-  const tvaRate = 0.18;
-  const pdfTvaAmount = pdfApplyTva ? Math.round(pdfMontantHT * tvaRate) : 0;
-  const pdfMontantTTC = pdfMontantHT + pdfTvaAmount;
-
-  const handlePdfInject = () => {
-    if (pdfDocType === "ACHAT") {
-      setValue("journal", "ACHATS");
-      setValue("date", pdfDate);
-      setValue("piece", pdfPiece);
-      setValue("lines", [
-        { accountCode: "601100", libelle: `Achat marchandises - ${pdfTiers}`, debit: pdfMontantHT, credit: 0 },
-        ...(pdfApplyTva
-          ? [{ accountCode: "445200", libelle: "TVA déductible sur achats (18%)", debit: pdfTvaAmount, credit: 0 }]
-          : []),
-        { accountCode: "401100", libelle: `Fournisseur - ${pdfTiers}`, debit: 0, credit: pdfMontantTTC },
-      ]);
-    } else {
-      setValue("journal", "VENTES");
-      setValue("date", pdfDate);
-      setValue("piece", pdfPiece);
-      setValue("lines", [
-        { accountCode: "411100", libelle: `Client - ${pdfTiers}`, debit: pdfMontantTTC, credit: 0 },
-        { accountCode: "701100", libelle: `Ventes marchandises - ${pdfTiers}`, debit: 0, credit: pdfMontantHT },
-        ...(pdfApplyTva
-          ? [{ accountCode: "443100", libelle: "TVA facturée sur ventes (18%)", debit: 0, credit: pdfTvaAmount }]
-          : []),
-      ]);
-    }
+  const handleOcrTransfer = (data: {
+    journal: string;
+    date: string;
+    piece: string;
+    lines: Array<{ accountCode: string; libelle: string; debit: number; credit: number }>;
+  }) => {
+    setValue("journal", (data.journal as any) || "ACHATS");
+    setValue("date", data.date);
+    setValue("piece", data.piece);
+    setValue("lines", data.lines.map((l) => ({
+      accountCode: l.accountCode,
+      libelle: l.libelle,
+      debit: l.debit,
+      credit: l.credit,
+    })));
     setActiveTab("MANUAL");
-    toast.success("Écriture pré-remplie dans le formulaire de saisie !");
+    toast.success("Écriture pré-remplie dans le formulaire de saisie pour validation !");
   };
 
   return (
@@ -475,16 +464,19 @@ export default function SaisiePage() {
           Import Fichier Excel / CSV
         </button>
         <button
-          onClick={() => setActiveTab("PDF")}
+          onClick={() => setActiveTab("OCR")}
           className={cn(
             "flex items-center gap-2 pb-3 text-sm font-semibold border-b-2 transition-colors",
-            activeTab === "PDF"
-              ? "border-primary text-primary"
+            activeTab === "OCR"
+              ? "border-emerald-600 text-emerald-700 dark:text-emerald-400 font-bold"
               : "border-transparent text-muted-foreground hover:text-foreground"
           )}
         >
-          <FileText className="h-4 w-4" />
-          Assistant Facture PDF
+          <Sparkles className="h-4 w-4 text-emerald-600" />
+          Scanner Facture (OCR + IA)
+          <span className="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+            Nouveau
+          </span>
         </button>
       </div>
 
@@ -839,125 +831,26 @@ export default function SaisiePage() {
       )}
 
       {/* ─────────────────────────────────────────────────────────── */}
-      {/* MODE 3 : ASSISTANT FACTURE / PIÈCE PDF                      */}
+      {/* MODE 3 : SCANNER FACTURE (OCR + IA SYSCOHADA)                */}
       {/* ─────────────────────────────────────────────────────────── */}
-      {activeTab === "PDF" && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-amber-500" />
-              Assistant d&apos;imputation automatique (Facture / Pièce PDF)
-            </CardTitle>
-            <CardDescription>
-              Générez automatiquement les écritures SYSCOHADA conformes (TVA 18%, Fournisseur/Client) à partir des montants de votre facture.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Type d&apos;opération</label>
-                <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={pdfDocType}
-                  onChange={(e) => setPdfDocType(e.target.value as any)}
-                >
-                  <option value="ACHAT">Facture d&apos;Achat (Journal ACHATS)</option>
-                  <option value="VENTE">Facture de Vente (Journal VENTES)</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">N° de Facture / Pièce</label>
-                <Input value={pdfPiece} onChange={(e) => setPdfPiece(e.target.value)} />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Tiers (Fournisseur ou Client)</label>
-                <Input value={pdfTiers} onChange={(e) => setPdfTiers(e.target.value)} />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Date de la facture</label>
-                <Input type="date" value={pdfDate} onChange={(e) => setPdfDate(e.target.value)} />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Montant Hors Taxe (HT en FCFA)</label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={100}
-                  value={pdfMontantHT}
-                  onChange={(e) => setPdfMontantHT(Number(e.target.value) || 0)}
-                  className="font-mono text-sm"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2 pt-6">
-                <input
-                  type="checkbox"
-                  id="applyTva"
-                  checked={pdfApplyTva}
-                  onChange={(e) => setPdfApplyTva(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-primary"
-                />
-                <label htmlFor="applyTva" className="text-sm font-medium cursor-pointer">
-                  Appliquer la TVA Togo (18%)
-                </label>
-              </div>
-            </div>
-
-            {/* Aperçu du schéma d'écriture généré */}
-            <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
-              <span className="text-xs font-semibold uppercase text-muted-foreground">
-                Schéma d&apos;imputation SYSCOHADA calculé :
-              </span>
-              <div className="space-y-1.5 font-mono text-xs">
-                {pdfDocType === "ACHAT" ? (
-                  <>
-                    <div className="flex justify-between py-1 border-b">
-                      <span>601100 — Achats marchandises ({pdfTiers})</span>
-                      <span className="text-red-600 font-semibold">Débit : {formatAmount(pdfMontantHT)} FCFA</span>
-                    </div>
-                    {pdfApplyTva && (
-                      <div className="flex justify-between py-1 border-b">
-                        <span>445200 — État, TVA déductible s/achats (18%)</span>
-                        <span className="text-red-600 font-semibold">Débit : {formatAmount(pdfTvaAmount)} FCFA</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between py-1 font-bold">
-                      <span>401100 — Fournisseur ({pdfTiers})</span>
-                      <span className="text-emerald-600">Crédit : {formatAmount(pdfMontantTTC)} FCFA</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex justify-between py-1 border-b font-bold">
-                      <span>411100 — Client ({pdfTiers})</span>
-                      <span className="text-red-600">Débit : {formatAmount(pdfMontantTTC)} FCFA</span>
-                    </div>
-                    <div className="flex justify-between py-1 border-b">
-                      <span>701100 — Ventes de marchandises</span>
-                      <span className="text-emerald-600 font-semibold">Crédit : {formatAmount(pdfMontantHT)} FCFA</span>
-                    </div>
-                    {pdfApplyTva && (
-                      <div className="flex justify-between py-1">
-                        <span>443100 — État, TVA facturée s/ventes (18%)</span>
-                        <span className="text-emerald-600 font-semibold">Crédit : {formatAmount(pdfTvaAmount)} FCFA</span>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            <Button onClick={handlePdfInject} className="w-full sm:w-auto">
-              <ArrowRight className="h-4 w-4 mr-1.5" />
-              Transférer vers le formulaire de saisie pour validation
-            </Button>
-          </CardContent>
-        </Card>
+      {activeTab === "OCR" && (
+        <OcrInvoiceScanner onTransferToManual={handleOcrTransfer} />
       )}
     </div>
+  );
+}
+
+export default function SaisiePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Chargement de l'espace de saisie...</span>
+        </div>
+      }
+    >
+      <SaisieContent />
+    </Suspense>
   );
 }

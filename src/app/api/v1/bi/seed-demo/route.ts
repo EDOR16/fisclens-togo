@@ -51,8 +51,8 @@ export const POST = withTenantGuard(async (req: NextRequest, { tenantId }: Guard
 
     // ── 2. Création des Clients de référence ────────────────────────────────
     const clientsData = [
-      { code: "CLI-001", name: "BTP Lomé Construction", segment: "Entreprise", zoneGeo: "Grand Lomé", encoursAutorise: 15000000 },
-      { code: "CLI-002", name: "Supermarché Le Phare", segment: "Grossiste", zoneGeo: "Grand Lomé", encoursAutorise: 8000000 },
+      { code: "CLI-001", name: "BTP Lomé Construction", segment: "Entreprise", zoneGeo: "Maritime", encoursAutorise: 15000000 },
+      { code: "CLI-002", name: "Supermarché Le Phare", segment: "Grossiste", zoneGeo: "Maritime", encoursAutorise: 8000000 },
       { code: "CLI-003", name: "Quincaillerie Kpalimé Pro", segment: "Détaillant", zoneGeo: "Plateaux", encoursAutorise: 5000000 },
       { code: "CLI-004", name: "Société Commerciale du Nord", segment: "Grossiste", zoneGeo: "Kara", encoursAutorise: 12000000 },
       { code: "CLI-005", name: "Ets Sokodé Distribution", segment: "Détaillant", zoneGeo: "Centrale", encoursAutorise: 4000000 },

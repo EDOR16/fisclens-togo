@@ -70,6 +70,9 @@ model Tenant {
   purchases           Purchase[]
   forecasts           Forecast[]
   alerts              Alert[]
+  // Revue Fiscale & CSP Auto-Évaluation
+  cspEvaluations      CspEvaluation[]
+  cspAttachments      CspAttachment[]
 
   @@map("tenants")
 }
@@ -335,4 +338,49 @@ model Alert {
 
   @@index([tenantId, createdAt])
   @@map("alerts")
+}
+
+// ============================================================================
+// REVUE FISCALE & CSP AUTO-ÉVALUATION (OTR TOGO)
+// ============================================================================
+
+model CspEvaluation {
+  id              String   @id @default(cuid())
+  tenantId        String
+  exercice        String   // Ex: "2026"
+  score           Int      // 0 à 100
+  grade           String   // "A" (Conforme), "B" (Modéré), "C" (Critique)
+  statut          String   @default("CONFORME") // CONFORME, A_REGULARISER, CRITIQUE
+  hashCertificat  String   // SHA-256 de certification
+  detailsJson     String   // Données détaillées des 7 piliers et des contrôles (JSON)
+  recommendations String?  // Recommandations d'audit fiscales (JSON)
+  generatedAt     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  attachments CspAttachment[]
+
+  @@index([tenantId, exercice])
+  @@map("csp_evaluations")
+}
+
+model CspAttachment {
+  id           String   @id @default(cuid())
+  tenantId     String
+  evaluationId String?
+  fileName     String
+  fileType     String   // DSF, BALANCE, GRAND_LIVRE, AMORTISSEMENT, BANQUE, QUITTANCE, AUTRE
+  mimeType     String   @default("application/pdf")
+  fileSize     Int      // Taille en octets
+  fileData     String   // Base64 ou URL du fichier
+  fileHash     String   // Empreinte SHA-256
+  notes        String?  // Commentaires ou références de la pièce
+  uploadedAt   DateTime @default(now())
+
+  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  evaluation CspEvaluation? @relation(fields: [evaluationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([evaluationId])
+  @@map("csp_attachments")
 }

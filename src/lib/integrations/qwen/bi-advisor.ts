@@ -139,6 +139,14 @@ Ta réponse doit être un JSON valide avec exactement cette structure :
   "fiscalAlerts": ["<alerte fiscale OTR/TVA si pertinent>"]
 }
 
+RÈGLE CRITIQUE D'INTÉGRITÉ SUR LA RENTABILITÉ :
+Si la marge brute ou le taux de marge est négatif (margeBrute < 0 ou margePercent < 0) : l'entreprise est en situation de VENTE À PERTE et de DÉFICIT COMMERCIAL.
+Tu NE DOIS SOUS AUCUN PRÉTEXTE qualifier la rentabilité ou la situation de "saine", "positive", "robuste" ou "favorable".
+Tu DOIS impérativement :
+- Alerter immédiatement dans le summary avec sévérité sur la marge brute négative et la vente à perte.
+- Fixer un healthScore en zone d'alerte critique (< 45).
+- Proposer des mesures d'urgence pour redresser les prix de vente ou renégocier les coûts d'achat.
+
 Génère entre 4 et 6 insights actionnables. Sois précis, chiffré et contextualisé au marché togolais (FCFA, OTR, TVA 18%, IS 27%).`;
 
 function buildUserPrompt(ctx: BIDataContext): string {
@@ -213,9 +221,19 @@ export async function analyzeBusinessData(ctx: BIDataContext): Promise<BIAnalysi
 
 export function fallbackRulesAnalysis(ctx: BIDataContext): BIAnalysisResult {
   const insights: BIInsight[] = [];
-  let score = 70;
+  const isNegativeMargin = ctx.kpis.margeBrute < 0 || ctx.kpis.margePercent < 0;
+  let score = isNegativeMargin ? 35 : 70;
 
-  if (ctx.kpis.margePercent >= 30) {
+  if (isNegativeMargin) {
+    insights.push({
+      type: "warning",
+      title: "Alerte critique : Marge brute négative (Vente à perte)",
+      description: `Marge actuelle de ${ctx.kpis.margePercent}% (${ctx.kpis.margeBrute.toLocaleString("fr-FR")} FCFA). Vos coûts d'achat dépassent vos prix de facturation. Une révision d'urgence des grilles tarifaires et une renégociation avec les fournisseurs sont indispensables.`,
+      impact: `Déficit brut d'exploitation de ${Math.abs(ctx.kpis.margeBrute).toLocaleString("fr-FR")} FCFA`,
+      confidence: 99,
+      priority: "high",
+    });
+  } else if (ctx.kpis.margePercent >= 30) {
     score += 12;
     insights.push({
       type: "success",
@@ -272,9 +290,15 @@ export function fallbackRulesAnalysis(ctx: BIDataContext): BIAnalysisResult {
 
   score = Math.max(10, Math.min(98, score));
 
+  const summary = isNegativeMargin
+    ? `Alerte rentabilité : Votre activité affiche une marge brute négative de ${ctx.kpis.margePercent}% (${ctx.kpis.margeBrute.toLocaleString("fr-FR")} FCFA). L'entreprise vend actuellement en dessous de ses coûts d'achat : un réajustement immédiat des prix et la maîtrise des coûts fournisseurs s'imposent.`
+    : `L'analyse de vos données révèle une structure commerciale ${
+        score >= 75 ? "saine et dynamique" : "stable avec des leviers d'optimisation prioritaires"
+      }. CA consolidé : ${ctx.kpis.ca.toLocaleString("fr-FR")} FCFA avec ${ctx.kpis.clientsActifs} clients actifs. (Analyse locale — configurez BI_AI_PROVIDER dans .env)`;
+
   return {
     healthScore: score,
-    summary: `L'analyse de vos données révèle une structure commerciale ${score >= 75 ? "saine et dynamique" : "stable avec des leviers d'optimisation prioritaires"}. CA consolidé : ${ctx.kpis.ca.toLocaleString("fr-FR")} FCFA avec ${ctx.kpis.clientsActifs} clients actifs. (Analyse locale — configurez BI_AI_PROVIDER dans .env)`,
+    summary,
     insights,
     fiscalAlerts:
       ctx.kpis.ca > 50_000_000

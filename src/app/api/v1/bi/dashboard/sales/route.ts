@@ -10,12 +10,14 @@ import { withTenantGuard, GuardContext } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
 import { getTopProducts } from "@/lib/bi/aggregates";
 
+import { normalizeTogoRegion } from "@/lib/bi/togo-regions";
+
 export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardContext) => {
   try {
     // Top 10 produits par marge
     const topProducts = await getTopProducts(tenantId, 10);
 
-    // Ventes par zone géographique
+    // Ventes par zone géographique (normalisées sur les 5 régions officielles du Togo)
     const salesByZone = await prisma.sale.findMany({
       where: { tenantId },
       include: { client: true },
@@ -23,8 +25,8 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
 
     const zoneAgg = new Map<string, number>();
     for (const sale of salesByZone) {
-      const zone = sale.client.zoneGeo;
-      zoneAgg.set(zone, (zoneAgg.get(zone) || 0) + sale.montantHT);
+      const region = normalizeTogoRegion(sale.client.zoneGeo);
+      zoneAgg.set(region, (zoneAgg.get(region) || 0) + sale.montantHT);
     }
 
     const zones = Array.from(zoneAgg.entries())

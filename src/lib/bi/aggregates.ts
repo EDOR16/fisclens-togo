@@ -329,7 +329,7 @@ export async function getProfitabilityByCategory(
   >();
 
   for (const sale of sales) {
-    const category = sale.product.category;
+    const category = (sale.product?.category && sale.product.category.trim()) || "Général";
     if (!categoryAgg.has(category)) {
       categoryAgg.set(category, { ca: 0, costAchat: 0 });
     }

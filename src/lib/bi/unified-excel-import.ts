@@ -243,7 +243,7 @@ export async function processUnifiedExcel(
             code: clientCode,
             name: `Client ${clientCode}`,
             segment: "Standard",
-            zoneGeo: "Grand Lomé",
+            zoneGeo: "Maritime",
             encoursAutorise: 5000000,
           },
         });

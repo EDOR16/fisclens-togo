@@ -126,6 +126,11 @@ export default function WorkspaceBIPage() {
             .then((r) => r.ok ? r.json() : null)
             .then((json) => json && setOverviewData(json.data))
         );
+        fetches.push(
+          fetch("/api/v1/bi/dashboard/ai-analysis")
+            .then((r) => r.ok ? r.json() : null)
+            .then((json) => json && setAiData(json.data))
+        );
       }
       if (tab === "profitability" || tab === "all") {
         fetches.push(
@@ -230,19 +235,26 @@ export default function WorkspaceBIPage() {
     })) ?? [];
 
   const forecastChartData =
-    forecastData?.caForecast?.projections?.map((p: any) => ({
-      date: p.date ?? "",
-      projectedCA: p.projectedCA ?? 0,
-      lowerBound: p.lowerBound ?? (p.projectedCA ?? 0) * 0.88,
-      upperBound: p.upperBound ?? (p.projectedCA ?? 0) * 1.12,
-    })) ?? [];
+    forecastData?.caForecast?.projections?.map((p: any) => {
+      const val = p.projectedCA ?? p.value ?? 0;
+      return {
+        date: p.date ?? "",
+        projectedCA: val,
+        lowerBound: p.lowerBound ?? Math.round(val * 0.88),
+        upperBound: p.upperBound ?? Math.round(val * 1.12),
+      };
+    }) ?? [];
 
-  const categoryChartData =
-    profitabilityData?.categoryProfitability?.map((c: any) => ({
-      category: c.category,
-      ca: c.ca ?? 0,
-      margePercent: c.margePercent ?? 0,
-    })) ?? [];
+  const rawCategories =
+    profitabilityData?.categoryProfitability ??
+    profitabilityData?.profitabilityByCategory ??
+    [];
+
+  const categoryChartData = rawCategories.map((c: any) => ({
+    category: c.category || "Général",
+    ca: c.ca ?? 0,
+    margePercent: c.margePercent ?? 0,
+  }));
 
   // ── Injection de données de test en 1-clic ────────────────────────────────
   const [isSeeding, setIsSeeding] = useState(false);
@@ -297,8 +309,8 @@ export default function WorkspaceBIPage() {
 
       // Feuille 4: Clients
       const clientsData = [
-        { code: "CLI-001", nom: "BTP Lomé Construction", segment: "Entreprise", zoneGeo: "Grand Lomé", encours_autorisé: 15000000 },
-        { code: "CLI-002", nom: "Supermarché Le Phare", segment: "Grossiste", zoneGeo: "Grand Lomé", encours_autorisé: 8000000 },
+        { code: "CLI-001", nom: "BTP Lomé Construction", segment: "Entreprise", zoneGeo: "Maritime", encours_autorisé: 15000000 },
+        { code: "CLI-002", nom: "Supermarché Le Phare", segment: "Grossiste", zoneGeo: "Maritime", encours_autorisé: 8000000 },
         { code: "CLI-003", nom: "Quincaillerie Kpalimé Pro", segment: "Détaillant", zoneGeo: "Plateaux", encours_autorisé: 5000000 },
       ];
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clientsData), "Clients");
@@ -497,27 +509,45 @@ export default function WorkspaceBIPage() {
 
           {/* Actions rapides */}
           <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-emerald-600" /> Synthèse Flash IA
-                </CardTitle>
-                <CardDescription>Diagnostic instantané via Qwen AI</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3.5 text-xs text-emerald-900 leading-relaxed">
-                  <strong>État de santé commerciale :</strong>{" "}
-                  {aiData?.summary ??
-                    "Vos données de ventes reflètent une rentabilité saine. Pour maximiser la marge, focalisez vos efforts sur les produits du quadrant étoile et étendez la distribution dans les régions à fort potentiel."}
-                </div>
-                <div className="flex items-center justify-between text-xs pt-2 border-t text-muted-foreground">
-                  <span>Conformité OTR & Déclarations</span>
-                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> TVA 18% & SYSCOHADA synchronisés
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Synthèse Flash IA */}
+            {(() => {
+              const isNegative =
+                (overviewData?.margeBrute !== undefined && overviewData.margeBrute < 0) ||
+                (overviewData?.margePercent !== undefined && overviewData.margePercent < 0);
+
+              const defaultSummary = isNegative
+                ? `Alerte rentabilité : Vos données enregistrent une marge brute négative (${overviewData?.margePercent ?? 0}%). Vos coûts d'achat dépassent vos prix de facturation. Une révision d'urgence des prix de vente et des conditions d'achat fournisseurs est indispensable pour enrayer l'exploitation à perte.`
+                : "Vos données de ventes reflètent une rentabilité saine. Pour maximiser la marge, focalisez vos efforts sur les produits à plus forte marge et étendez la distribution dans les régions à fort potentiel.";
+
+              return (
+                <Card className={isNegative ? "border-amber-300 bg-amber-50/20" : ""}>
+                  <CardHeader>
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Sparkles className={`h-4 w-4 ${isNegative ? "text-amber-600" : "text-emerald-600"}`} /> Synthèse Flash IA
+                    </CardTitle>
+                    <CardDescription>Diagnostic instantané via Qwen AI</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div
+                      className={`rounded-lg p-3.5 text-xs leading-relaxed border ${
+                        isNegative
+                          ? "bg-amber-50 border-amber-300 text-amber-950 font-medium"
+                          : "bg-emerald-50 border-emerald-200 text-emerald-900"
+                      }`}
+                    >
+                      <strong>État de santé commerciale :</strong>{" "}
+                      {aiData?.summary ?? defaultSummary}
+                    </div>
+                    <div className="flex items-center justify-between text-xs pt-2 border-t text-muted-foreground">
+                      <span>Conformité OTR & Déclarations</span>
+                      <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> TVA 18% & SYSCOHADA synchronisés
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             <Card>
               <CardHeader>
@@ -557,37 +587,57 @@ export default function WorkspaceBIPage() {
         <TabsContent value="profitability" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-3">
             {/* Point Mort */}
-            <Card className="md:col-span-1">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold">Point Mort & Coûts Fixes</CardTitle>
-                <CardDescription>Seuil de rentabilité d&apos;exploitation</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 text-xs">
-                <div className="p-3 bg-muted/40 rounded-lg space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Coûts fixes estimés :</span>
-                    <span className="font-mono font-semibold">
-                      {formatCFA(profitabilityData?.breakEvenAnalysis?.estimatedFixedCosts)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Taux marge contributive :</span>
-                    <span className="font-mono font-semibold">
-                      {profitabilityData?.breakEvenAnalysis?.contributionMarginPercent ?? 0}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-t pt-2 text-foreground font-bold">
-                    <span>Seuil de rentabilité :</span>
-                    <span className="font-mono text-emerald-700">
-                      {formatCFA(profitabilityData?.breakEvenAnalysis?.breakEvenPoint)}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-[11px] text-muted-foreground leading-normal">
-                  Dès que votre CA dépasse ce montant, votre entreprise génère du bénéfice net.
-                </p>
-              </CardContent>
-            </Card>
+            {(() => {
+              const marginPct = profitabilityData?.breakEvenAnalysis?.contributionMarginPercent ?? 0;
+              const breakEven = profitabilityData?.breakEvenAnalysis?.breakEvenPoint;
+              const isAchievable = marginPct > 0 && breakEven !== null && breakEven !== undefined;
+
+              return (
+                <Card className="md:col-span-1">
+                  <CardHeader>
+                    <CardTitle className="text-base font-semibold">Point Mort & Coûts Fixes</CardTitle>
+                    <CardDescription>Seuil de rentabilité d&apos;exploitation</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 text-xs">
+                    <div className="p-3 bg-muted/40 rounded-lg space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Coûts fixes estimés :</span>
+                        <span className="font-mono font-semibold">
+                          {formatCFA(profitabilityData?.breakEvenAnalysis?.estimatedFixedCosts)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Taux marge contributive :</span>
+                        <span className={`font-mono font-semibold ${marginPct < 0 ? "text-red-600" : ""}`}>
+                          {marginPct}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-t pt-2 text-foreground font-bold">
+                        <span>Seuil de rentabilité :</span>
+                        {isAchievable ? (
+                          <span className="font-mono text-emerald-700">
+                            {formatCFA(breakEven)}
+                          </span>
+                        ) : (
+                          <span className="font-mono text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                            Non atteignable
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {isAchievable ? (
+                      <p className="text-[11px] text-muted-foreground leading-normal">
+                        Dès que votre CA dépasse ce montant, votre entreprise couvre ses charges fixes et génère du bénéfice net.
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-red-600/90 leading-normal font-medium">
+                        Marge contributive négative ({marginPct}%) : chaque vente génère une perte avant couverture des coûts fixes. Seuil non atteignable sans redressement des marges.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             {/* Marges par produit — BarChart */}
             <Card className="md:col-span-2">
@@ -635,13 +685,13 @@ export default function WorkspaceBIPage() {
                     <p className="text-2xl font-bold font-mono text-foreground mt-1">
                       {formatCFA(
                         forecastData?.caForecast?.projections?.reduce(
-                          (acc: number, p: any) => acc + (p.projectedCA ?? 0),
+                          (acc: number, p: any) => acc + (p.projectedCA ?? p.value ?? 0),
                           0
                         )
                       )}
                     </p>
                     <p className="text-[11px] text-emerald-700 mt-1">
-                      Précision MAPE : {forecastData?.caForecast?.mape ?? 4.8}%
+                      Précision MAPE : {forecastData?.caForecast?.mape ?? 5.0}%
                     </p>
                   </div>
                   <div className="p-4 rounded-xl border bg-muted/20">
@@ -650,7 +700,9 @@ export default function WorkspaceBIPage() {
                     </p>
                     <p className="text-2xl font-bold font-mono text-emerald-700 mt-1">
                       {formatCFA(
-                        forecastData?.treasuryForecast?.projections?.slice(-1)[0]?.projectedBalance ?? 0
+                        forecastData?.treasuryForecast?.projections?.slice(-1)[0]?.projectedBalance ??
+                          forecastData?.treasuryForecast?.projections?.slice(-1)[0]?.value ??
+                          0
                       )}
                     </p>
                     <p className="text-[11px] text-muted-foreground mt-1">
@@ -793,7 +845,7 @@ export default function WorkspaceBIPage() {
               <CardContent className="space-y-3 text-xs">
                 {[
                   {
-                    zone: "Grand Lomé / Région Maritime",
+                    zone: "Région Maritime (incluant Grand Lomé)",
                     badge: "Pôle Principal",
                     desc: "Forte concentration de la demande. Optimisez les tournées de livraison directe.",
                   },

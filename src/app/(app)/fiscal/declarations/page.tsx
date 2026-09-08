@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   FileText, CheckCircle2, Clock, AlertCircle, RefreshCw,
-  Receipt, Building, Users, ExternalLink, Home, Car, DollarSign, Calculator
+  Receipt, Building, Users, ExternalLink, Home, Car, DollarSign, Calculator,
+  ShieldCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatAmount } from "@/lib/utils";
@@ -296,6 +297,32 @@ export default function DeclarationsPage() {
             <RefreshCw className={cn("h-4 w-4 mr-1.5", loading && "animate-spin")} />
             Actualiser
           </Button>
+        </div>
+      </div>
+
+      {/* Bannière Revue Fiscale & Auto-Évaluation CSP */}
+      <div className="relative overflow-hidden rounded-xl border border-indigo-200/50 bg-gradient-to-r from-indigo-950 via-slate-900 to-blue-950 p-5 text-white shadow-md">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-semibold text-emerald-400 border border-emerald-500/30">
+                <ShieldCheck className="h-3.5 w-3.5" /> Contrôle Préventif OTR
+              </span>
+              <span className="text-xs text-slate-300">SYSCOHADA & CGI Togo</span>
+            </div>
+            <h3 className="text-base font-bold text-white tracking-tight">
+              Revue Fiscale & CSP d&apos;Auto-Évaluation des États Financiers
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Effectuez un audit préventif en 7 piliers avant le dépôt officiel de votre DSF (Liasse OTR). 
+              Joignez vos annexes justificatives (Grand Livre, Balance, Relevés, Quittances) et générez votre certificat CSP certifié SHA-256.
+            </p>
+          </div>
+          <Link href={"/fiscal/revue-csp" as any}>
+            <Button className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold text-xs shadow-md shrink-0 gap-1.5">
+              <ShieldCheck className="h-4 w-4" /> Lancer l&apos;Auto-Évaluation CSP
+            </Button>
+          </Link>
         </div>
       </div>
 

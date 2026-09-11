@@ -110,10 +110,10 @@ export default function IsPage() {
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Building className="h-5 w-5 text-primary" /> Impôt sur les Sociétés (IS 27%) &amp; IMF
+              <Building className="h-5 w-5 text-primary" /> Impôt sur les Sociétés (IS 27%) &amp; MFP
             </h2>
             <Badge variant="outline" className="border-primary/40 text-primary text-xs">
-              CGI Togo art. 113 &amp; 120 — Règle Max(IS, IMF)
+              CGI Togo art. 113 &amp; 120 — Règle Max(IS, MFP)
             </Badge>
             {hasApiData && (
               <Badge className="bg-emerald-600 text-white text-xs gap-1 hover:bg-emerald-600">
@@ -165,7 +165,7 @@ export default function IsPage() {
       {/* Tabs */}
       <div className="flex border-b space-x-6">
         {([
-          { key: "simulation", label: "Simulateur IS / IMF" },
+          { key: "simulation", label: "Simulateur IS / MFP" },
           { key: "acomptes", label: "Calendrier des acomptes" },
         ] as { key: TabType; label: string }[]).map(({ key, label }) => (
           <button
@@ -238,8 +238,8 @@ export default function IsPage() {
               <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800 space-y-1">
                 <p className="font-semibold flex items-center gap-1"><Info className="h-3.5 w-3.5" /> Règles CGI Togo appliquées</p>
                 <p>• IS = Résultat fiscal × <strong>27%</strong></p>
-                <p>• IMF = 1% du CA HT avec plancher de <strong>20 000 FCFA</strong> (art. 120)</p>
-                <p>• Impôt dû = <strong>Max(IS, IMF)</strong></p>
+                <p>• MFP = 1% du CA HT avec plancher de <strong>20 000 FCFA</strong> (art. 120)</p>
+                <p>• Impôt dû = <strong>Max(IS, MFP)</strong></p>
                 <p>• Résultat fiscal = Résultat comptable + Réintégrations − Déductions</p>
               </div>
             </CardContent>
@@ -299,7 +299,7 @@ export default function IsPage() {
               <Card className={result.impotRetenu === "MFP" ? "border-amber-400 bg-amber-50" : ""}>
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-center">
-                    <CardDescription className="text-xs font-semibold uppercase">IMF (Min. Forfaitaire 1%)</CardDescription>
+                    <CardDescription className="text-xs font-semibold uppercase">MFP (Min. Forfaitaire 1%)</CardDescription>
                     {result.impotRetenu === "MFP" && <Badge variant="outline" className="border-amber-500 text-amber-700 text-xs">Retenu</Badge>}
                   </div>
                   <CardTitle className="text-xl font-mono text-amber-700">{formatAmount(result.mfpTheorique)} FCFA</CardTitle>
@@ -313,14 +313,14 @@ export default function IsPage() {
             <Card className="border-2 border-primary">
               <CardHeader className="pb-2">
                 <CardDescription className="text-xs font-semibold uppercase text-primary">
-                  Impôt Dû Définitif — Max(IS, IMF)
+                  Impôt Dû Définitif — Max(IS, MFP)
                 </CardDescription>
                 <CardTitle className="text-2xl font-mono text-green-700">
                   {formatAmount(result.impotExigible)} FCFA
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-xs text-muted-foreground">
-                Retenu : <strong>{result.impotRetenu === "IS" ? "IS 27%" : "IMF 1% du CA (plancher)"}</strong>
+                Retenu : <strong>{result.impotRetenu === "IS" ? "IS 27%" : "MFP 1% du CA (plancher)"}</strong>
                 {" — "}exigible à l&apos;OTR — À déposer avant le 30 avril {Number(exercice) + 1}
               </CardContent>
             </Card>
@@ -344,14 +344,14 @@ export default function IsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow><TableCell className="font-medium">Chiffre d&apos;affaires HT</TableCell><TableCell className="text-right font-mono">{formatAmount(ca)}</TableCell><TableCell className="text-xs text-muted-foreground">Base IMF art. 120</TableCell></TableRow>
+                  <TableRow><TableCell className="font-medium">Chiffre d&apos;affaires HT</TableCell><TableCell className="text-right font-mono">{formatAmount(ca)}</TableCell><TableCell className="text-xs text-muted-foreground">Base MFP art. 120</TableCell></TableRow>
                   <TableRow><TableCell className="font-medium">Total Produits (Classe 7)</TableCell><TableCell className="text-right font-mono">{formatAmount(produits)}</TableCell><TableCell className="text-xs text-muted-foreground">SYSCOHADA</TableCell></TableRow>
                   <TableRow><TableCell className="font-medium">Total Charges (Classe 6)</TableCell><TableCell className="text-right font-mono">{formatAmount(charges)}</TableCell><TableCell className="text-xs text-muted-foreground">SYSCOHADA</TableCell></TableRow>
                   <TableRow><TableCell className="font-medium">Résultat comptable</TableCell><TableCell className={cn("text-right font-mono", result.resultatComptable < 0 ? "text-red-600" : "")}>{result.resultatComptable >= 0 ? formatAmount(result.resultatComptable) : `−${formatAmount(Math.abs(result.resultatComptable))}`}</TableCell><TableCell className="text-xs text-muted-foreground">Produits − Charges</TableCell></TableRow>
                   <TableRow className="bg-muted/20"><TableCell className="font-semibold">Résultat fiscal imposable</TableCell><TableCell className="text-right font-mono font-semibold">{formatAmount(result.resultatFiscal)}</TableCell><TableCell className="text-xs text-muted-foreground">Art. 113 CGI</TableCell></TableRow>
                   <TableRow><TableCell>IS théorique (27%)</TableCell><TableCell className="text-right font-mono">{formatAmount(result.isTheorique)}</TableCell><TableCell className="text-xs text-muted-foreground">Art. 113 — 27%</TableCell></TableRow>
-                  <TableRow><TableCell>IMF théorique (1% du CA)</TableCell><TableCell className="text-right font-mono">{formatAmount(result.mfpTheorique)}</TableCell><TableCell className="text-xs text-muted-foreground">Art. 120 — 1% plancher 20 000</TableCell></TableRow>
-                  <TableRow className="bg-primary/10 font-bold"><TableCell>Impôt dû définitif ({result.impotRetenu})</TableCell><TableCell className="text-right font-mono text-green-700">{formatAmount(result.impotExigible)}</TableCell><TableCell className="text-xs text-primary">Max(IS, IMF)</TableCell></TableRow>
+                  <TableRow><TableCell>MFP théorique (1% du CA)</TableCell><TableCell className="text-right font-mono">{formatAmount(result.mfpTheorique)}</TableCell><TableCell className="text-xs text-muted-foreground">Art. 120 — 1% plancher 20 000</TableCell></TableRow>
+                  <TableRow className="bg-primary/10 font-bold"><TableCell>Impôt dû définitif ({result.impotRetenu})</TableCell><TableCell className="text-right font-mono text-green-700">{formatAmount(result.impotExigible)}</TableCell><TableCell className="text-xs text-primary">Max(IS, MFP)</TableCell></TableRow>
                 </TableBody>
               </Table>
             </CardContent>

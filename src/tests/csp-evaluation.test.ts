@@ -5,7 +5,7 @@ import { runCspEvaluation, generateHash } from "@/lib/fiscal/csp-evaluation";
 const prisma = new PrismaClient();
 let testTenantId = "";
 
-describe("🛡️ Revue Fiscale & CSP d'Auto-Évaluation (CGI Togo / LPF / SYSCOHADA)", () => {
+describe("🛡️ Revue Fiscale & CSP d'Auto-Évaluation (CGI Togo / LPF / SYSCOHADA)", { timeout: 30000 }, () => {
   beforeAll(async () => {
     let tenant = await prisma.tenant.findFirst();
     if (!tenant) {

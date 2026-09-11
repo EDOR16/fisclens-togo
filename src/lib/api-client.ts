@@ -75,7 +75,8 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     body = null;
   }
 
-  if (!response.ok) {
+  // 207 Multi-Status = succès partiel (ex: batch import avec erreurs isolées), ne pas lever d'exception
+  if (!response.ok && response.status !== 207) {
     const message = (body && (body.message || body.error)) || "HTTP " + response.status;
     throw new ApiException(message, response.status, body ? body.code : undefined);
   }

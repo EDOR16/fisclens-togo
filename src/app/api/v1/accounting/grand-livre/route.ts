@@ -7,11 +7,20 @@ import { prisma } from "@/lib/server/prisma";
 export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   const url = new URL(req.url);
   const accountCode = url.searchParams.get("accountCode");
+  const exercice = url.searchParams.get("exercice");
+  const includeBrouillons = url.searchParams.get("brouillon") === "true";
+
+  const statusFilter = includeBrouillons ? {} : { status: { in: ["VALIDE", "CLOTURE"] } };
+  const dateFilter = exercice ? { date: { startsWith: exercice } } : {};
 
   // Récupérer la liste des comptes mouvementés
   const distinctAccounts = await prisma.ecritureLine.findMany({
     where: {
-      ecriture: { tenantId },
+      ecriture: {
+        tenantId,
+        ...statusFilter,
+        ...dateFilter,
+      },
     },
     select: {
       accountCode: true,
@@ -28,7 +37,11 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   const lines = await prisma.ecritureLine.findMany({
     where: {
       accountCode: selectedAccount,
-      ecriture: { tenantId },
+      ecriture: {
+        tenantId,
+        ...statusFilter,
+        ...dateFilter,
+      },
     },
     include: {
       ecriture: true,

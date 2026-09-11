@@ -122,24 +122,35 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   }
 
   // === COMPTE DE RÉSULTAT ===
+  // Charges d'exploitation : classe 6 hors frais financiers (67).
+  // 66 (personnel) et 68 (dotations "d'exploitation" — libellé explicite dans
+  // SYSCOHADA_OFFICIAL_ACCOUNTS : "Dotations aux amortissements d'exploitation")
+  // restent en exploitation, pas en financier ni en HAO.
   const chExplLines = accounts
-    .filter((a) => a.classe === 6 && !a.code.startsWith("66") && !a.code.startsWith("67") && !a.code.startsWith("68") && a.solde > 0)
+    .filter((a) => a.classe === 6 && !a.code.startsWith("67") && a.solde > 0)
     .map((a) => toLine(a, a.solde));
   const chFinLines = accounts
-    .filter((a) => a.classe === 6 && a.code.startsWith("66") && a.solde > 0)
+    .filter((a) => a.classe === 6 && a.code.startsWith("67") && a.solde > 0)
     .map((a) => toLine(a, a.solde));
+  // Charges HAO réelles : classe 8 (81 valeurs comptables cessions, 83 charges HAO,
+  // 85 dotations HAO) — comptes réellement seedés dans SYSCOHADA_OFFICIAL_ACCOUNTS,
+  // jamais pris en compte auparavant alors qu'ils existent dans le plan comptable.
   const chExcLines = accounts
-    .filter((a) => a.classe === 6 && (a.code.startsWith("67") || a.code.startsWith("68")) && a.solde > 0)
+    .filter((a) => a.classe === 8 && (a.code.startsWith("81") || a.code.startsWith("83") || a.code.startsWith("85")) && a.solde > 0)
     .map((a) => toLine(a, a.solde));
 
+  // Produits d'exploitation : classe 7 hors produits financiers réels (75x, ex
+  // "751100 Produits financiers et intérêts reçus" dans SYSCOHADA_OFFICIAL_ACCOUNTS).
+  // Le préfixe "76" cherché auparavant ne correspond à aucun compte du plan réel.
   const prExplLines = accounts
-    .filter((a) => a.classe === 7 && !a.code.startsWith("76") && !a.code.startsWith("77") && !a.code.startsWith("78") && !a.code.startsWith("79") && a.solde < 0)
+    .filter((a) => a.classe === 7 && !a.code.startsWith("75") && a.solde < 0)
     .map((a) => toLine(a));
   const prFinLines = accounts
-    .filter((a) => a.classe === 7 && a.code.startsWith("76") && a.solde < 0)
+    .filter((a) => a.classe === 7 && a.code.startsWith("75") && a.solde < 0)
     .map((a) => toLine(a));
+  // Produits HAO réels : classe 8 (82 produits de cessions, 84 produits HAO).
   const prExcLines = accounts
-    .filter((a) => a.classe === 7 && (a.code.startsWith("77") || a.code.startsWith("78") || a.code.startsWith("79")) && a.solde < 0)
+    .filter((a) => a.classe === 8 && (a.code.startsWith("82") || a.code.startsWith("84")) && a.solde < 0)
     .map((a) => toLine(a));
 
   const totalChExpl = chExplLines.reduce((s, l) => s + l.montantNet, 0);
@@ -158,7 +169,12 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   const immoLines: FinancialLine[] = accounts
     .filter((a) => a.classe === 2 && !a.code.startsWith("28") && a.solde > 0)
     .map((a) => {
-      const amortCode = "28" + a.code.slice(2);
+      // Dérivation vérifiée contre les vrais comptes seedés (SYSCOHADA_OFFICIAL_ACCOUNTS) :
+      // 213000 (Bâtiments) -> 281300, 218000 (Matériel transport) -> 281800,
+      // 241000 (Matériel bureau) -> 284100. L'ancienne version ("28"+code.slice(2))
+      // perdait le chiffre distinctif en position 1 et faisait collisionner
+      // 211000 (Terrains) et 241000 (Matériel de bureau) sur le même "281000".
+      const amortCode = "28" + a.code.slice(1, 3) + a.code.slice(4);
       const amort = accountsMap.get(amortCode);
       const amortM = amort ? Math.abs(amort.solde) : 0;
       return { code: a.code, libelle: a.libelle, montantBrut: a.solde, amortissement: amortM, montantNet: a.solde - amortM };

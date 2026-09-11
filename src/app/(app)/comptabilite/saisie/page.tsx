@@ -231,61 +231,105 @@ function SaisieContent() {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const downloadFullMonthTestFile = async () => {
+    try {
+      const {
+        TEST_ECRITURES_1MOIS,
+        TEST_VENTES_BI_1MOIS,
+        TEST_ACHATS_BI_1MOIS,
+        TEST_PRODUITS_1MOIS,
+        TEST_CLIENTS_1MOIS,
+        FICHE_SOCIETE,
+      } = await import("@/lib/fiscal/test-dataset");
+
+      const wb = XLSX.utils.book_new();
+
+      // Onglet 1 : Ecritures Comptables (Lu par défaut par le module d'import FiscLens)
+      const wsEcritures = XLSX.utils.json_to_sheet(TEST_ECRITURES_1MOIS);
+      XLSX.utils.book_append_sheet(wb, wsEcritures, "Ecritures_Comptables");
+
+      // Onglet 2 : Ventes détaillées (Workspace BI)
+      const wsVentes = XLSX.utils.json_to_sheet(TEST_VENTES_BI_1MOIS);
+      XLSX.utils.book_append_sheet(wb, wsVentes, "Ventes");
+
+      // Onglet 3 : Achats détaillés (Workspace BI)
+      const wsAchats = XLSX.utils.json_to_sheet(TEST_ACHATS_BI_1MOIS);
+      XLSX.utils.book_append_sheet(wb, wsAchats, "Achats");
+
+      // Onglet 4 : Catalogue Produits (Workspace BI)
+      const wsProduits = XLSX.utils.json_to_sheet(TEST_PRODUITS_1MOIS);
+      XLSX.utils.book_append_sheet(wb, wsProduits, "Catalogue_Produits");
+
+      // Onglet 5 : Répertoire Clients (5 Régions Togo)
+      const wsClients = XLSX.utils.json_to_sheet(TEST_CLIENTS_1MOIS);
+      XLSX.utils.book_append_sheet(wb, wsClients, "Repertoire_Clients");
+
+      // Onglet 6 : Fiche Société & Données Fiscales
+      const wsFiche = XLSX.utils.json_to_sheet(FICHE_SOCIETE);
+      XLSX.utils.book_append_sheet(wb, wsFiche, "Fiche_Entreprise_Togo");
+
+      XLSX.writeFile(wb, "FiscLens_Test_AFRIQ_TECH_1Mois.xlsx");
+      toast.success("Jeu d'essai complet 1 Mois (AFRIQ-TECH DISTRIB SARL) téléchargé en .xlsx !");
+    } catch (err: any) {
+      toast.error("Erreur lors de la génération du fichier Excel : " + err.message);
+    }
+  };
+
   const downloadExcelTemplate = () => {
     const templateData = [
       {
         Journal: "ACHATS",
-        Date: "2026-08-30",
-        Piece: "FAC-001",
+        Date: "2026-08-02",
+        Piece: "FAC-ACH-2026-0802",
         Compte: "601100",
-        Libelle: "Achat de marchandises",
-        Debit: 500000,
+        Libelle: "Achat stock matériel info HP & Dell",
+        Debit: 3525000,
         Credit: 0,
       },
       {
         Journal: "ACHATS",
-        Date: "2026-08-30",
-        Piece: "FAC-001",
+        Date: "2026-08-02",
+        Piece: "FAC-ACH-2026-0802",
         Compte: "445200",
-        Libelle: "TVA déductible sur achats (18%)",
-        Debit: 90000,
+        Libelle: "État Togo - TVA déductible s/achats 18%",
+        Debit: 634500,
         Credit: 0,
       },
       {
         Journal: "ACHATS",
-        Date: "2026-08-30",
-        Piece: "FAC-001",
+        Date: "2026-08-02",
+        Piece: "FAC-ACH-2026-0802",
         Compte: "401100",
-        Libelle: "Fournisseur ETS TOGO",
+        Libelle: "Fournisseur Comptoir Général Info Lomé",
         Debit: 0,
-        Credit: 590000,
+        Credit: 4159500,
       },
       {
         Journal: "VENTES",
-        Date: "2026-08-30",
-        Piece: "FAC-V01",
+        Date: "2026-08-04",
+        Piece: "FAC-VTE-2026-0801",
         Compte: "411100",
-        Libelle: "Client Société Lomé",
-        Debit: 1180000,
+        Libelle: "Client SOGEA SATOM Togo SA (Maritime)",
+        Debit: 3304000,
         Credit: 0,
       },
       {
         Journal: "VENTES",
-        Date: "2026-08-30",
-        Piece: "FAC-V01",
+        Date: "2026-08-04",
+        Piece: "FAC-VTE-2026-0801",
         Compte: "701100",
-        Libelle: "Vente de marchandises",
+        Libelle: "Vente portables HP & Dell HT",
         Debit: 0,
-        Credit: 1000000,
+        Credit: 2800000,
       },
       {
         Journal: "VENTES",
-        Date: "2026-08-30",
-        Piece: "FAC-V01",
+        Date: "2026-08-04",
+        Piece: "FAC-VTE-2026-0801",
         Compte: "443100",
-        Libelle: "TVA facturée sur ventes (18%)",
+        Libelle: "État Togo - TVA facturée s/ventes 18%",
         Debit: 0,
-        Credit: 180000,
+        Credit: 504000,
       },
     ];
 
@@ -293,7 +337,7 @@ function SaisieContent() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Ecritures");
     XLSX.writeFile(wb, "modele_import_ecritures_syscohada.xlsx");
-    toast.success("Modèle Excel téléchargé !");
+    toast.success("Modèle Excel vierge téléchargé !");
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -397,7 +441,14 @@ function SaisieContent() {
         })),
       });
 
-      toast.success(`${res.count || excelEntries.length} écritures importées avec succès !`);
+      if (res.failed && res.failed.length > 0) {
+        // Succès partiel (207)
+        toast.warning(
+          `${res.count} écriture(s) importée(s), ${res.failed.length} en erreur : ${res.failed.map((f: any) => f.piece).join(", ")}`
+        );
+      } else {
+        toast.success(`${res.count || excelEntries.length} écritures importées avec succès !`);
+      }
       setExcelEntries([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err: any) {
@@ -406,6 +457,7 @@ function SaisieContent() {
       setIsImporting(false);
     }
   };
+
 
   const handleOcrTransfer = (data: {
     journal: string;
@@ -695,17 +747,28 @@ function SaisieContent() {
       {activeTab === "EXCEL" && (
         <div className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-3">
               <div>
                 <CardTitle className="text-base">Importer un classeur Excel ou CSV</CardTitle>
                 <CardDescription>
-                  Importez plusieurs écritures et pièces en une seule opération.
+                  Importez plusieurs écritures en une seule fois ou téléchargez notre jeu d&apos;essai 1 mois complet (AFRIQ-TECH SARL).
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={downloadExcelTemplate}>
-                <Download className="h-4 w-4 mr-1" />
-                Télécharger le modèle Excel (.xlsx)
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={downloadFullMonthTestFile}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm flex items-center gap-1.5"
+                >
+                  <Download className="h-4 w-4" />
+                  Télécharger Jeu d&apos;Essai 1 Mois (.xlsx)
+                </Button>
+                <Button variant="outline" size="sm" onClick={downloadExcelTemplate} className="flex items-center gap-1">
+                  <Download className="h-4 w-4" />
+                  Modèle Vierge (.xlsx)
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-muted/10 transition-colors">

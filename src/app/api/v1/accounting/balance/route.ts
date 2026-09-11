@@ -43,11 +43,17 @@ const DEFAULT_ACCOUNT_LABELS: Record<string, string> = {
 };
 
 export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
-  // Récupérer toutes les lignes d'écritures du tenant
+  const { searchParams } = new URL(req.url);
+  const exercice = searchParams.get("exercice"); // Ex: "2026"
+  const includeBrouillons = searchParams.get("brouillon") === "true";
+
+  // Récupérer les lignes d'écritures du tenant (par défaut VALIDE ou CLOTURE)
   const lines = await prisma.ecritureLine.findMany({
     where: {
       ecriture: {
         tenantId,
+        ...(includeBrouillons ? {} : { status: { in: ["VALIDE", "CLOTURE"] } }),
+        ...(exercice ? { date: { startsWith: exercice } } : {}),
       },
     },
     select: {

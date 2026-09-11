@@ -9,6 +9,11 @@
 
 import { prisma } from "@/lib/server/prisma";
 import crypto from "crypto";
+import {
+  runFullAnomalyDetection,
+  RawEcritureForAudit,
+  RawSaleForAudit,
+} from "@/lib/controle/anomaly-rules";
 
 export interface CspCheckItem {
   id: string;
@@ -74,7 +79,12 @@ export async function runCspEvaluation(
     throw new Error("Dossier fiscal (tenant) introuvable");
   }
 
-  // 1. Récupération des lignes comptables
+  // 1. Récupération des lignes et écritures comptables
+  const ecritures = await prisma.ecriture.findMany({
+    where: { tenantId },
+    include: { lines: true },
+  });
+
   const lines = await prisma.ecritureLine.findMany({
     where: { ecriture: { tenantId } },
     include: { ecriture: true },
@@ -83,6 +93,20 @@ export async function runCspEvaluation(
   const sales = await prisma.sale.findMany({
     where: { tenantId },
     include: { client: true, product: true },
+  });
+
+  // Audit d'anomalies en temps réel et vérification des anomalies bloquantes persistées
+  const auditResult = runFullAnomalyDetection(
+    ecritures as RawEcritureForAudit[],
+    sales as RawSaleForAudit[]
+  );
+
+  const persistedBloquantes = await prisma.anomalieDetectee.count({
+    where: {
+      tenantId,
+      statut: "A_EXAMINER",
+      severite: "BLOQUANT",
+    },
   });
 
   // Agrégats comptables par compte
@@ -127,8 +151,8 @@ export async function runCspEvaluation(
     titre: "Équilibre strict Débit = Crédit sur la Balance",
     description: "Vérifie le principe de la partie double SYSCOHADA sur l'ensemble du journal.",
     statut: isBalanceEquilibree ? "CONFORME" : "NON_CONFORME",
-    scoreObtenu: isBalanceEquilibree ? 8 : 0,
-    scoreMax: 8,
+    scoreObtenu: isBalanceEquilibree ? 6 : 0,
+    scoreMax: 6,
     impactFcfa: ecartBalance > 0 ? ecartBalance : undefined,
     recommandation: isBalanceEquilibree
       ? "L'équilibre strict de la partie double est parfaitement vérifié."
@@ -142,8 +166,8 @@ export async function runCspEvaluation(
     titre: "Exhaustivité des enregistrements comptables",
     description: "Les journaux auxiliaires (Achats, Ventes, Banque, Caisse) doivent être alimentés de manière continue.",
     statut: hasData ? "CONFORME" : "ATTENTION",
-    scoreObtenu: hasData ? 6 : 2,
-    scoreMax: 6,
+    scoreObtenu: hasData ? 4 : 1,
+    scoreMax: 4,
     recommandation: hasData
       ? "Le journal contient des écritures traçables."
       : "Aucune écriture comptable enregistrée pour cet exercice. Importez vos pièces ou le classeur unifié.",
@@ -156,12 +180,27 @@ export async function runCspEvaluation(
     titre: "Absence de caisse rouge (Solde compte 571)",
     description: "Un solde de caisse créditeur est une anomalie grave assimilée par l'OTR à une dissimulation de recettes.",
     statut: isCaissePositif ? "CONFORME" : "NON_CONFORME",
-    scoreObtenu: isCaissePositif ? 6 : 0,
-    scoreMax: 6,
+    scoreObtenu: isCaissePositif ? 5 : 0,
+    scoreMax: 5,
     impactFcfa: !isCaissePositif ? Math.abs(soldeCaisse571) : undefined,
     recommandation: isCaissePositif
       ? "Le compte de caisse présente un solde régulier positif ou nul."
       : `Alerte OTR critique : Solde de caisse négatif (${soldeCaisse571.toLocaleString("fr-FR")} FCFA). Régulariser les encaissements.`,
+  });
+
+  const hasBloquantesCompta = auditResult.bloquantes > 0 || persistedBloquantes > 0;
+  p1Controles.push({
+    id: "ctrl-1-4",
+    codeRef: "LPF art. 202-338 & SYSCOHADA",
+    titre: "Absence d'anomalies bloquantes sur les écritures",
+    description: "Vérifie l'absence de déséquilibre d'écriture, comptes hors mapping ou doublons de pièces.",
+    statut: !hasBloquantesCompta ? "CONFORME" : "NON_CONFORME",
+    scoreObtenu: !hasBloquantesCompta ? 5 : 0,
+    scoreMax: 5,
+    impactFcfa: auditResult.anomalies.reduce((s, a) => s + (a.montantImpact || 0), 0) || undefined,
+    recommandation: !hasBloquantesCompta
+      ? "Aucune anomalie bloquante active sur le journal des écritures."
+      : `${auditResult.bloquantes} anomalie(s) bloquante(s) active(s) détectée(s). Régularisation impérative avant dépôt DSF.`,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -366,9 +405,25 @@ export async function runCspEvaluation(
     titre: "Structure complète de la Déclaration Statistique et Fiscale (DSF)",
     description: "Bilan, Compte de résultat, Tableau des flux de trésorerie (TFT) et Notes annexes obligatoires conformes au modèle OTR.",
     statut: "CONFORME",
-    scoreObtenu: 5,
-    scoreMax: 5,
+    scoreObtenu: 3,
+    scoreMax: 3,
     recommandation: "Format conforme aux exigences de télétransmission de la Direction Générale de l'OTR.",
+  });
+
+  const hasFactureDoublons = auditResult.anomalies.some(
+    (a) => a.type === "FACTURE_NUMERO_DUPLIQUE"
+  );
+  p7Controles.push({
+    id: "ctrl-7-2",
+    codeRef: "LPF Togo art. 124",
+    titre: "Intégrité des pièces et absence de facturation irrégulière",
+    description: "Vérifie l'absence de doublons de numéros de facture et le respect de la chronologie des pièces justificatives.",
+    statut: !hasFactureDoublons ? "CONFORME" : "NON_CONFORME",
+    scoreObtenu: !hasFactureDoublons ? 2 : 0,
+    scoreMax: 2,
+    recommandation: !hasFactureDoublons
+      ? "Aucun doublon de facture ni pièce irrégulière détecté."
+      : "Doublon de facture détecté : risque de rejet de déductibilité et pénalités pour facturation irrégulière (art. 124 LPF).",
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -399,10 +454,21 @@ export async function runCspEvaluation(
 
   const totalObtenu = piliers.reduce((s, p) => s + p.score, 0);
   const totalMax = piliers.reduce((s, p) => s + p.scoreMax, 0);
-  const scoreGlobal = totalMax > 0 ? Math.round((totalObtenu / totalMax) * 100) : 100;
+  let scoreGlobal = totalMax > 0 ? Math.round((totalObtenu / totalMax) * 100) : 100;
+
+  // Si des anomalies bloquantes actives existent, plafonner le score et interdire formellement le Grade A
+  const totalBloquantes = auditResult.bloquantes + persistedBloquantes;
+  if (totalBloquantes > 0) {
+    const plafond = totalBloquantes >= 2 ? 45 : 65;
+    scoreGlobal = Math.min(scoreGlobal, plafond);
+  }
 
   const grade: "A" | "B" | "C" =
-    scoreGlobal >= 85 ? "A" : scoreGlobal >= 60 ? "B" : "C";
+    scoreGlobal >= 85 && totalBloquantes === 0
+      ? "A"
+      : scoreGlobal >= 60
+      ? "B"
+      : "C";
 
   const statutGlobal: "CONFORME" | "A_REGULARISER" | "CRITIQUE" =
     grade === "A" ? "CONFORME" : grade === "B" ? "A_REGULARISER" : "CRITIQUE";
@@ -411,6 +477,14 @@ export async function runCspEvaluation(
   const alertesBloquantes: string[] = [];
   const pointsForts: string[] = [];
   const recommandationsPrioritaires: string[] = [];
+
+  // Ajouter immédiatement les alertes bloquantes issues du moteur d'anomalies
+  for (const anom of auditResult.anomalies) {
+    if (anom.severite === "BLOQUANT") {
+      alertesBloquantes.push(`[ANOMALIE BLOQUANTE LPF] ${anom.description}`);
+      recommandationsPrioritaires.push(anom.description);
+    }
+  }
 
   for (const pil of piliers) {
     for (const ctrl of pil.controles) {

@@ -73,6 +73,7 @@ model Tenant {
   // Revue Fiscale & CSP Auto-Évaluation
   cspEvaluations      CspEvaluation[]
   cspAttachments      CspAttachment[]
+  anomaliesDetectees  AnomalieDetectee[]
 
   @@map("tenants")
 }
@@ -106,6 +107,7 @@ model Ecriture {
 
   tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   lines  EcritureLine[]
+  anomalies AnomalieDetectee[]
 
   @@map("ecritures")
 }
@@ -384,3 +386,53 @@ model CspAttachment {
   @@index([evaluationId])
   @@map("csp_attachments")
 }
+// ============================================================================
+// DETECTION D'ANOMALIES (Non-conformite SYSCOHADA, facturation, ecarts declaratifs)
+// ============================================================================
+
+enum SeveriteAnomalie {
+  INFO
+  AVERTISSEMENT
+  BLOQUANT
+}
+
+enum StatutAnomalie {
+  A_EXAMINER
+  IGNOREE
+  CORRIGEE
+}
+
+enum TypeAnomalie {
+  ECRITURE_DESEQUILIBREE
+  NUMEROTATION_NON_CONTINUE
+  COMPTE_HORS_MAPPING_JOURNAL
+  FACTURE_NUMERO_DUPLIQUE
+  FACTURE_TROU_SEQUENCE
+  FACTURE_NIF_MANQUANT_OU_INVALIDE
+  ECART_TVA_DECLAREE_VS_COLLECTEE
+  PARTIE_LIEE_PRIX_ANORMAL
+}
+
+model AnomalieDetectee {
+  id            String           @id @default(cuid())
+  tenantId      String
+  type          TypeAnomalie
+  severite      SeveriteAnomalie
+  description   String
+  statut        StatutAnomalie   @default(A_EXAMINER)
+  justification String?
+  ecritureId    String?
+  factureRef    String?
+  metadata      String?
+  detectedAt    DateTime         @default(now())
+  resolvedAt    DateTime?
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ecriture Ecriture? @relation(fields: [ecritureId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, statut])
+  @@index([tenantId, type])
+  @@map("anomalies_detectees")
+}
+
+

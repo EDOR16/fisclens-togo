@@ -76,14 +76,19 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   const totalIrpp = irppLines.reduce((s, l) => s + (l.credit - l.debit), 0);
 
   // 4. Sécurité sociale CNSS globale (Compte 431xxx)
-  const cnssLines = lines.filter((l) => l.accountCode.startsWith("431"));
+  const cnssLines = lines.filter((l) => l.accountCode.startsWith("431") || l.accountCode.startsWith("438"));
   const totalCnss = cnssLines.reduce((s, l) => s + (l.credit - l.debit), 0);
   // CNSS salariale estimée = Total CNSS due - CNSS patronale (ou estimation 4% sur brut)
   const totalCnssSalariale = Math.max(0, totalCnss - totalCnssPatronale) || Math.round(totalBrut * 0.04);
 
   // 5. Salaires nets versés (Compte 421xxx)
   const netLines = lines.filter((l) => l.accountCode.startsWith("421"));
-  const totalNet = netLines.reduce((s, l) => s + (l.credit - l.debit), 0) || Math.max(0, totalBrut - totalCnssSalariale - totalIrpp);
+  // Paiements réels effectués (débit du compte 421 = sorties de trésorerie vers le personnel).
+  // Ne pas utiliser (credit - debit) ni l'opérateur || : si le solde net du compte est
+  // légitimement 0 (accrual et paiement soldés sur la même période), le fallback
+  // Math.max(0, totalBrut - totalCnssSalariale - totalIrpp) écrasait ce résultat correct
+  // par une estimation potentiellement fausse en cas de paiement partiel ou différé.
+  const totalNet = netLines.reduce((s, l) => s + l.debit, 0);
 
   // Regroupement par mois pour l'historique
   const monthlyMap = new Map<string, {
@@ -116,7 +121,7 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
       existing.irpp += (l.credit - l.debit);
     }
     if (l.accountCode.startsWith("421")) {
-      existing.net += (l.credit - l.debit);
+      existing.net += l.debit;
     }
     existing.nbEcritures += 1;
     monthlyMap.set(mois, existing);

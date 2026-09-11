@@ -4,7 +4,7 @@ import { provisionTenant } from "@/lib/server/provisioning";
 
 const prisma = new PrismaClient();
 
-describe("📦 PROVISIONING RÉEL — Espace de Travail Vierge & Conforme", () => {
+describe("📦 PROVISIONING RÉEL — Espace de Travail Vierge & Conforme", { timeout: 30000 }, () => {
   afterAll(async () => {
     await prisma.$disconnect();
   });

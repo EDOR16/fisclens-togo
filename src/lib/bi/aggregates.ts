@@ -46,6 +46,115 @@ export interface ForecastMetrics {
 // KPIs Globaux
 // ---------------------------------------------------------------------------
 
+export interface CaTrendPoint {
+  moisKey: string; // "2026-08" ou "2026-08-15" selon la granularité
+  mois: string;    // "Aoû 2026" ou "15 Aoû"
+  ca: number;
+  achats: number;
+}
+
+export type TrendPeriod =
+  | { type: "last-n-days"; days: number }
+  | { type: "month"; year: number; month: number }
+  | { type: "year"; year: number }
+  | { type: "all" }
+  | { type: "custom"; from: string; to: string };
+
+const MOIS_COURTS = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
+
+function dayKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function monthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+function dayLabel(d: Date): string {
+  return `${d.getDate()} ${MOIS_COURTS[d.getMonth()]}`;
+}
+function monthLabel(d: Date): string {
+  return `${MOIS_COURTS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+export async function getCaTrend(tenantId: string, period: TrendPeriod): Promise<CaTrendPoint[]> {
+  const [sales, purchases] = await Promise.all([
+    prisma.sale.findMany({ where: { tenantId }, select: { date: true, montantHT: true } }),
+    prisma.purchase.findMany({ where: { tenantId }, select: { date: true, montantHT: true } }),
+  ]);
+
+  if (sales.length === 0 && purchases.length === 0) return [];
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let from: Date;
+  let to: Date = today;
+  let granularity: "day" | "month";
+
+  if (period.type === "last-n-days") {
+    from = new Date(today);
+    from.setDate(from.getDate() - (period.days - 1));
+    granularity = period.days <= 92 ? "day" : "month";
+  } else if (period.type === "month") {
+    from = new Date(period.year, period.month - 1, 1);
+    const lastDayOfMonth = new Date(period.year, period.month, 0);
+    to = lastDayOfMonth < today ? lastDayOfMonth : today;
+    granularity = "day";
+  } else if (period.type === "year") {
+    from = new Date(period.year, 0, 1);
+    const lastDayOfYear = new Date(period.year, 11, 31);
+    to = lastDayOfYear < today ? lastDayOfYear : today;
+    granularity = "month";
+  } else if (period.type === "custom") {
+    const [fy, fm, fd] = period.from.split("-").map(Number);
+    const [ty, tm, td] = period.to.split("-").map(Number);
+    from = new Date(fy, fm - 1, fd);
+    to = new Date(ty, tm - 1, td);
+    if (to > today) to = today;
+    const spanDays = Math.round((to.getTime() - from.getTime()) / 86400000) + 1;
+    granularity = spanDays <= 92 ? "day" : "month";
+  } else {
+    const allDates = [...sales.map((s) => s.date), ...purchases.map((p) => p.date)].sort();
+    const [fy, fm, fd] = allDates[0].split("-").map(Number);
+    from = new Date(fy, fm - 1, fd);
+    granularity = "month";
+  }
+
+  if (to < from) return [];
+
+  const caByKey = new Map<string, number>();
+  const achatsByKey = new Map<string, number>();
+  const keyOf = (dateStr: string) => (granularity === "day" ? dateStr : dateStr.substring(0, 7));
+
+  for (const s of sales) {
+    const k = keyOf(s.date);
+    caByKey.set(k, (caByKey.get(k) || 0) + s.montantHT);
+  }
+  for (const p of purchases) {
+    const k = keyOf(p.date);
+    achatsByKey.set(k, (achatsByKey.get(k) || 0) + p.montantHT);
+  }
+
+  const points: CaTrendPoint[] = [];
+  const cursor = new Date(from);
+
+  while (cursor <= to) {
+    const key = granularity === "day" ? dayKey(cursor) : monthKey(cursor);
+    points.push({
+      moisKey: key,
+      mois: granularity === "day" ? dayLabel(cursor) : monthLabel(cursor),
+      ca: caByKey.get(key) || 0,
+      achats: achatsByKey.get(key) || 0,
+    });
+    if (granularity === "day") cursor.setDate(cursor.getDate() + 1);
+    else cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return points;
+}
+
+export async function getRealCaTrend(tenantId: string): Promise<CaTrendPoint[]> {
+  return getCaTrend(tenantId, { type: "all" });
+}
+
 export async function calculateGlobalKPIs(tenantId: string): Promise<DashboardKPIs> {
   // CA HT (somme des montantHT des ventes)
   const salesAgg = await prisma.sale.aggregate({

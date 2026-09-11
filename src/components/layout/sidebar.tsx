@@ -105,7 +105,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: Receipt,
     children: [
       { label: "TVA & Précompte", href: "/fiscal/tva", icon: ChevronRight },
-      { label: "IS / IMF", href: "/fiscal/is", icon: ChevronRight },
+      { label: "IS / MFP", href: "/fiscal/is", icon: ChevronRight },
       { label: "IRPP / Paie", href: "/fiscal/irpp", icon: ChevronRight },
       { label: "Patente & TPU", href: "/fiscal/patente", icon: ChevronRight },
       { label: "Taxes Foncières", href: "/fiscal/foncier", icon: ChevronRight },

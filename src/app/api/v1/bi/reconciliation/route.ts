@@ -44,10 +44,10 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
     });
     const purchasesBITotal = purchasesData._sum.montantTTC || 0;
 
-    // Calculs depuis la comptabilité (comptes 701 et 601)
+    // Calculs depuis la comptabilité (comptes 701/701100 et 601/601100)
     const account701Lines = await prisma.ecritureLine.findMany({
       where: {
-        accountCode: "701", // Ventes
+        accountCode: { startsWith: "701" }, // Ventes
         ecriture: { tenantId },
       },
       include: { ecriture: true },
@@ -55,7 +55,7 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
 
     const account601Lines = await prisma.ecritureLine.findMany({
       where: {
-        accountCode: "601", // Achats
+        accountCode: { startsWith: "601" }, // Achats
         ecriture: { tenantId },
       },
       include: { ecriture: true },

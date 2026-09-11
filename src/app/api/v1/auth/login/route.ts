@@ -87,8 +87,21 @@ export async function POST(req: NextRequest) {
 
     // 4. Préparation contexte
     const primaryMembership = user.userTenants[0];
+
+    // Un utilisateur sans aucune adhésion à un tenant ne peut pas se connecter
+    // normalement (sauf super-admin, traité comme dans with-guard.ts).
+    if (!primaryMembership && !user.isSuperAdmin) {
+      return NextResponse.json(
+        {
+          error: "NO_TENANT_ASSIGNED",
+          message: "Ce compte n'est rattaché à aucun dossier. Contactez un administrateur.",
+        },
+        { status: 403 }
+      );
+    }
+
     const tenantId = primaryMembership ? primaryMembership.tenantId : "";
-    const role = primaryMembership ? primaryMembership.role : "GERANT";
+    const role = primaryMembership ? primaryMembership.role : "ADMIN_SYS";
 
     // 5. Gestion 2FA — si requise, vérifier le code fourni ou demander le code
     if (user.require2fa) {

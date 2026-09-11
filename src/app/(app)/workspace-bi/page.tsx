@@ -83,18 +83,6 @@ const priorityBadge = (priority: string) => {
   );
 };
 
-// ─── Génération de données de démo (chart) ────────────────────────────────────
-
-function buildMockCaTrend(ca: number) {
-  const months = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
-  const now = new Date().getMonth();
-  return months.slice(0, now + 1).map((mois, i) => ({
-    mois,
-    ca: Math.round(ca * (0.6 + 0.4 * Math.sin(i * 0.8 + 1)) * (0.9 + Math.random() * 0.2)),
-    achats: Math.round(ca * 0.4 * (0.6 + 0.4 * Math.sin(i * 0.8)) * (0.85 + Math.random() * 0.2)),
-  }));
-}
-
 // ─── Composant Principal ──────────────────────────────────────────────────────
 
 export default function WorkspaceBIPage() {
@@ -111,10 +99,36 @@ export default function WorkspaceBIPage() {
   const [salesData, setSalesData] = useState<any>(null);
   const [aiData, setAiData] = useState<any>(null);
 
+  // Sélecteur de période pour la courbe CA/Achats (données réelles uniquement)
+  const [caPeriod, setCaPeriod] = useState<string>("all");
+  const [customFrom, setCustomFrom] = useState<string>("");
+  const [customTo, setCustomTo] = useState<string>("");
+  const [trendCA, setTrendCA] = useState<any[]>([]);
+
   const [simPriceChange, setSimPriceChange] = useState(0);
   const [simVolumeChange, setSimVolumeChange] = useState(0);
 
   // ── Chargement des données ─────────────────────────────────────────────────
+  const fetchTrend = useCallback(async (period: string, from?: string, to?: string) => {
+    try {
+      const params = new URLSearchParams({ period });
+      if (period === "custom" && from && to) {
+        params.set("from", from);
+        params.set("to", to);
+      }
+      const r = await fetch(`/api/v1/bi/dashboard/trend?${params.toString()}`);
+      const json = r.ok ? await r.json() : null;
+      if (json?.data?.trendCA) setTrendCA(json.data.trendCA);
+    } catch {
+      // Silencieux : la carte affiche "Aucune donnée disponible" par défaut, jamais une valeur inventée.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (caPeriod === "custom" && (!customFrom || !customTo)) return;
+    fetchTrend(caPeriod, customFrom, customTo);
+  }, [caPeriod, customFrom, customTo, fetchTrend]);
+
   const fetchTabMetrics = useCallback(async (tab: string) => {
     setIsLoading(true);
     try {
@@ -222,9 +236,15 @@ export default function WorkspaceBIPage() {
   }
 
   // ── Données pour les charts ────────────────────────────────────────────────
-  const caTrendData = overviewData?.ca
-    ? buildMockCaTrend(overviewData.ca)
-    : [];
+  const caTrendData = trendCA;
+
+  const now = new Date();
+  const MOIS_LONGS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+  const caPeriodYears = [now.getFullYear(), now.getFullYear() - 1];
+  const caPeriodMonths = Array.from({ length: 3 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: MOIS_LONGS[d.getMonth()] };
+  });
 
   const marginChartData =
     profitabilityData?.productMargins?.map((p: any) => ({
@@ -261,45 +281,37 @@ export default function WorkspaceBIPage() {
   async function handleDownloadMasterWorkbook() {
     try {
       const XLSX = await import("xlsx");
+      const {
+        TEST_VENTES_BI_1MOIS,
+        TEST_ACHATS_BI_1MOIS,
+        TEST_PRODUITS_1MOIS,
+        TEST_CLIENTS_1MOIS,
+        TEST_ECRITURES_1MOIS,
+        FICHE_SOCIETE,
+      } = await import("@/lib/fiscal/test-dataset");
+
       const wb = XLSX.utils.book_new();
 
-      // Feuille 1: Ventes
-      const salesData = [
-        { date: "2026-08-01", refFacture: "FAC-2026-001", codeClient: "CLI-001", codeProduit: "PRD-001", quantité: 50, puHT: 85000, montantHT: 4250000, tauxTVA: 18, montantTVA: 765000, montantTTC: 5015000 },
-        { date: "2026-08-03", refFacture: "FAC-2026-002", codeClient: "CLI-002", codeProduit: "PRD-003", quantité: 100, puHT: 19500, montantHT: 1950000, tauxTVA: 18, montantTVA: 351000, montantTTC: 2301000 },
-        { date: "2026-08-05", refFacture: "FAC-2026-003", codeClient: "CLI-004", codeProduit: "PRD-002", quantité: 10, puHT: 450000, montantHT: 4500000, tauxTVA: 18, montantTVA: 810000, montantTTC: 5310000 },
-        { date: "2026-08-08", refFacture: "FAC-2026-004", codeClient: "CLI-003", codeProduit: "PRD-006", quantité: 30, puHT: 38000, montantHT: 1140000, tauxTVA: 18, montantTVA: 205200, montantTTC: 1345200 },
-        { date: "2026-08-10", refFacture: "FAC-2026-005", codeClient: "CLI-001", codeProduit: "PRD-007", quantité: 2, puHT: 680000, montantHT: 1360000, tauxTVA: 18, montantTVA: 244800, montantTTC: 1604800 },
-      ];
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesData), "Ventes");
+      // Feuille 1: Ventes (Détaillées par articles, clients, TVA 18%, régions)
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(TEST_VENTES_BI_1MOIS), "Ventes");
 
-      // Feuille 2: Achats
-      const purchasesData = [
-        { date: "2026-07-25", refCommande: "CMD-2026-001", codeFournisseur: "FOUR-CIMTOGO", codeArticle: "PRD-001", quantité: 150, puHT: 65000, montantHT: 9750000, tauxTVA: 18, montantTVA: 1755000, montantTTC: 11505000 },
-        { date: "2026-07-28", refCommande: "CMD-2026-002", codeFournisseur: "FOUR-SOTOTRAC", codeArticle: "PRD-002", quantité: 20, puHT: 350000, montantHT: 7000000, tauxTVA: 18, montantTVA: 1260000, montantTTC: 8260000 },
-        { date: "2026-08-01", refCommande: "CMD-2026-003", codeFournisseur: "FOUR-AGRO-IMPORT", codeArticle: "PRD-003", quantité: 200, puHT: 15000, montantHT: 3000000, tauxTVA: 18, montantTVA: 540000, montantTTC: 3540000 },
-      ];
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(purchasesData), "Achats");
+      // Feuille 2: Achats (Approvisionnements réels stock informatique)
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(TEST_ACHATS_BI_1MOIS), "Achats");
 
-      // Feuille 3: Produits
-      const productsData = [
-        { code: "PRD-001", désignation: "Ciment CPJ 45 (Togo)", catégorie: "Matériaux", prixVenteHT: 85000, coûtAchatHT: 65000, margeCible: 24 },
-        { code: "PRD-002", désignation: "Fer à Béton Ø12 mm", catégorie: "Matériaux", prixVenteHT: 450000, coûtAchatHT: 350000, margeCible: 22 },
-        { code: "PRD-003", désignation: "Riz Parfumé 25kg", catégorie: "Agroalimentaire", prixVenteHT: 19500, coûtAchatHT: 15000, margeCible: 23 },
-        { code: "PRD-004", désignation: "Huile Végétale 20L", catégorie: "Agroalimentaire", prixVenteHT: 24000, coûtAchatHT: 18500, margeCible: 23 },
-      ];
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(productsData), "Produits");
+      // Feuille 3: Produits (Catalogue complet avec coûts, prix de vente HT et marges)
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(TEST_PRODUITS_1MOIS), "Produits");
 
-      // Feuille 4: Clients
-      const clientsData = [
-        { code: "CLI-001", nom: "BTP Lomé Construction", segment: "Entreprise", zoneGeo: "Maritime", encours_autorisé: 15000000 },
-        { code: "CLI-002", nom: "Supermarché Le Phare", segment: "Grossiste", zoneGeo: "Maritime", encours_autorisé: 8000000 },
-        { code: "CLI-003", nom: "Quincaillerie Kpalimé Pro", segment: "Détaillant", zoneGeo: "Plateaux", encours_autorisé: 5000000 },
-      ];
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clientsData), "Clients");
+      // Feuille 4: Clients (Clients réels dans les 5 régions du Togo : Maritime, Plateaux, Centrale, Kara, Savanes)
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(TEST_CLIENTS_1MOIS), "Clients");
 
-      XLSX.writeFile(wb, "classeur_comptable_bi.xlsx");
-      toast.success("Modèle de classeur complet classeur_comptable_bi.xlsx téléchargé !");
+      // Feuille 5: Ecritures Comptables (Conformes SYSCOHADA et CGI Togo)
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(TEST_ECRITURES_1MOIS), "Ecritures_Comptables");
+
+      // Feuille 6: Fiche Entreprise & Synthèse Fiscale
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(FICHE_SOCIETE), "Fiche_Societe_AFRIQ_TECH");
+
+      XLSX.writeFile(wb, "FiscLens_Test_AFRIQ_TECH_1Mois.xlsx");
+      toast.success("Classeur Excel complet (AFRIQ-TECH DISTRIB SARL — 1 Mois) téléchargé !");
     } catch (err: any) {
       console.error("Erreur téléchargement classeur:", err);
       toast.error("Erreur lors de la génération du fichier Excel");
@@ -468,12 +480,51 @@ export default function WorkspaceBIPage() {
 
           {/* Chart CA Trend */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-emerald-600" />
-                Évolution du CA & Achats (année en cours)
-              </CardTitle>
-              <CardDescription>Tendance mensuelle — importez vos ventes pour actualiser</CardDescription>
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-emerald-600" />
+                  Évolution du CA & Achats
+                </CardTitle>
+                <CardDescription>Basé sur vos ventes et achats réels enregistrés</CardDescription>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <select
+                  value={caPeriod}
+                  onChange={(e) => setCaPeriod(e.target.value)}
+                  className="p-2 rounded-md border text-xs"
+                >
+                  <option value="7d">7 derniers jours</option>
+                  <option value="28d">28 derniers jours</option>
+                  <option value="90d">90 derniers jours</option>
+                  <option value="365d">365 derniers jours</option>
+                  <option value="all">Depuis toujours</option>
+                  {caPeriodYears.map((y) => (
+                    <option key={`year:${y}`} value={`year:${y}`}>{y}</option>
+                  ))}
+                  {caPeriodMonths.map((m) => (
+                    <option key={`month:${m.key}`} value={`month:${m.key}`}>{m.label}</option>
+                  ))}
+                  <option value="custom">Période personnalisée</option>
+                </select>
+                {caPeriod === "custom" && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={customFrom}
+                      onChange={(e) => setCustomFrom(e.target.value)}
+                      className="p-2 rounded-md border text-xs"
+                    />
+                    <span className="text-xs text-muted-foreground">→</span>
+                    <input
+                      type="date"
+                      value={customTo}
+                      onChange={(e) => setCustomTo(e.target.value)}
+                      className="p-2 rounded-md border text-xs"
+                    />
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <CaTrendChart data={caTrendData} height={240} />

@@ -34,6 +34,7 @@ import {
   Info,
   TrendingDown,
   Lightbulb,
+  Trash2,
 } from "lucide-react";
 
 // Charts
@@ -89,6 +90,7 @@ export default function WorkspaceBIPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importProgress, setImportProgress] = useState<string | null>(null);
@@ -232,6 +234,25 @@ export default function WorkspaceBIPage() {
       setImportProgress(`✗ ${msg}`);
     } finally {
       setIsImporting(false);
+    }
+  }
+
+  // ── Réinitialisation des données BI ──────────────────────────────────────
+  async function handleResetBI() {
+    if (!window.confirm("Réinitialiser toutes les données BI (ventes, achats, clients, produits) ? Cette action est irréversible.")) return;
+    setIsResetting(true);
+    try {
+      const res = await fetch("/api/v1/bi/reset", { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur réinitialisation");
+      toast.success(`Données réinitialisées — ${data.deleted.sales} ventes, ${data.deleted.clients} clients supprimés.`);
+      // Recharger les métriques (toutes à zéro)
+      await fetchTabMetrics("all");
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Erreur";
+      toast.error(msg);
+    } finally {
+      setIsResetting(false);
     }
   }
 
@@ -379,6 +400,21 @@ export default function WorkspaceBIPage() {
               <Upload className="h-3.5 w-3.5" />
             )}
             {isImporting ? "Importation en cours..." : "Importer Excel"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleResetBI}
+            disabled={isResetting || isImporting}
+            className="flex items-center gap-1.5 text-xs font-semibold border-red-300 text-red-600 hover:bg-red-50 cursor-pointer"
+            title="Supprimer toutes les données BI et repartir de zéro"
+          >
+            {isResetting ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" />
+            )}
+            {isResetting ? "Réinitialisation..." : "Réinitialiser"}
           </Button>
         </div>
       </div>

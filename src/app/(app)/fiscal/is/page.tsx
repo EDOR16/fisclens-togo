@@ -25,6 +25,8 @@ type IsApiData = {
   exercicePrecedentDisponible: boolean;
   calculation: {
     chiffreAffairesHt: number;
+    totalProduits?: number;
+    totalCharges?: number;
     resultatComptable: number;
     resultatFiscal: number;
     isTheorique: number;
@@ -66,17 +68,22 @@ export default function IsPage() {
       // Pré-remplir depuis la comptabilité
       const c = data.calculation;
       setCa(c.chiffreAffairesHt || 0);
-      // Le résultat comptable = produits - charges
-      // On ne peut reconstituer produits et charges séparément que si l'API les expose,
-      // ici on recompose approximativement depuis le résultat et le CA
-      const resultat = c.resultatComptable || 0;
-      // Récupère les vrais totaux via l'API states-financiers
-      const efRes = await fetch("/api/v1/accounting/etats-financiers");
-      if (efRes.ok) {
-        const ef = await efRes.json();
-        if (ef.compteResultat) {
-          setProduits(ef.compteResultat.totalProduits || 0);
-          setCharges(ef.compteResultat.totalCharges || 0);
+      if (c.totalProduits !== undefined && c.totalCharges !== undefined) {
+        setProduits(c.totalProduits);
+        setCharges(c.totalCharges);
+      } else {
+        // Fallback états financiers
+        try {
+          const efRes = await fetch("/api/v1/accounting/etats-financiers");
+          if (efRes.ok) {
+            const ef = await efRes.json();
+            if (ef.compteResultat) {
+              setProduits(ef.compteResultat.totalProduits || 0);
+              setCharges(ef.compteResultat.totalCharges || 0);
+            }
+          }
+        } catch {
+          // Silencieux
         }
       }
       toast.success(`Données comptables ${exercice} chargées — ${data.tenant.name}`);
@@ -276,11 +283,37 @@ export default function IsPage() {
                   <span>= Résultat fiscal imposable</span>
                   <span className={cn("font-mono", result.resultatFiscal > 0 ? "text-foreground" : "text-amber-600")}>
                     {formatAmount(result.resultatFiscal)} FCFA
-                    {result.resultatFiscal === 0 && " (Déficit — IMF s'applique)"}
+                    {result.resultatFiscal === 0 && " (Déficit — MFP s'applique)"}
                   </span>
                 </div>
               </CardContent>
             </Card>
+
+            {/* ── Bandeau pédagogique : cas déficit (IS = 0, MFP retenu) ── */}
+            {result.impotRetenu === "MFP" && result.resultatFiscal <= 0 && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 space-y-2">
+                <p className="font-semibold flex items-center gap-2">
+                  <Info className="h-4 w-4 shrink-0 text-amber-600" />
+                  Pourquoi IS = 0 FCFA alors que le CA est de {formatAmount(ca)} FCFA ?
+                </p>
+                <div className="space-y-1 text-xs leading-relaxed">
+                  <p>
+                    <strong>L&apos;IS (27%) s&apos;applique au bénéfice fiscal, pas au chiffre d&apos;affaires.</strong>{" "}
+                    Votre entreprise enregistre un <strong>déficit de {formatAmount(Math.abs(result.resultatComptable))} FCFA</strong>{" "}
+                    (charges {formatAmount(charges)} FCFA &gt; produits {formatAmount(produits)} FCFA).
+                  </p>
+                  <p>
+                    En l&apos;absence de bénéfice imposable, <strong>IS = Bénéfice × 27% = 0 × 27% = 0 FCFA</strong>{" "}
+                    (CGI Togo art. 113).
+                  </p>
+                  <p>
+                    Cependant, la loi impose un <strong>impôt minimum</strong> : le Minimum Forfaitaire de Perception (MFP),
+                    calculé sur le chiffre d&apos;affaires HT à 1% — soit <strong>{formatAmount(result.mfpTheorique)} FCFA</strong>{" "}
+                    (CGI art. 120). C&apos;est cet impôt qui est retenu et doit être versé à l&apos;OTR.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <Card className={result.impotRetenu === "IS" ? "border-primary bg-primary/5" : ""}>

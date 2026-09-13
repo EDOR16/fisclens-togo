@@ -63,7 +63,7 @@ export default function TvaPage() {
       setHasApiData(true);
       // Pré-remplir les champs avec les données comptables réelles
       const c = data.calculation;
-      setVentesTaxables(c.ventesTaxablesHt || 0);
+      setVentesTaxables(c.ventesTaxablesHt || (c.tvaCollectee ? Math.round(c.tvaCollectee / 0.18) : 0));
       setTvaImmo(c.tvaDeductibleImmo || 0);
       setTvaBiensServices(c.tvaDeductibleBiensServices || 0);
       toast.success(`Données comptables chargées pour ${data.periode} — ${data.tenant.name}`);

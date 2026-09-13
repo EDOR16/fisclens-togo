@@ -485,10 +485,11 @@ export type TvaCalculationResult = {
 
 export function calculateTogoTva(input: TvaCalculationInput): TvaCalculationResult {
   const tauxTva = 0.18; // CGI art. 195
-  const tvaCollectee = Math.round(input.ventesTaxablesHt * tauxTva);
+
   const tvaDeductibleImmo = Math.round(input.achatsImmoTva);
   const tvaDeductibleBiensServices = Math.round(input.achatsBiensServicesTva);
   const tvaDeductibleTotale = tvaDeductibleImmo + tvaDeductibleBiensServices;
+  const tvaCollectee = Math.round(input.ventesTaxablesHt * 0.18);
 
   const prorata = input.prorataDeductionPct !== undefined ? input.prorataDeductionPct : 100;
   const tvaDeductibleApresProrata = Math.round((tvaDeductibleTotale * prorata) / 100);

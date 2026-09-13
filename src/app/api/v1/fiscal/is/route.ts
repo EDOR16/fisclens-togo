@@ -85,6 +85,10 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
     },
     exercice,
     exercicePrecedentDisponible: basePrecedente.hasEcritures,
-    calculation: isResult,
+    calculation: {
+      ...isResult,
+      totalProduits: base.totalProduits,
+      totalCharges: base.totalCharges,
+    },
   });
 });

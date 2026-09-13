@@ -35,14 +35,18 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   const fournisseurLines = lines.filter((l) => l.accountCode.startsWith("401"));
   const encoursFournisseurs = Math.max(0, fournisseurLines.reduce((s, l) => s + (l.credit - l.debit), 0));
 
-  // 7. TVA Collectée (4431) & TVA Déductible (4451, 4452)
-  const tvaColLines = lines.filter((l) => l.accountCode.startsWith("4431"));
-  const tvaCollectee = tvaColLines.reduce((s, l) => s + (l.credit - l.debit), 0);
+  // 7. TVA Collectée (4431, 443) & TVA Déductible (4451, 4452, 4453, 4454 — exclusion stricte de 4456)
+  const tvaColLines = lines.filter((l) => l.accountCode.startsWith("4431") || l.accountCode.startsWith("443"));
+  const tvaCollectee = Math.max(0, tvaColLines.reduce((s, l) => s + (l.credit - l.debit), 0));
 
   const tvaDedLines = lines.filter(
-    (l) => l.accountCode.startsWith("4451") || l.accountCode.startsWith("4452")
+    (l) =>
+      l.accountCode.startsWith("4451") ||
+      l.accountCode.startsWith("4452") ||
+      l.accountCode.startsWith("4453") ||
+      l.accountCode.startsWith("4454")
   );
-  const tvaDeductible = tvaDedLines.reduce((s, l) => s + (l.debit - l.credit), 0);
+  const tvaDeductible = Math.max(0, tvaDedLines.reduce((s, l) => s + (l.debit - l.credit), 0));
   const tvaADeclarer = Math.max(0, tvaCollectee - tvaDeductible);
   const creditTva = Math.max(0, tvaDeductible - tvaCollectee);
 

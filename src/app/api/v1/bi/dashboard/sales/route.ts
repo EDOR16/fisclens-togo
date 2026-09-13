@@ -25,7 +25,7 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
 
     const zoneAgg = new Map<string, number>();
     for (const sale of salesByZone) {
-      const region = normalizeTogoRegion(sale.client.zoneGeo);
+      const region = normalizeTogoRegion(sale.client?.zoneGeo);
       zoneAgg.set(region, (zoneAgg.get(region) || 0) + sale.montantHT);
     }
 

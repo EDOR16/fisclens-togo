@@ -7,6 +7,7 @@
 
 import { read, utils } from "xlsx";
 import { prisma } from "@/lib/server/prisma";
+import { normalizeTogoRegion } from "@/lib/bi/togo-regions";
 
 // ─── Normalisation des clés d'objets ──────────────────────────────────────────
 
@@ -86,22 +87,34 @@ export async function processUnifiedExcel(
     warnings: [],
   };
 
+  // ── PURGE : on efface les données BI précédentes pour éviter les doublons ──
+  // Ordre : Sales/Purchases en premier (FK vers clientRef/productRef), puis refs
+  await prisma.sale.deleteMany({ where: { tenantId } });
+  await prisma.purchase.deleteMany({ where: { tenantId } });
+  await prisma.clientRef.deleteMany({ where: { tenantId } });
+  await prisma.productRef.deleteMany({ where: { tenantId } });
+
   const productMap = new Map<string, string>(); // code -> id
   const clientMap = new Map<string, string>(); // code -> id
-
-  // Charger les clients et produits existants en base
-  const existingProducts = await prisma.productRef.findMany({ where: { tenantId } });
-  existingProducts.forEach((p) => productMap.set(p.code.toUpperCase(), p.id));
-
-  const existingClients = await prisma.clientRef.findMany({ where: { tenantId } });
-  existingClients.forEach((c) => clientMap.set(c.code.toUpperCase(), c.id));
 
   // Identifier les feuilles
   const getRowsForSheet = (candidates: string[]) => {
     for (const cand of candidates) {
-      const foundName = sheetNames.find(
-        (s) => s.toLowerCase().trim() === cand.toLowerCase()
-      );
+      const candNorm = cand
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[\s_\-\.]/g, "");
+
+      const foundName = sheetNames.find((s) => {
+        const sNorm = s
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[\s_\-\.]/g, "");
+        return sNorm === candNorm || sNorm.includes(candNorm) || candNorm.includes(sNorm);
+      });
+
       if (foundName) {
         const sheet = workbook.Sheets[foundName];
         if (sheet) {
@@ -114,7 +127,16 @@ export async function processUnifiedExcel(
   };
 
   // ── 1. TRAITEMENT PRODUITS ────────────────────────────────────────────────
-  const productRows = getRowsForSheet(["produits", "produit", "products", "product", "catalogue", "articles"]);
+  const productRows = getRowsForSheet([
+    "catalogue_produits",
+    "catalogueproduits",
+    "produits",
+    "produit",
+    "products",
+    "product",
+    "catalogue",
+    "articles",
+  ]);
   if (productRows && productRows.length) {
     for (const r of productRows) {
       const code = String(r.code || r.codeproduit || r.ref || r.reference || "").trim().toUpperCase();
@@ -137,7 +159,15 @@ export async function processUnifiedExcel(
   }
 
   // ── 2. TRAITEMENT CLIENTS ─────────────────────────────────────────────────
-  const clientRows = getRowsForSheet(["clients", "client", "customers", "customer", "tiers"]);
+  const clientRows = getRowsForSheet([
+    "repertoire_clients",
+    "repertoireclients",
+    "clients",
+    "client",
+    "customers",
+    "customer",
+    "tiers",
+  ]);
   if (clientRows && clientRows.length) {
     for (const r of clientRows) {
       const code = String(r.code || r.codeclient || r.ref || r.reference || "").trim().toUpperCase();
@@ -145,7 +175,8 @@ export async function processUnifiedExcel(
 
       const name = String(r.nom || r.name || r.client || r.raisonsociale || code).trim();
       const segment = String(r.segment || r.categorie || r.type || "Standard").trim();
-      const zoneGeo = String(r.zonegeo || r.zone || r.ville || r.region || "Lomé").trim();
+      const rawZone = String(r.zonegeo || r.zone || r.ville || r.region || "Maritime").trim();
+      const zoneGeo = normalizeTogoRegion(rawZone);
       const encoursAutorise = parseNumber(r.encoursautorise || r.encours || r.plafond, 5000000);
 
       const c = await prisma.clientRef.upsert({
@@ -159,7 +190,13 @@ export async function processUnifiedExcel(
   }
 
   // ── 3. TRAITEMENT ACHATS ──────────────────────────────────────────────────
-  const purchaseRows = getRowsForSheet(["achats", "achat", "purchases", "purchase", "commandes"]);
+  const purchaseRows = getRowsForSheet([
+    "achats",
+    "achat",
+    "purchases",
+    "purchase",
+    "commandes",
+  ]);
   if (purchaseRows && purchaseRows.length) {
     for (const [idx, r] of purchaseRows.entries()) {
       const date = parseDate(r.date);
@@ -216,7 +253,14 @@ export async function processUnifiedExcel(
 
   // ── 4. TRAITEMENT VENTES ──────────────────────────────────────────────────
   // Si la feuille "Ventes" existe OU si le classeur n'a qu'une seule feuille non encore traitée
-  let saleRows = getRowsForSheet(["ventes", "vente", "sales", "sale", "factures", "chiffredaffaires"]);
+  let saleRows = getRowsForSheet([
+    "ventes",
+    "vente",
+    "sales",
+    "sale",
+    "factures",
+    "chiffredaffaires",
+  ]);
   if (!saleRows && sheetNames.length === 1 && !productRows && !clientRows && !purchaseRows) {
     // Cas d'un fichier simple contenant directement les ventes
     const singleSheet = workbook.Sheets[sheetNames[0]];
@@ -229,12 +273,14 @@ export async function processUnifiedExcel(
     for (const [idx, r] of saleRows.entries()) {
       const date = parseDate(r.date);
       const refFacture = String(r.reffacture || r.ref || r.numerofacture || `FAC-${idx + 1}`).trim();
-      const clientCode = String(r.codeclient || r.client || r.code || "CLI-DIVERS").trim().toUpperCase();
+      const clientCode = String(r.codeClient || r.codeclient || r.client || r.code || "CLI-DIVERS").trim().toUpperCase();
       const productCode = String(r.codeproduit || r.produit || r.article || "PRD-GEN").trim().toUpperCase();
 
       // Création automatique du client à la volée s'il n'existe pas
       let clientId = clientMap.get(clientCode);
       if (!clientId) {
+        const saleZone = String(r.zonegeo || r.zone || r.ville || r.region || "").trim();
+        const clientZone = saleZone ? normalizeTogoRegion(saleZone) : "Maritime";
         const newClient = await prisma.clientRef.upsert({
           where: { tenantId_code: { tenantId, code: clientCode } },
           update: {},
@@ -243,7 +289,7 @@ export async function processUnifiedExcel(
             code: clientCode,
             name: `Client ${clientCode}`,
             segment: "Standard",
-            zoneGeo: "Maritime",
+            zoneGeo: clientZone,
             encoursAutorise: 5000000,
           },
         });

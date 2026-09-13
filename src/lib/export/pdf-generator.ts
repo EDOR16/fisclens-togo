@@ -346,10 +346,10 @@ export function exportIsDeclarationPdf(
     ["6", "IS Théorique au taux normal (27%) [Art. 113 CGI]", formatAmount(isResult.isTheorique) + " FCFA"],
     ["7", "MFP Théorique (1% du CA, plancher 20 000 FCFA) [Art. 120 CGI]", formatAmount(isResult.mfpTheorique) + " FCFA"],
     ["8", `IMPÔT EXIGIBLE RETENU : MAX(IS, MFP) [${isResult.impotRetenu}]`, formatAmount(isResult.impotExigible) + " FCFA"],
-    ["9", "1er Acompte provisionnel (Échéance 31 Janvier - 25%) [Art. 114 CGI]", formatAmount(isResult.acompte1) + " FCFA"],
-    ["10", "2ème Acompte provisionnel (Échéance 31 Mai - 25%)", formatAmount(isResult.acompte2) + " FCFA"],
-    ["11", "3ème Acompte provisionnel (Échéance 31 Juillet - 25%)", formatAmount(isResult.acompte3) + " FCFA"],
-    ["12", "4ème Acompte provisionnel (Échéance 31 Octobre - 25%)", formatAmount(isResult.acompte4) + " FCFA"],
+    ["9", "1er Acompte provisionnel (Échéance 31 Mars - 25%) [Art. 114 CGI]", formatAmount(isResult.acompte1) + " FCFA"],
+    ["10", "2ème Acompte provisionnel (Échéance 30 JUIN - 25%)", formatAmount(isResult.acompte2) + " FCFA"],
+    ["11", "3ème Acompte provisionnel (Échéance 30 Septembre - 25%)", formatAmount(isResult.acompte3) + " FCFA"],
+    ["12", "4ème Acompte provisionnel (Échéance 31 Décembre - 25%)", formatAmount(isResult.acompte4) + " FCFA"],
     ["13", "Solde à la déclaration de résultat", formatAmount(soldeDeclaration) + " FCFA"],
   ];
 

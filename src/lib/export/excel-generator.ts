@@ -167,10 +167,10 @@ export function exportIsExcel(
     { "Rubrique IS / MFP (CGI Togo)": "IS Théorique (27%) [Art. 113 CGI]", "Montant (FCFA)": isResult.isTheorique },
     { "Rubrique IS / MFP (CGI Togo)": "MFP Théorique (1% du CA, plancher 20 000 FCFA) [Art. 120 CGI]", "Montant (FCFA)": isResult.mfpTheorique },
     { "Rubrique IS / MFP (CGI Togo)": `Impôt Exigible Retenu [${isResult.impotRetenu}]`, "Montant (FCFA)": isResult.impotExigible },
-    { "Rubrique IS / MFP (CGI Togo)": "1er Acompte (31 Janvier - 25%) [Art. 114 CGI]", "Montant (FCFA)": isResult.acompte1 },
-    { "Rubrique IS / MFP (CGI Togo)": "2ème Acompte (31 Mai - 25%)", "Montant (FCFA)": isResult.acompte2 },
-    { "Rubrique IS / MFP (CGI Togo)": "3ème Acompte (31 Juillet - 25%)", "Montant (FCFA)": isResult.acompte3 },
-    { "Rubrique IS / MFP (CGI Togo)": "4ème Acompte (31 Octobre - 25%)", "Montant (FCFA)": isResult.acompte4 },
+    { "Rubrique IS / MFP (CGI Togo)": "1er Acompte (31 Mars - 25%) [Art. 114 CGI]", "Montant (FCFA)": isResult.acompte1 },
+    { "Rubrique IS / MFP (CGI Togo)": "2ème Acompte (30 Juin - 25%)", "Montant (FCFA)": isResult.acompte2 },
+    { "Rubrique IS / MFP (CGI Togo)": "3ème Acompte (30 Septembre - 25%)", "Montant (FCFA)": isResult.acompte3 },
+    { "Rubrique IS / MFP (CGI Togo)": "4ème Acompte (31 Décembre - 25%)", "Montant (FCFA)": isResult.acompte4 },
     { "Rubrique IS / MFP (CGI Togo)": "Solde à la déclaration de résultat", "Montant (FCFA)": soldeDeclaration },
   ];
 

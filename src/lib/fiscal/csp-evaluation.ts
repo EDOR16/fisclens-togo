@@ -200,7 +200,7 @@ export async function runCspEvaluation(
     impactFcfa: auditResult.anomalies.reduce((s, a) => s + (a.montantImpact || 0), 0) || undefined,
     recommandation: !hasBloquantesCompta
       ? "Aucune anomalie bloquante active sur le journal des écritures."
-      : `${auditResult.bloquantes} anomalie(s) bloquante(s) active(s) détectée(s). Régularisation impérative avant dépôt DSF.`,
+      : `${auditResult.bloquantes + persistedBloquantes} anomalie(s) bloquante(s) active(s) (${auditResult.bloquantes} temps réel + ${persistedBloquantes} persistée(s) non résolue(s)). Régularisation impérative avant dépôt DSF.`,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

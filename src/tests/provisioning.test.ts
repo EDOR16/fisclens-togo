@@ -6,6 +6,26 @@ const prisma = new PrismaClient();
 
 describe("📦 PROVISIONING RÉEL — Espace de Travail Vierge & Conforme", { timeout: 30000 }, () => {
   afterAll(async () => {
+    // Nettoyage : supprimer tous les tenants et users créés par ce test
+    const testTenants = await prisma.tenant.findMany({
+      where: { name: 'CABINET ALPHA & ASSOCIÉS TOGO' },
+      include: { userTenants: true }
+    });
+
+    for (const t of testTenants) {
+      const userIds = t.userTenants.map(ut => ut.userId);
+      await prisma.tenant.delete({ where: { id: t.id } });
+
+      // Supprimer les users orphelins
+      for (const userId of userIds) {
+        const remaining = await prisma.userTenant.count({ where: { userId } });
+        if (remaining === 0) {
+          await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+        }
+      }
+    }
+
+    console.log(`Nettoyage test : ${testTenants.length} tenant(s) supprimé(s)`);
     await prisma.$disconnect();
   });
 

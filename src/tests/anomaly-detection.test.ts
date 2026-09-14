@@ -17,16 +17,21 @@ const prisma = new PrismaClient();
 let testTenantId = "";
 
 describe("🔍 Moteur de Détection d'Anomalies (LPF Togo / SYSCOHADA)", () => {
+  const TEST_TENANT_NAME = "__TEST_ANOMALY_DETECTION__";
+
   beforeAll(async () => {
-    let tenant = await prisma.tenant.findFirst();
+    // Tenant DÉDIÉ aux tests — ne touche pas aux dossiers clients
+    let tenant = await prisma.tenant.findFirst({
+      where: { name: TEST_TENANT_NAME },
+    });
     if (!tenant) {
       tenant = await prisma.tenant.create({
         data: {
-          name: "Test Audit Corp Togo",
-          nif: "1000845921",
-          rccm: "TG-LOM-2023-B-001",
+          name: TEST_TENANT_NAME,
+          nif: "9999999999",
+          rccm: "TG-TEST-0000-T-000",
           regime: "REEL_NORMAL",
-          centreFiscal: "DGE Lomé",
+          centreFiscal: "TEST",
         },
       });
     }
@@ -34,6 +39,9 @@ describe("🔍 Moteur de Détection d'Anomalies (LPF Togo / SYSCOHADA)", () => {
   });
 
   afterAll(async () => {
+    // Nettoyage complet du tenant de test
+    await prisma.anomalieDetectee.deleteMany({ where: { tenantId: testTenantId } });
+    await prisma.tenant.deleteMany({ where: { name: TEST_TENANT_NAME } });
     await prisma.$disconnect();
   });
 

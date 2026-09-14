@@ -48,3 +48,7 @@ prisma/dev.db*
 .idea
 
 .vercel
+
+# Backups
+*.bak
+*.bak.*

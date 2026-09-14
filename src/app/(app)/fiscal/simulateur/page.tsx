@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Calculator, Users, Building, Receipt, FileSpreadsheet, Home, Car,
-  DollarSign, ShieldAlert, ArrowRight, CheckCircle2, Info
+  DollarSign, ShieldAlert, ArrowRight, CheckCircle2, Info,
+  FileCheck, Gavel
 } from "lucide-react";
 import {
   calculateTogoPayroll,
@@ -33,6 +34,8 @@ import {
 } from "@/lib/fiscal/togo-rules";
 import { formatAmount } from "@/lib/utils";
 import { CustomTaxDialog } from "@/components/fiscal/custom-tax-dialog";
+import { LoiFinances2026Panel } from "@/components/fiscal/loi-finances-2026-panel";
+import { SanctionsPanel } from "@/components/fiscal/sanctions-panel";
 
 export default function SimulateurPage() {
   const [activeTab, setActiveTab] = useState("directs");
@@ -125,13 +128,15 @@ export default function SimulateurPage() {
 
       {/* Tabs par catégories OTR */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 h-auto p-1 bg-muted/60">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 h-auto p-1 bg-muted/60">
           <TabsTrigger value="directs" className="text-xs py-2">Impôts Directs (IRPP/IS)</TabsTrigger>
           <TabsTrigger value="tva" className="text-xs py-2">TVA &amp; CA (18%)</TabsTrigger>
           <TabsTrigger value="locaux" className="text-xs py-2">Patente &amp; TPU</TabsTrigger>
           <TabsTrigger value="fonciers" className="text-xs py-2">Foncier &amp; Habitation</TabsTrigger>
           <TabsTrigger value="retenues" className="text-xs py-2">Retenues &amp; Prélèvements</TabsTrigger>
           <TabsTrigger value="specifiques" className="text-xs py-2">TVM, TCA &amp; Pénalités</TabsTrigger>
+          <TabsTrigger value="lf2026" className="text-xs py-2">LF 2026</TabsTrigger>
+          <TabsTrigger value="sanctions" className="text-xs py-2">Sanctions OTR</TabsTrigger>
         </TabsList>
 
         {/* ─── TAB 1 : IMPÔTS DIRECTS (IRPP / IS / IMF) ─── */}
@@ -844,6 +849,15 @@ export default function SimulateurPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+        {/* ─── ONGLET 7 : LOI DE FINANCES 2026 ─── */}
+        <TabsContent value="lf2026" className="space-y-6">
+          <LoiFinances2026Panel />
+        </TabsContent>
+
+        {/* ─── ONGLET 8 : SANCTIONS LPF & SIMULATION CONTROLE OTR ─── */}
+        <TabsContent value="sanctions" className="space-y-6">
+          <SanctionsPanel />
         </TabsContent>
       </Tabs>
 

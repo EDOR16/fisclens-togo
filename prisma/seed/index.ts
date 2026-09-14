@@ -74,7 +74,10 @@ export async function seedDatabase() {
     { code: "401100", libelle: "Fournisseurs d'exploitation locaux", classe: 4 },
     { code: "411100", libelle: "Clients - Ventes de marchandises", classe: 4 },
     { code: "421100", libelle: "Personnel, rémunérations nettes dues", classe: 4 },
-    { code: "431100", libelle: "Sécurité sociale (CNSS & AMU Togo)", classe: 4 },
+    { code: "431100", libelle: "CNSS - Cotisations ouvrières (4%)", classe: 4 },
+    { code: "431200", libelle: "CNSS - Cotisations patronales (17.5%)", classe: 4 },
+    { code: "433300", libelle: "INAM - AMU ouvrière (5%)", classe: 4 },
+    { code: "433500", libelle: "INAM - AMU patronale (5%)", classe: 4 },
     { code: "443100", libelle: "État, TVA facturée sur ventes (18%)", classe: 4 },
     { code: "445200", libelle: "État, TVA déductible sur achats (18%)", classe: 4 },
     { code: "447100", libelle: "État, Retenues IRPP sur salaires", classe: 4 },
@@ -85,7 +88,8 @@ export async function seedDatabase() {
     { code: "622100", libelle: "Loyers commerciaux et charges", classe: 6 },
     { code: "628100", libelle: "Frais Télécom & Internet (TogoCom/Moov)", classe: 6 },
     { code: "661100", libelle: "Rémunération du personnel (Salaires bruts)", classe: 6 },
-    { code: "664100", libelle: "Charges patronales (CNSS 17.5% + AMU)", classe: 6 },
+    { code: "664100", libelle: "Charges sociales patronales - CNSS (17.5%)", classe: 6 },
+    { code: "664300", libelle: "Charges sociales patronales - AMU (5%)", classe: 6 },
     { code: "701100", libelle: "Ventes de marchandises au Togo", classe: 7 },
     { code: "706100", libelle: "Prestations de services", classe: 7 },
   ];
@@ -203,15 +207,23 @@ export async function seedDatabase() {
     // Total Débit: 3 000 000 (661) + 600 000 (664) = 3 600 000
     // Total Crédit: 2 600 000 (421) + 720 000 (431) + 280 000 (447) = 3 600 000 -> PARFAITEMENT ÉQUILIBRÉ
     {
+      // Paie corrigée : CNSS 17.5% + AMU 5% = 22.5% patronal
+      // Brut 3 000 000 → CNSS pat. 525 000 + AMU pat. 150 000 = 675 000
+      //                → CNSS ouv. 120 000 + AMU ouv. 150 000 = 270 000
+      //                → IRPP 280 000 → Net 2 450 000
       journal: "PAIE",
       date: getRelativeDate(2),
       piece: "PAIE-MOIS-ACTUEL",
       libelle: "Journal de paie du personnel",
       lines: [
         { accountCode: "661100", libelle: "Rémunération du personnel (Brut)", debit: 3_000_000, credit: 0 },
-        { accountCode: "664100", libelle: "Charges patronales CNSS & AMU", debit: 600_000, credit: 0 },
-        { accountCode: "421100", libelle: "Personnel, salaires nets à payer", debit: 0, credit: 2_600_000 },
-        { accountCode: "431100", libelle: "Cotisations CNSS & AMU dues", debit: 0, credit: 720_000 },
+        { accountCode: "664100", libelle: "Charges sociales patronales - CNSS (17.5%)", debit: 525_000, credit: 0 },
+        { accountCode: "664300", libelle: "Charges sociales patronales - AMU (5%)", debit: 150_000, credit: 0 },
+        { accountCode: "421100", libelle: "Personnel, salaires nets à payer", debit: 0, credit: 2_450_000 },
+        { accountCode: "431100", libelle: "CNSS - Cotisations ouvrières (4%)", debit: 0, credit: 120_000 },
+        { accountCode: "431200", libelle: "CNSS - Cotisations patronales (17.5%)", debit: 0, credit: 525_000 },
+        { accountCode: "433300", libelle: "INAM - AMU ouvrière (5%)", debit: 0, credit: 150_000 },
+        { accountCode: "433500", libelle: "INAM - AMU patronale (5%)", debit: 0, credit: 150_000 },
         { accountCode: "447100", libelle: "Retenues IRPP salaires dues OTR", debit: 0, credit: 280_000 },
       ],
     },

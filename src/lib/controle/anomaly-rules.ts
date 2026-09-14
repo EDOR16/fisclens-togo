@@ -303,6 +303,24 @@ export function checkSequenceGaps(
 /**
  * Contrôle 5 : Validité du NIF Togolais (Commissariat des Impôts OTR)
  */
+/**
+ * Tokenisation robuste pour comparaison de noms de tiers.
+ * Découpe AVANT normalisation pour préserver les frontières camelCase
+ * et gérer les accents français (COMPAORÉ → compaore).
+ */
+function tokeniserNom(s: string): Set<string> {
+  const brut = s
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .split(/[\s\-\.,&'\/]+/)
+    .map((t) =>
+      t.toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "")
+    )
+    .filter((t) => t.length >= 3);
+  return new Set(brut);
+}
 export function validateTogoNIF(nif: string): boolean {
   if (!nif) return false;
   const cleaned = nif.replace(/[\s\-_]/g, "");
@@ -431,4 +449,198 @@ export function runFullAnomalyDetection(
     anomalies,
     scoreConformite,
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 7 — RÈGLES NIVEAU FACTURE/IMPORT (ajout post-CSP)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface RawInvoiceForAudit {
+  id: string;
+  source: "SALE" | "PURCHASE" | "ECRITURE";
+  numeroPiece: string;
+  date: string;
+  tiersNom: string;
+  tiersNif?: string | null;
+  montantHT: number;
+  tauxTVA: number;
+  montantTVA: number;
+  montantTTC: number;
+  articles?: Array<{
+    designation: string;
+    quantity: number;
+    puHT: number;
+    totalHT: number;
+  }>;
+  imageHash?: string | null;
+  sourceOcr?: boolean;
+}
+
+const TVA_TAUX_LEGAL = 18;
+const TOLERANCE_ARRONDI_FCFA = 5;
+const SEUIL_Z_SCORE = 3.0;
+const SEUIL_ECART_TVA_PCT = 1.0;
+
+// ─── Règle 7.1 : TVA incohérente avec le taux légal ─────────────────────────
+export function checkTvaCoherence(f: RawInvoiceForAudit): AnomalyReportItem | null {
+  if (f.tauxTVA !== TVA_TAUX_LEGAL) return null;
+  const tvaAttendue = Math.round((f.montantHT * TVA_TAUX_LEGAL) / 100);
+  const ecart = Math.abs(tvaAttendue - f.montantTVA);
+  const ecartPct = f.montantHT > 0 ? (ecart / f.montantHT) * 100 : 0;
+
+  if (ecart > TOLERANCE_ARRONDI_FCFA && ecartPct > SEUIL_ECART_TVA_PCT) {
+    return {
+      type: TypeAnomalie.TVA_INCOHERENTE_AVEC_TAUX,
+      severite: SeveriteAnomalie.BLOQUANT,
+      description: `Facture ${f.numeroPiece} (${f.tiersNom}) : TVA extraite ${f.montantTVA.toLocaleString("fr-FR")} FCFA != 18% x HT (${tvaAttendue.toLocaleString("fr-FR")} FCFA). Ecart : ${ecart.toLocaleString("fr-FR")} FCFA (${ecartPct.toFixed(2)}%).`,
+      factureRef: f.numeroPiece,
+      montantImpact: ecart,
+      metadata: { montantHT: f.montantHT, tauxTVA: f.tauxTVA, montantTVAExtrait: f.montantTVA, tvaAttendue },
+    };
+  }
+  return null;
+}
+
+// ─── Règle 7.2 : Qté x PU != total ligne ────────────────────────────────────
+export function checkLignesMontants(f: RawInvoiceForAudit): AnomalyReportItem[] {
+  const anomalies: AnomalyReportItem[] = [];
+  if (!f.articles?.length) return anomalies;
+
+  for (let i = 0; i < f.articles.length; i++) {
+    const a = f.articles[i]!;
+    const totalCalcule = Math.round(a.quantity * a.puHT);
+    const ecart = Math.abs(totalCalcule - a.totalHT);
+
+    if (ecart > TOLERANCE_ARRONDI_FCFA) {
+      anomalies.push({
+        type: TypeAnomalie.LIGNE_MONTANT_INCOHERENT,
+        severite: SeveriteAnomalie.AVERTISSEMENT,
+        description: `Facture ${f.numeroPiece}, ligne ${i + 1} "${a.designation}" : quantite x PU = ${totalCalcule.toLocaleString("fr-FR")} FCFA != total HT extrait ${a.totalHT.toLocaleString("fr-FR")} FCFA.`,
+        factureRef: f.numeroPiece,
+        montantImpact: ecart,
+        metadata: { ligne: i + 1, designation: a.designation, quantity: a.quantity, puHT: a.puHT, totalHT: a.totalHT },
+      });
+    }
+  }
+  return anomalies;
+}
+
+// ─── Règle 7.3 : Image déjà importée (hash SHA-256) ─────────────────────────
+export function checkImageDupliquee(
+  f: RawInvoiceForAudit,
+  hashesExistants: Set<string>
+): AnomalyReportItem | null {
+  if (!f.imageHash) return null;
+  if (hashesExistants.has(f.imageHash)) {
+    return {
+      type: TypeAnomalie.FACTURE_IMAGE_DUPLIQUEE,
+      severite: SeveriteAnomalie.BLOQUANT,
+      description: `L'image de la facture ${f.numeroPiece} (${f.tiersNom}) est un doublon exact (SHA-256) d'un import precedent. Risque de double comptabilisation meme si le numero de piece a ete mal lu par l'OCR.`,
+      factureRef: f.numeroPiece,
+      metadata: { imageHash: f.imageHash },
+    };
+  }
+  return null;
+}
+
+// ─── Règle 7.4 : NIF extrait != NIF connu pour ce nom ───────────────────────
+export function checkNifNomCoherence(
+  f: RawInvoiceForAudit,
+  nifToNomConnus: Map<string, string>
+): AnomalyReportItem | null {
+  if (!f.tiersNif) return null;
+  const nomCanonique = nifToNomConnus.get(f.tiersNif);
+  if (!nomCanonique) return null;
+
+  const tokens1 = tokeniserNom(f.tiersNom);
+  const tokens2 = tokeniserNom(nomCanonique);
+
+  const intersection = [...tokens1].filter((t) => tokens2.has(t));
+  const denominateur = Math.max(tokens1.size, tokens2.size);
+  const tauxSimilarite = denominateur > 0 ? intersection.length / denominateur : 0;
+
+  if (tauxSimilarite < 0.5) {
+    return {
+      type: TypeAnomalie.NIF_NOM_INCOHERENT,
+      severite: SeveriteAnomalie.BLOQUANT,
+      description: `NIF ${f.tiersNif} deja associe a "${nomCanonique}", mais la facture ${f.numeroPiece} mentionne "${f.tiersNom}". Similarite : ${(tauxSimilarite * 100).toFixed(0)}%.`,
+      factureRef: f.numeroPiece,
+      metadata: { nif: f.tiersNif, nomFacture: f.tiersNom, nomCanonique, tauxSimilarite },
+    };
+  }
+  return null;
+}
+
+// ─── Règle 7.5 : Montant anormal vs historique (double critère) ─────────────
+export function checkMontantAnormal(
+  f: RawInvoiceForAudit,
+  historiqueMontants: number[]
+): AnomalyReportItem | null {
+  if (historiqueMontants.length < 5) return null;
+
+  const tries = [...historiqueMontants].sort((a, b) => a - b);
+  const mediane = tries[Math.floor(tries.length / 2)]!;
+
+  const moyenne = historiqueMontants.reduce((s, v) => s + v, 0) / historiqueMontants.length;
+  const variance = historiqueMontants.reduce((s, v) => s + Math.pow(v - moyenne, 2), 0) / historiqueMontants.length;
+  const ecartType = Math.sqrt(variance);
+
+  if (ecartType === 0 || mediane === 0) return null;
+
+  const zScore = (f.montantHT - moyenne) / ecartType;
+  const ratioMediane = f.montantHT / mediane;
+
+  const zAnormal = Math.abs(zScore) > SEUIL_Z_SCORE;
+  const ratioAnormal = ratioMediane < 0.3 || ratioMediane > 3.0;
+
+  if (zAnormal && ratioAnormal) {
+    const sens = zScore > 0 ? "eleve" : "faible";
+    return {
+      type: TypeAnomalie.MONTANT_ANORMAL_VS_HISTORIQUE,
+      severite: SeveriteAnomalie.INFO,
+      description: `Facture ${f.numeroPiece} (${f.tiersNom}) : montant HT ${f.montantHT.toLocaleString("fr-FR")} FCFA anormalement ${sens} vs historique (mediane ${mediane.toLocaleString("fr-FR")} FCFA, ratio ${ratioMediane.toFixed(2)}x, z-score ${zScore.toFixed(2)}).`,
+      factureRef: f.numeroPiece,
+      montantImpact: Math.abs(f.montantHT - mediane),
+      metadata: { zScore, moyenne, mediane, ratioMediane, nbHistorique: historiqueMontants.length },
+    };
+  }
+  return null;
+}
+
+// ─── Orchestrateur niveau facture ───────────────────────────────────────────
+export interface InvoiceLevelContext {
+  hashesExistants?: Set<string>;
+  nifToNomConnus?: Map<string, string>;
+  historiqueParFournisseur?: Map<string, number[]>;
+}
+
+export function runInvoiceLevelDetection(
+  factures: RawInvoiceForAudit[],
+  context: InvoiceLevelContext = {}
+): AnomalyReportItem[] {
+  const anomalies: AnomalyReportItem[] = [];
+  const hashes = context.hashesExistants ?? new Set<string>();
+  const nifMap = context.nifToNomConnus ?? new Map<string, string>();
+  const historique = context.historiqueParFournisseur ?? new Map<string, number[]>();
+
+  for (const f of factures) {
+    const tva = checkTvaCoherence(f);
+    if (tva) anomalies.push(tva);
+
+    anomalies.push(...checkLignesMontants(f));
+
+    const dupImg = checkImageDupliquee(f, hashes);
+    if (dupImg) anomalies.push(dupImg);
+
+    const nifNom = checkNifNomCoherence(f, nifMap);
+    if (nifNom) anomalies.push(nifNom);
+
+    const hist = historique.get(f.tiersNom) ?? historique.get(f.tiersNif ?? "");
+    if (hist) {
+      const anormal = checkMontantAnormal(f, hist);
+      if (anormal) anomalies.push(anormal);
+    }
+  }
+
+  return anomalies;
 }

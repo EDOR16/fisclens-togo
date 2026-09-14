@@ -8,7 +8,7 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   // 1. Récupérer toutes les lignes du tenant
   const lines = await prisma.ecritureLine.findMany({
     where: {
-      ecriture: { tenantId, status: "VALIDE" },
+      ecriture: { tenantId, status: { in: ["VALIDE", "CLOTURE"] } },
     },
     include: {
       ecriture: true,

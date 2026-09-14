@@ -74,6 +74,7 @@ model Tenant {
   cspEvaluations      CspEvaluation[]
   cspAttachments      CspAttachment[]
   anomaliesDetectees  AnomalieDetectee[]
+  factureImageHashes  FactureImageHash[]
 
   @@map("tenants")
 }
@@ -411,6 +412,11 @@ enum TypeAnomalie {
   FACTURE_NIF_MANQUANT_OU_INVALIDE
   ECART_TVA_DECLAREE_VS_COLLECTEE
   PARTIE_LIEE_PRIX_ANORMAL
+  TVA_INCOHERENTE_AVEC_TAUX
+  LIGNE_MONTANT_INCOHERENT
+  FACTURE_IMAGE_DUPLIQUEE
+  NIF_NOM_INCOHERENT
+  MONTANT_ANORMAL_VS_HISTORIQUE
 }
 
 model AnomalieDetectee {
@@ -434,5 +440,30 @@ model AnomalieDetectee {
   @@index([tenantId, type])
   @@map("anomalies_detectees")
 }
+model FournisseurNifRef {
+  tenantId String
+  nif      String
+  nom      String
+  @@unique([tenantId, nif])
+}
 
 
+// ============================================================================
+// DEDUPLICATION DES IMAGES DE FACTURES (Section 7 — post-CSP)
+// ============================================================================
+
+model FactureImageHash {
+  id         String   @id @default(cuid())
+  tenantId   String
+  hashSha256 String
+  ecritureId String?
+  source     String   @default("OCR_SCAN") // "OCR_SCAN" | "MANUAL_UPLOAD" | "EXCEL_IMPORT"
+  fileName   String?
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, hashSha256])
+  @@index([tenantId])
+  @@map("facture_image_hashes")
+}

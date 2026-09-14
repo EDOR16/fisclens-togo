@@ -1,9 +1,4 @@
-export const dynamic = 'force-dynamic';
-
-/**
- * POST /api/v1/bi/alerts/:id/acknowledge
- * Acquitter une alerte (la marquer comme lue)
- */
+export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { withTenantGuard, GuardContext } from "@/lib/server/with-guard";
@@ -14,24 +9,16 @@ export const POST = withTenantGuard(
     try {
       const url = new URL(req.url);
       const pathParts = url.pathname.split("/");
-      const alertId = pathParts[pathParts.length - 2]; // Avant '/acknowledge'
+      const alertId = pathParts[pathParts.length - 2];
 
       if (!alertId) {
-        return NextResponse.json(
-          { error: "ID alerte manquant" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "ID alerte manquant" }, { status: 400 });
       }
 
-      const alert = await prisma.alert.findUnique({
-        where: { id: alertId },
-      });
+      const alert = await prisma.alert.findUnique({ where: { id: alertId } });
 
       if (!alert || alert.tenantId !== tenantId) {
-        return NextResponse.json(
-          { error: "Alerte non trouvée" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Alerte non trouvée" }, { status: 404 });
       }
 
       const updated = await prisma.alert.update({
@@ -39,16 +26,10 @@ export const POST = withTenantGuard(
         data: { acknowledged: true },
       });
 
-      return NextResponse.json({
-        success: true,
-        data: updated,
-      });
+      return NextResponse.json({ success: true, data: updated });
     } catch (error) {
-      console.error("Erreur acquittement alerte:", error);
-      return NextResponse.json(
-        { error: "Erreur serveur" },
-        { status: 500 }
-      );
+      console.error("[ALERT_ACK_ERROR]", error);
+      return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
     }
   }
 );

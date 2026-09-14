@@ -126,8 +126,8 @@ describe("📦 LOT 1 — Tests d'Intégrité des Données SYSCOHADA (10 Tests)",
     const totalCharges = chargeLines.reduce((s, l) => s + (l.debit - l.credit), 0);
 
     // D'après le seed :
-    // 601100 (6 000 000) + 628100 (500 000) + 661100 (3 000 000) + 664100 (600 000) = 10 100 000 FCFA
-    expect(totalCharges).toBe(10_100_000);
+    // 601100 (6 000 000) + 628100 (500 000) + 661100 (3 000 000) + 664100 (525 000) + 664300 (150 000) = 10 175 000 FCFA
+    expect(totalCharges).toBe(10_175_000);
   });
 
   // 8. Source de vérité unique : Trésorerie nette = Solde débiteur Banque (521) + Caisse (571)

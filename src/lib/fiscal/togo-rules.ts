@@ -32,14 +32,23 @@ export const BAREME_IRPP_MENSUEL = BAREME_IRPP_ANNUEL.map((t) => ({
   taux: t.taux,
 }));
 
-// Taux de cotisations sociales Togo (CNSS + AMU)
+// Taux de cotisations sociales Togo 2026 — CONFIRMÉS
+// Sources : CNSS Togo (cnss.tg) + CLEISS (cleiss.fr/docs/cotisations/togo.html)
+//   CNSS patronale  : 17.50% = 3% Prestations Familiales
+//                            + 2% Risques Professionnels
+//                            + 12.50% Pension de Vieillesse
+//   CNSS ouvrière   :  4.00% = Pension de Vieillesse
+//   AMU patronale   :  5.00% (Décret 2023-096/PR, INAM)
+//   AMU salariale   :  5.00%
+//   Total salarial  :  9.00%
+//   Total patronal  : 22.50%
 export const TAUX_SOCIAUX_TOGO = {
-  CNSS_SALARIALE: 0.04,   // 4%  — Retenue ouvrière CNSS (CGI art. 25-26)
-  CNSS_PATRONALE: 0.15,   // 15% — Charge patronale CNSS
-  AMU_SALARIALE: 0.05,    // 5%  — Retenue ouvrière AMU (Décret 2023-096/PR)
-  AMU_PATRONALE: 0.05,    // 5%  — Charge patronale AMU
-  TOTAL_SALARIAL: 0.09,   // 9%  — Total retenue employé
-  TOTAL_PATRONAL: 0.20,   // 20% — Total charge employeur
+  CNSS_SALARIALE: 0.04,     // 4%
+  CNSS_PATRONALE: 0.175,    // 17.5% — 3% PF + 2% RP + 12.5% PV
+  AMU_SALARIALE: 0.05,      // 5%
+  AMU_PATRONALE: 0.05,      // 5%
+  TOTAL_SALARIAL: 0.09,     // 9%
+  TOTAL_PATRONAL: 0.225,    // 22.5%
 } as const;
 
 export type PayrollCalculationInput = {
@@ -55,7 +64,7 @@ export type PayrollCalculationResult = {
   amuSalariale: number;
   amuPatronale: number;
   totalRetenueSalariale: number; // 9%
-  totalChargePatronale: number;  // 20%
+  totalChargePatronale: number;  // 22.5%
   coutTotalEmployeur: number;
   brutApresCotisations: number;
   abattementFraisPro: number;    // 28% sur fraction ≤ 10M FCFA/an (CGI art. 26)

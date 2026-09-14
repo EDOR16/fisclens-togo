@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic";
-
+import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { withGuard } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
@@ -118,6 +118,33 @@ export const POST = withGuard(async (req: NextRequest, { tenantId, user }) => {
         );
       }
 
+      // 2bis. Calcul du hash SHA-256 de la pièce jointe + détection doublon
+      // (règle Section 7 — FACTURE_IMAGE_DUPLIQUEE)
+      let documentHash: string | null = null;
+      if (documentUrl && typeof documentUrl === "string" && documentUrl.length > 100) {
+        documentHash = createHash("sha256").update(documentUrl).digest("hex");
+
+        const existingHash = await prisma.factureImageHash.findUnique({
+          where: {
+            tenantId_hashSha256: {
+              tenantId,
+              hashSha256: documentHash,
+            },
+          },
+        });
+
+        if (existingHash) {
+          return NextResponse.json(
+            {
+              error: "FACTURE_IMAGE_DUPLIQUEE",
+              message: `Cette image a déjà été importée (SHA-256: ${documentHash.slice(0, 12)}...). Consultez Contrôle > Anomalies pour la pièce existante.`,
+              existingEcritureId: existingHash.ecritureId,
+            },
+            { status: 409 }
+          );
+        }
+      }
+
       // 3. Exécution atomique
       const transactionResult = await prisma.$transaction(async (tx) => {
         // A. Auto-provisionner les comptes nécessaires s'ils manquent dans comptePlan
@@ -174,6 +201,19 @@ export const POST = withGuard(async (req: NextRequest, { tenantId, user }) => {
             lines: true,
           },
         });
+
+        // Bbis. Persistance du hash SHA-256 pour déduplication future
+        if (documentHash) {
+          await tx.factureImageHash.create({
+            data: {
+              tenantId,
+              hashSha256: documentHash,
+              ecritureId: ecriture.id,
+              source: "OCR_SCAN",
+              fileName: documentName || null,
+            },
+          });
+        }
 
         // C. Synchronisation avec le Workspace BI (Ventes / Achats par article)
         let biSyncedCount = 0;

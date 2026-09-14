@@ -270,21 +270,14 @@ export async function simulateWhatIf(
 
   const projectedCA = baseCA + volumeImpact + priceImpact + churnImpact;
 
-  // Marge moyenne
-  // NOTE MÉTIER : cette formule calcule (HT+TVA - HT) / (HT+TVA), ce qui donne en réalité
-  // un taux de TVA apparent (montantTVA / montantTTC), pas une marge commerciale.
-  // Corrigé ici uniquement pour la null-safety demandée par tsc (marginAgg._sum.montantHT
-  // peut être null) — la logique métier reste identique à l'existant, à valider séparément
-  // si l'objectif est une vraie marge (CA - coût d'achat) / CA comme dans aggregates.ts.
-  const marginAgg = await prisma.sale.aggregate({
+  // Vraie marge commerciale : (CA - Coût d'achat) / CA
+  const purchases = await prisma.purchase.findMany({
     where: { tenantId },
-    _sum: { montantHT: true, montantTVA: true },
+    select: { montantHT: true },
   });
-  const avgMarginPercent = ((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0))
-    ? ((((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0)) - (marginAgg._sum.montantHT || 0)) /
-        ((marginAgg._sum.montantHT || 0) + (marginAgg._sum.montantTVA || 0))) *
-      100
-    : 20;
+  const totalCoutAchat = purchases.reduce((s, p) => s + p.montantHT, 0);
+  const avgMarginPercent =
+    baseCA > 0 ? Math.round(((baseCA - totalCoutAchat) / baseCA) * 100) : 20;
 
   const projectedMargin = Math.round((projectedCA * avgMarginPercent) / 100);
 

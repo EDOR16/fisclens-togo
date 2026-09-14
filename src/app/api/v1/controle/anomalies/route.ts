@@ -5,9 +5,12 @@ import { withGuard } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
 import {
   runFullAnomalyDetection,
+  runInvoiceLevelDetection,
   RawEcritureForAudit,
   RawSaleForAudit,
+  RawInvoiceForAudit,
 } from "@/lib/controle/anomaly-rules";
+import { loadInvoiceDetectionContext } from "@/lib/controle/invoice-context";
 import { SeveriteAnomalie, StatutAnomalie, TypeAnomalie } from "@prisma/client";
 
 export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
@@ -38,6 +41,59 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
     sales as RawSaleForAudit[]
   );
 
+  // 3bis. Détection niveau facture (Section 7 — OCR / import / cohérence TVA)
+  const [invoiceContext, purchases] = await Promise.all([
+    loadInvoiceDetectionContext(tenantId),
+    prisma.purchase.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        date: true,
+        refCommande: true,
+        supplierId: true,
+        montantHT: true,
+        tauxTVA: true,
+        montantTVA: true,
+        montantTTC: true,
+      },
+    }),
+  ]);
+
+  const facturesForAudit: RawInvoiceForAudit[] = [
+    ...sales.map((s) => ({
+      id: s.id,
+      source: "SALE" as const,
+      numeroPiece: s.refFacture,
+      date: s.date,
+      tiersNom: "Client",
+      tiersNif: null,
+      montantHT: s.montantHT,
+      tauxTVA: s.tauxTVA,
+      montantTVA: s.montantTVA,
+      montantTTC: s.montantTTC,
+      imageHash: null,
+      sourceOcr: false,
+    })),
+    ...purchases.map((p) => ({
+      id: p.id,
+      source: "PURCHASE" as const,
+      numeroPiece: p.refCommande,
+      date: p.date,
+      tiersNom: p.supplierId,
+      tiersNif: null,
+      montantHT: p.montantHT,
+      tauxTVA: p.tauxTVA,
+      montantTVA: p.montantTVA,
+      montantTTC: p.montantTTC,
+      imageHash: null,
+      sourceOcr: false,
+    })),
+  ];
+
+  const invoiceAnomalies = runInvoiceLevelDetection(facturesForAudit, invoiceContext);
+
+  // Fusion : le pipeline en aval (formatage UI) traite les deux listes indifféremment
+  auditResult.anomalies.push(...invoiceAnomalies);
   // 4. Récupérer les statuts et justifications persistés en base (AnomalieDetectee)
   const persistedAnomalies = await prisma.anomalieDetectee.findMany({
     where: { tenantId },

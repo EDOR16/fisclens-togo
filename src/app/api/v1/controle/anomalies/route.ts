@@ -35,10 +35,19 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
     },
   });
 
-  // 3. Exécution du moteur de règles métier FiscLens Togo (LPF / SYSCOHADA)
+  // 3. Charger le plan comptable du dossier (pour détecter comptes inexistants)
+  const planComptes = await prisma.comptePlan.findMany({
+    where: { tenantId },
+    select: { code: true },
+  });
+  const comptesValides = new Set(planComptes.map((c) => c.code));
+
+  // 3bis. Exécution du moteur de règles métier FiscLens Togo (LPF / SYSCOHADA)
   const auditResult = runFullAnomalyDetection(
     ecritures as RawEcritureForAudit[],
-    sales as RawSaleForAudit[]
+    sales as RawSaleForAudit[],
+    undefined,
+    comptesValides
   );
 
   // 3bis. Détection niveau facture (Section 7 — OCR / import / cohérence TVA)

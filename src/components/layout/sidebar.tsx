@@ -7,7 +7,7 @@ import {
   LayoutDashboard, BookOpen, Receipt, AlertTriangle,
   BarChart3, CalendarDays, Settings, LogOut, ChevronsUpDown,
   Users, ChevronRight, Building2, Sun, Moon, Calculator,
-  Menu, X, ShieldCheck, CreditCard, Activity, Sparkles,
+  Menu, X, ShieldCheck, CreditCard, Activity, Sparkles, ChevronDown,
 } from "lucide-react";
 import { useAuth, useHasRole, type Role } from "@/lib/auth-context";
 import { useAppTheme } from "@/components/theme/theme-provider";
@@ -200,34 +200,59 @@ function NavSection({ item }: { item: NavItem }) {
   const pathname = usePathname();
   const { user } = useAuth();
   const { close } = useSidebar();
-  const isGroupActive = pathname.startsWith(item.href);
+
+  // Le groupe est actif si on est sur sa page ou une sous-page
+  const isGroupActive = pathname === item.href || pathname.startsWith(item.href + "/");
+
+  // État d'expansion locale (toggle manuel par l'utilisateur)
+  const [isExpanded, setIsExpanded] = useState(isGroupActive);
+
+  // Sync automatique : si on navigue vers une sous-page, ouvrir le groupe
+  useEffect(() => {
+    if (isGroupActive) setIsExpanded(true);
+  }, [isGroupActive]);
 
   if (item.roles && user && !item.roles.includes(user.role)) return null;
 
   const Icon = item.icon;
+  const hasChildren = !!item.children && item.children.length > 0;
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (hasChildren) {
+      // Toggle au lieu de naviguer — empêche la redirection
+      e.preventDefault();
+      setIsExpanded((prev) => !prev);
+    } else if (typeof window !== "undefined" && window.innerWidth < 768) {
+      close();
+    }
+  };
 
   return (
     <div>
-      <Link
-        href={item.href as any}
-        onClick={() => {
-          if (!item.children && typeof window !== "undefined" && window.innerWidth < 768) {
-            close();
-          }
-        }}
+      <button
+        type="button"
+        onClick={handleClick}
         className={cn(
-          "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+          "w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
           isGroupActive
             ? "bg-primary/10 text-primary font-semibold"
             : "text-muted-foreground hover:bg-accent hover:text-foreground"
         )}
       >
         <Icon className="h-4 w-4 shrink-0" />
-        {item.label}
-      </Link>
-      {item.children && isGroupActive && (
+        <span className="flex-1 text-left">{item.label}</span>
+        {hasChildren && (
+          <ChevronDown
+            className={cn(
+              "h-3.5 w-3.5 shrink-0 transition-transform",
+              isExpanded ? "rotate-180" : "rotate-0"
+            )}
+          />
+        )}
+      </button>
+      {hasChildren && isExpanded && (
         <div className="mt-1 space-y-0.5">
-          {item.children.map((child) => (
+          {item.children!.map((child) => (
             <NavLink key={child.href} item={child} depth={1} />
           ))}
         </div>

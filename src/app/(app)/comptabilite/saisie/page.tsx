@@ -29,6 +29,7 @@ import { api, ApiException } from "@/lib/api-client";
 import { formatAmount } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { OcrInvoiceScanner } from "@/components/accounting/ocr-invoice-scanner";
+import { ResetDataDialog } from "@/components/accounting/reset-data-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -349,7 +350,27 @@ function SaisieContent() {
       try {
         const buffer = new Uint8Array(evt.target?.result as ArrayBuffer);
         const workbook = XLSX.read(buffer, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
+        // Chercher l'onglet d'écritures par priorité (au lieu de prendre le 1er)
+const PREFERRED_SHEETS = [
+  "Ecritures",
+  "Ecritures_Comptables",
+  "EcrituresComptables",
+  "Journal",
+  "Saisie",
+];
+const foundPreferred = workbook.SheetNames.find((name) =>
+  PREFERRED_SHEETS.some((p) => name.toLowerCase().trim() === p.toLowerCase())
+);
+const sheetName = foundPreferred || workbook.SheetNames[0];
+if (!sheetName) {
+  toast.error("Aucun onglet trouvé dans le fichier");
+  return;
+}
+if (foundPreferred) {
+  console.log(`[IMPORT] Onglet retenu : ${sheetName}`);
+} else {
+  console.log(`[IMPORT] Aucun onglet "Ecritures" trouvé — utilisation du 1er : ${sheetName}`);
+}
         const worksheet = workbook.Sheets[sheetName];
         const rows: any[] = XLSX.utils.sheet_to_json(worksheet);
 
@@ -480,13 +501,18 @@ function SaisieContent() {
 
   return (
     <div className="max-w-4xl space-y-5">
-      <div>
-        <h2 className="text-xl font-bold flex items-center gap-2 text-primary">
-          <PenTool className="h-5 w-5" /> Saisie & Import d&apos;Écritures Comptables
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Enregistrement conforme SYSCOHADA avec conservation numérique des pièces justificatives (GED)
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold flex items-center gap-2 text-primary">
+            <PenTool className="h-5 w-5" /> Saisie & Import d&apos;Écritures Comptables
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Enregistrement conforme SYSCOHADA avec conservation numérique des pièces justificatives (GED)
+          </p>
+        </div>
+        <div className="shrink-0">
+          <ResetDataDialog />
+        </div>
       </div>
 
       {/* Onglets de modes de saisie */}

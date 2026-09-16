@@ -28,3 +28,6 @@ prisma/dev.db-journal
 
 # TypeScript build cache
 *.tsbuildinfo
+
+# Excel sample data files
+*.xlsx

@@ -199,39 +199,40 @@ export default function WorkspaceBIPage() {
     }
 
     setIsImporting(true);
-    setImportProgress(`Lecture et validation de ${file.name}...`);
-    try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const res = reader.result as string;
-          const b64 = res.includes(",") ? res.split(",")[1] : res;
-          resolve(b64);
-        };
-        reader.onerror = (err) => reject(err);
-        reader.readAsDataURL(file);
-      });
+    const sizeMo = (file.size / 1024 / 1024).toFixed(2);
+    setImportProgress(`📖 Lecture de ${file.name} (${sizeMo} Mo)...`);
 
-      setImportProgress(`Enregistrement et réconciliation en cours...`);
+    const t0 = Date.now();
+    try {
+      setImportProgress(`📤 Envoi du fichier (${sizeMo} Mo) au serveur...`);
+
+      const t1 = Date.now();
+      const formData = new FormData();
+      formData.append("file", file);
+
       const res = await fetch("/api/v1/bi/import/unified", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileBuffer: base64, fileName: file.name }),
+        body: formData,
       });
+
+      const tServer = ((Date.now() - t1) / 1000).toFixed(1);
+      setImportProgress(`⚙️ Traitement serveur terminé (${tServer}s)...`);
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || data.error || "Échec de l'import");
 
-      toast.success(data.message || "Fichier Excel importé avec succès !");
-      setImportProgress(`✓ ${data.message}`);
+      const tTotal = ((Date.now() - t0) / 1000).toFixed(1);
+      toast.success(`Import réussi en ${tTotal}s`, { description: data.message });
+      setImportProgress(`✅ Import réussi en ${tTotal}s — ${data.message}`);
       await fetchTabMetrics("all");
       setTimeout(() => {
         setImportProgress(null);
-      }, 3000);
+      }, 5000);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Erreur lors de l'import";
-      toast.error(msg);
-      setImportProgress(`✗ ${msg}`);
+      const tTotal = ((Date.now() - t0) / 1000).toFixed(1);
+      toast.error(`Échec après ${tTotal}s : ${msg}`);
+      setImportProgress(`❌ Échec après ${tTotal}s : ${msg}`);
     } finally {
       setIsImporting(false);
     }

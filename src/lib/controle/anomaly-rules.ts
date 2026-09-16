@@ -391,10 +391,17 @@ export interface FullAuditResult {
   scoreConformite: number; // 0 à 100
 }
 
+export interface RunFullAuditOptions {
+  sales?: RawSaleForAudit[];
+  declaredTvaAmount?: number;
+  comptesValides?: Set<string>;
+}
+
 export function runFullAnomalyDetection(
   ecritures: RawEcritureForAudit[],
   sales?: RawSaleForAudit[],
-  declaredTvaAmount?: number
+  declaredTvaAmount?: number,
+  comptesValides?: Set<string>
 ): FullAuditResult {
   const anomalies: AnomalyReportItem[] = [];
 
@@ -426,6 +433,21 @@ export function runFullAnomalyDetection(
     if (tvaGap) anomalies.push(tvaGap);
   }
 
+  // 6. Comptes SYSCOHADA inexistants (si plan fourni)
+  if (comptesValides && comptesValides.size > 0) {
+    const comptesAnom = checkComptesExistants(ecritures, comptesValides);
+    anomalies.push(...comptesAnom);
+  }
+
+  // 7. Taux sociaux incorrects (CNSS/AMU)
+  const tauxSociauxAnom = checkTauxSocial(ecritures);
+  anomalies.push(...tauxSociauxAnom);
+
+  // 8. Taux de retenue sur loyers incorrects
+  const tauxLoyerAnom = checkTauxRetenueLoyer(ecritures);
+  anomalies.push(...tauxLoyerAnom);
+
+  // Calcul des compteurs APRES toutes les regles
   const bloquantes = anomalies.filter(
     (a) => a.severite === SeveriteAnomalie.BLOQUANT
   ).length;
@@ -639,6 +661,180 @@ export function runInvoiceLevelDetection(
     if (hist) {
       const anormal = checkMontantAnormal(f, hist);
       if (anormal) anomalies.push(anormal);
+    }
+  }
+
+  return anomalies;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RÈGLES APPROFONDIES — Existence comptes, taux sociaux, taux retenues
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Règle 8.1 : Compte SYSCOHADA inexistant dans le plan comptable du dossier.
+ * Détecte les comptes inventés (281830, 445600, 681300 utilisés à tort, etc.).
+ */
+export function checkComptesExistants(
+  ecritures: RawEcritureForAudit[],
+  comptesValides: Set<string>
+): AnomalyReportItem[] {
+  if (comptesValides.size === 0) return []; // Pas de plan chargé → skip
+
+  const anomalies: AnomalyReportItem[] = [];
+  const compteDejaVus = new Set<string>();
+
+  for (const ec of ecritures) {
+    for (const line of ec.lines) {
+      const code = line.accountCode;
+      if (compteDejaVus.has(code)) continue;
+
+      // Vérifier si le compte exact OU un parent existe
+      let existe = comptesValides.has(code);
+      if (!existe) {
+        // Tester les préfixes progressifs (ex: 601100 → 6011 → 601 → 60)
+        for (let len = code.length - 1; len >= 2; len--) {
+          if (comptesValides.has(code.slice(0, len))) {
+            existe = true;
+            break;
+          }
+        }
+      }
+
+      if (!existe) {
+        compteDejaVus.add(code);
+        anomalies.push({
+          type: TypeAnomalie.COMPTE_SYSCOHADA_INEXISTANT,
+          severite: SeveriteAnomalie.BLOQUANT,
+          description: `Compte ${code} (${line.libelle}) introuvable dans le plan comptable SYSCOHADA du dossier. Risque de rejet par l'OTR lors du dépôt de la liasse.`,
+          ecritureId: ec.id,
+          factureRef: ec.piece,
+          compteConcerne: code,
+          montantImpact: line.debit || line.credit,
+          metadata: { accountCode: code, firstSeen: ec.piece },
+        });
+      }
+    }
+  }
+
+  return anomalies;
+}
+
+/**
+ * Règle 8.2 : Taux de cotisations sociales incorrect.
+ * Vérifie que 664x / 661x = 22.5% (17.5% CNSS + 5% AMU) sur les écritures PAIE.
+ * Tolérance : ±2 points (arrondis).
+ */
+const TAUX_PATRONAL_ATTENDU = 0.225;
+const TOLERANCE_TAUX_SOCIAL = 0.02;
+
+export function checkTauxSocial(
+  ecritures: RawEcritureForAudit[]
+): AnomalyReportItem[] {
+  const anomalies: AnomalyReportItem[] = [];
+
+  // Grouper les écritures PAIE par pièce
+  const paieParPiece = new Map<string, RawEcritureForAudit[]>();
+  for (const ec of ecritures) {
+    if (ec.journal !== "PAIE") continue;
+    const list = paieParPiece.get(ec.piece) ?? [];
+    list.push(ec);
+    paieParPiece.set(ec.piece, list);
+  }
+
+  for (const [piece, ecrituresPaie] of paieParPiece.entries()) {
+    let totalBrut = 0;
+    let totalChargesPatronales = 0;
+
+    for (const ec of ecrituresPaie) {
+      for (const line of ec.lines) {
+        // Brut : comptes 661, 662
+        if (line.accountCode.startsWith("661") || line.accountCode.startsWith("662")) {
+          totalBrut += line.debit - line.credit;
+        }
+        // Charges patronales : comptes 664, 663
+        if (line.accountCode.startsWith("664") || line.accountCode.startsWith("663")) {
+          totalChargesPatronales += line.debit - line.credit;
+        }
+      }
+    }
+
+    if (totalBrut <= 0) continue;
+
+    const tauxApplique = totalChargesPatronales / totalBrut;
+    const ecart = Math.abs(tauxApplique - TAUX_PATRONAL_ATTENDU);
+
+    if (ecart > TOLERANCE_TAUX_SOCIAL) {
+      const attendu = Math.round(totalBrut * TAUX_PATRONAL_ATTENDU);
+      anomalies.push({
+        type: TypeAnomalie.TAUX_SOCIAL_INCORRECT,
+        severite: SeveriteAnomalie.AVERTISSEMENT,
+        description: `Paie "${piece}" : taux patronal appliqué ${(tauxApplique * 100).toFixed(2)}% ≠ 22.5% attendu (CNSS 17.5% + AMU 5%). Charges comptabilisées : ${totalChargesPatronales.toLocaleString("fr-FR")} FCFA vs ${attendu.toLocaleString("fr-FR")} FCFA attendu.`,
+        factureRef: piece,
+        montantImpact: Math.abs(attendu - totalChargesPatronales),
+        metadata: { totalBrut, totalChargesPatronales, tauxApplique, tauxAttendu: TAUX_PATRONAL_ATTENDU },
+      });
+    }
+  }
+
+  return anomalies;
+}
+
+/**
+ * Règle 8.3 : Taux de retenue sur loyers incorrect.
+ * Vérifie que 442100 / (621x + 622x) = 8.75% (3.75% TFPB + 5% IRPP).
+ * Tolérance : ±0.5 point.
+ */
+const TAUX_RETENUE_LOYER_ATTENDU = 0.0875;
+const TOLERANCE_TAUX_RETENUE = 0.005;
+
+export function checkTauxRetenueLoyer(
+  ecritures: RawEcritureForAudit[]
+): AnomalyReportItem[] {
+  const anomalies: AnomalyReportItem[] = [];
+
+  // Grouper par pièce
+  const pieceMap = new Map<string, RawEcritureForAudit[]>();
+  for (const ec of ecritures) {
+    const list = pieceMap.get(ec.piece) ?? [];
+    list.push(ec);
+    pieceMap.set(ec.piece, list);
+  }
+
+  for (const [piece, ecrituresPiece] of pieceMap.entries()) {
+    let totalLoyer = 0;
+    let totalRetenue = 0;
+    let contientLoyer = false;
+
+    for (const ec of ecrituresPiece) {
+      for (const line of ec.lines) {
+        // Loyer : comptes 621, 622
+        if (line.accountCode.startsWith("621") || line.accountCode.startsWith("622")) {
+          totalLoyer += line.debit - line.credit;
+        }
+        // Retenue : compte 442100
+        if (line.accountCode === "442100" || line.accountCode.startsWith("4421")) {
+          totalRetenue += line.credit - line.debit;
+          contientLoyer = true;
+        }
+      }
+    }
+
+    if (!contientLoyer || totalLoyer <= 0 || totalRetenue <= 0) continue;
+
+    const tauxApplique = totalRetenue / totalLoyer;
+    const ecart = Math.abs(tauxApplique - TAUX_RETENUE_LOYER_ATTENDU);
+
+    if (ecart > TOLERANCE_TAUX_RETENUE) {
+      const attendu = Math.round(totalLoyer * TAUX_RETENUE_LOYER_ATTENDU);
+      anomalies.push({
+        type: TypeAnomalie.TAUX_RETENUE_INCORRECT,
+        severite: SeveriteAnomalie.BLOQUANT,
+        description: `Retenue loyer "${piece}" : taux appliqué ${(tauxApplique * 100).toFixed(2)}% ≠ 8.75% (LPF art. 100). Retenue comptabilisée : ${totalRetenue.toLocaleString("fr-FR")} FCFA vs ${attendu.toLocaleString("fr-FR")} FCFA attendu.`,
+        factureRef: piece,
+        montantImpact: Math.abs(attendu - totalRetenue),
+        metadata: { totalLoyer, totalRetenue, tauxApplique, tauxAttendu: TAUX_RETENUE_LOYER_ATTENDU },
+      });
     }
   }
 

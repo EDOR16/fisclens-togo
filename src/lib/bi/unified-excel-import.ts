@@ -3,13 +3,17 @@
  * - Accepte un classeur unique multi-onglets (Produits, Clients, Ventes, Achats)
  * - Tolérant sur la casse et les accents des noms de colonnes
  * - Crée automatiquement les entités manquantes (Clients / Produits) pour éviter les rejets
+ * - Insertions en batch (createMany) pour les gros volumes
  */
 
 import { read, utils } from "xlsx";
 import { prisma } from "@/lib/server/prisma";
 import { normalizeTogoRegion } from "@/lib/bi/togo-regions";
 
-// ─── Normalisation des clés d'objets ──────────────────────────────────────────
+// ─── Taille des lots d'insertion ───────────────────────────────────────────
+const BATCH_SIZE = 1000;
+
+// ─── Normalisation des clés d'objets ───────────────────────────────────────
 
 function normalizeRow(row: Record<string, any>): Record<string, any> {
   const normalized: Record<string, any> = {};
@@ -27,8 +31,18 @@ function normalizeRow(row: Record<string, any>): Record<string, any> {
 
 function parseNumber(val: any, fallback = 0): number {
   if (val === undefined || val === null || val === "") return fallback;
-  const cleaned = String(val).replace(/[\s,]/g, (m) => (m === "," ? "." : ""));
-  const num = Number(cleaned);
+  if (typeof val === "number") return isNaN(val) ? fallback : Math.round(val);
+  let str = String(val).trim().replace(/\s/g, "");
+  if (str.includes(",") && str.includes(".")) {
+    if (str.lastIndexOf(",") > str.lastIndexOf(".")) {
+      str = str.replace(/\./g, "").replace(",", ".");
+    } else {
+      str = str.replace(/,/g, "");
+    }
+  } else if (str.includes(",")) {
+    str = str.replace(",", ".");
+  }
+  const num = Number(str);
   return isNaN(num) ? fallback : Math.round(num);
 }
 
@@ -55,7 +69,17 @@ function parseDate(val: any): string {
   return new Date().toISOString().split("T")[0];
 }
 
-// ─── Importation Unifiée ──────────────────────────────────────────────────────
+/** Insérer un tableau en lots de BATCH_SIZE via createMany */
+async function insertInBatches<T extends object>(
+  items: T[],
+  inserter: (batch: T[]) => Promise<any>
+): Promise<void> {
+  for (let i = 0; i < items.length; i += BATCH_SIZE) {
+    await inserter(items.slice(i, i + BATCH_SIZE));
+  }
+}
+
+// ─── Importation Unifiée ───────────────────────────────────────────────────
 
 export interface UnifiedImportReport {
   success: boolean;
@@ -73,7 +97,14 @@ export async function processUnifiedExcel(
   buffer: Buffer,
   tenantId: string
 ): Promise<UnifiedImportReport> {
-  const workbook = read(buffer, { type: "buffer", cellDates: true });
+  const workbook = read(buffer, {
+    type: "buffer",
+    cellDates: false,
+    dense: true,
+    cellStyles: false,
+    cellFormula: false,
+    cellHTML: false,
+  });
   const sheetNames = workbook.SheetNames;
 
   if (!sheetNames.length) {
@@ -126,7 +157,7 @@ export async function processUnifiedExcel(
     return null;
   };
 
-  // ── 1. TRAITEMENT PRODUITS ────────────────────────────────────────────────
+  // ── 1. TRAITEMENT PRODUITS ───────────────────────────────────────────────
   const productRows = getRowsForSheet([
     "catalogue_produits",
     "catalogueproduits",
@@ -158,7 +189,7 @@ export async function processUnifiedExcel(
     }
   }
 
-  // ── 2. TRAITEMENT CLIENTS ─────────────────────────────────────────────────
+  // ── 2. TRAITEMENT CLIENTS ────────────────────────────────────────────────
   const clientRows = getRowsForSheet([
     "repertoire_clients",
     "repertoireclients",
@@ -189,7 +220,7 @@ export async function processUnifiedExcel(
     }
   }
 
-  // ── 3. TRAITEMENT ACHATS ──────────────────────────────────────────────────
+  // ── 3. TRAITEMENT ACHATS ─────────────────────────────────────────────────
   const purchaseRows = getRowsForSheet([
     "achats",
     "achat",
@@ -198,32 +229,45 @@ export async function processUnifiedExcel(
     "commandes",
   ]);
   if (purchaseRows && purchaseRows.length) {
+    // Passe 1 : résolution des produits manquants (création en lot)
+    const newProductCodes = new Set<string>();
+    for (const r of purchaseRows) {
+      const productCode = String(r.codearticle || r.codeproduit || r.produit || r.code || "PRD-GEN").trim().toUpperCase();
+      if (!productMap.has(productCode)) newProductCodes.add(productCode);
+    }
+    if (newProductCodes.size > 0) {
+      const toCreate = Array.from(newProductCodes).map((code) => ({
+        tenantId,
+        code,
+        designation: `Produit ${code}`,
+        category: "Général",
+        priceVentHT: 10000,
+        costAchatHT: 7000,
+        margineCible: 30,
+      }));
+      await prisma.productRef.createMany({ data: toCreate, skipDuplicates: true });
+      const created = await prisma.productRef.findMany({
+        where: { tenantId, code: { in: Array.from(newProductCodes) } },
+        select: { id: true, code: true },
+      });
+      for (const p of created) productMap.set(p.code, p.id);
+      report.counts.products += created.length;
+    }
+
+    // Passe 2 : construction du batch
+    type PurchaseData = {
+      tenantId: string; date: string; refCommande: string; supplierId: string;
+      productId: string; quantity: number; puHT: number; montantHT: number;
+      tauxTVA: number; montantTVA: number; montantTTC: number;
+    };
+    const purchaseBatch: PurchaseData[] = [];
+
     for (const [idx, r] of purchaseRows.entries()) {
       const date = parseDate(r.date);
       const refCommande = String(r.refcommande || r.ref || r.numerocommande || `CMD-${idx + 1}`).trim();
       const supplierId = String(r.codefournisseur || r.fournisseur || r.supplier || "FOUR-DIVERS").trim();
       const productCode = String(r.codearticle || r.codeproduit || r.produit || r.code || "PRD-GEN").trim().toUpperCase();
-
-      // Si le produit n'existe pas encore, le créer à la volée !
-      let productId = productMap.get(productCode);
-      if (!productId) {
-        const newProd = await prisma.productRef.upsert({
-          where: { tenantId_code: { tenantId, code: productCode } },
-          update: {},
-          create: {
-            tenantId,
-            code: productCode,
-            designation: `Produit ${productCode}`,
-            category: "Général",
-            priceVentHT: 10000,
-            costAchatHT: 7000,
-            margineCible: 30,
-          },
-        });
-        productId = newProd.id;
-        productMap.set(productCode, productId);
-        report.counts.products++;
-      }
+      const productId = productMap.get(productCode)!;
 
       const quantity = Math.max(1, parseNumber(r.quantite || r.qte || r.nombre, 1));
       const puHT = parseNumber(r.puht || r.prixunitaire || r.prix, 5000);
@@ -232,26 +276,17 @@ export async function processUnifiedExcel(
       const montantTVA = parseNumber(r.montanttva, Math.round((montantHT * tauxTVA) / 100));
       const montantTTC = parseNumber(r.montantttc || r.totalttc, montantHT + montantTVA);
 
-      await prisma.purchase.create({
-        data: {
-          tenantId,
-          date,
-          refCommande,
-          supplierId,
-          productId,
-          quantity,
-          puHT,
-          montantHT,
-          tauxTVA,
-          montantTVA,
-          montantTTC,
-        },
-      });
-      report.counts.purchases++;
+      purchaseBatch.push({ tenantId, date, refCommande, supplierId, productId, quantity, puHT, montantHT, tauxTVA, montantTVA, montantTTC });
     }
+
+    // Passe 3 : insertion en lots
+    await insertInBatches(purchaseBatch, (batch) =>
+      prisma.purchase.createMany({ data: batch, skipDuplicates: false })
+    );
+    report.counts.purchases += purchaseBatch.length;
   }
 
-  // ── 4. TRAITEMENT VENTES ──────────────────────────────────────────────────
+  // ── 4. TRAITEMENT VENTES ─────────────────────────────────────────────────
   // Si la feuille "Ventes" existe OU si le classeur n'a qu'une seule feuille non encore traitée
   let saleRows = getRowsForSheet([
     "ventes",
@@ -270,54 +305,76 @@ export async function processUnifiedExcel(
   }
 
   if (saleRows && saleRows.length) {
+    // Passe 1 : résolution des clients/produits manquants (création en lot)
+    const newClientCodes = new Set<string>();
+    const newSaleProductCodes = new Set<string>();
+    const zoneByClientCode = new Map<string, string>();
+
+    for (const r of saleRows) {
+      const clientCode = String(r.codeClient || r.codeclient || r.client || r.code || "CLI-DIVERS").trim().toUpperCase();
+      const productCode = String(r.codeproduit || r.produit || r.article || "PRD-GEN").trim().toUpperCase();
+      if (!clientMap.has(clientCode)) {
+        newClientCodes.add(clientCode);
+        if (!zoneByClientCode.has(clientCode)) {
+          const saleZone = String(r.zonegeo || r.zone || r.ville || r.region || "").trim();
+          zoneByClientCode.set(clientCode, saleZone ? normalizeTogoRegion(saleZone) : "Maritime");
+        }
+      }
+      if (!productMap.has(productCode)) newSaleProductCodes.add(productCode);
+    }
+
+    if (newClientCodes.size > 0) {
+      const toCreateClients = Array.from(newClientCodes).map((code) => ({
+        tenantId,
+        code,
+        name: `Client ${code}`,
+        segment: "Standard",
+        zoneGeo: zoneByClientCode.get(code) ?? "Maritime",
+        encoursAutorise: 5000000,
+      }));
+      await prisma.clientRef.createMany({ data: toCreateClients, skipDuplicates: true });
+      const createdClients = await prisma.clientRef.findMany({
+        where: { tenantId, code: { in: Array.from(newClientCodes) } },
+        select: { id: true, code: true },
+      });
+      for (const c of createdClients) clientMap.set(c.code, c.id);
+      report.counts.clients += createdClients.length;
+    }
+
+    if (newSaleProductCodes.size > 0) {
+      const toCreateProducts = Array.from(newSaleProductCodes).map((code) => ({
+        tenantId,
+        code,
+        designation: `Article ${code}`,
+        category: "Général",
+        priceVentHT: 15000,
+        costAchatHT: 10000,
+        margineCible: 33,
+      }));
+      await prisma.productRef.createMany({ data: toCreateProducts, skipDuplicates: true });
+      const createdProds = await prisma.productRef.findMany({
+        where: { tenantId, code: { in: Array.from(newSaleProductCodes) } },
+        select: { id: true, code: true },
+      });
+      for (const p of createdProds) productMap.set(p.code, p.id);
+      report.counts.products += createdProds.length;
+    }
+
+    // Passe 2 : construction du batch
+    type SaleData = {
+      tenantId: string; date: string; refFacture: string; clientId: string;
+      productId: string; quantity: number; puHT: number; montantHT: number;
+      tauxTVA: number; montantTVA: number; montantTTC: number;
+    };
+    const saleBatch: SaleData[] = [];
+
     for (const [idx, r] of saleRows.entries()) {
       const date = parseDate(r.date);
       const refFacture = String(r.reffacture || r.ref || r.numerofacture || `FAC-${idx + 1}`).trim();
       const clientCode = String(r.codeClient || r.codeclient || r.client || r.code || "CLI-DIVERS").trim().toUpperCase();
       const productCode = String(r.codeproduit || r.produit || r.article || "PRD-GEN").trim().toUpperCase();
-
-      // Création automatique du client à la volée s'il n'existe pas
-      let clientId = clientMap.get(clientCode);
-      if (!clientId) {
-        const saleZone = String(r.zonegeo || r.zone || r.ville || r.region || "").trim();
-        const clientZone = saleZone ? normalizeTogoRegion(saleZone) : "Maritime";
-        const newClient = await prisma.clientRef.upsert({
-          where: { tenantId_code: { tenantId, code: clientCode } },
-          update: {},
-          create: {
-            tenantId,
-            code: clientCode,
-            name: `Client ${clientCode}`,
-            segment: "Standard",
-            zoneGeo: clientZone,
-            encoursAutorise: 5000000,
-          },
-        });
-        clientId = newClient.id;
-        clientMap.set(clientCode, clientId);
-        report.counts.clients++;
-      }
-
-      // Création automatique du produit à la volée s'il n'existe pas
-      let productId = productMap.get(productCode);
-      if (!productId) {
-        const newProd = await prisma.productRef.upsert({
-          where: { tenantId_code: { tenantId, code: productCode } },
-          update: {},
-          create: {
-            tenantId,
-            code: productCode,
-            designation: `Article ${productCode}`,
-            category: "Général",
-            priceVentHT: 15000,
-            costAchatHT: 10000,
-            margineCible: 33,
-          },
-        });
-        productId = newProd.id;
-        productMap.set(productCode, productId);
-        report.counts.products++;
-      }
+      const clientId = clientMap.get(clientCode)!;
+      const productId = productMap.get(productCode)!;
 
       const quantity = Math.max(1, parseNumber(r.quantite || r.qte || r.nombre, 1));
       const puHT = parseNumber(r.puht || r.prixunitaire || r.prix, 10000);
@@ -326,23 +383,14 @@ export async function processUnifiedExcel(
       const montantTVA = parseNumber(r.montanttva, Math.round((montantHT * tauxTVA) / 100));
       const montantTTC = parseNumber(r.montantttc || r.totalttc, montantHT + montantTVA);
 
-      await prisma.sale.create({
-        data: {
-          tenantId,
-          date,
-          refFacture,
-          clientId,
-          productId,
-          quantity,
-          puHT,
-          montantHT,
-          tauxTVA,
-          montantTVA,
-          montantTTC,
-        },
-      });
-      report.counts.sales++;
+      saleBatch.push({ tenantId, date, refFacture, clientId, productId, quantity, puHT, montantHT, tauxTVA, montantTVA, montantTTC });
     }
+
+    // Passe 3 : insertion en lots de BATCH_SIZE
+    await insertInBatches(saleBatch, (batch) =>
+      prisma.sale.createMany({ data: batch, skipDuplicates: false })
+    );
+    report.counts.sales += saleBatch.length;
   }
 
   const totalImported =

@@ -8,19 +8,29 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { withTenantGuard, GuardContext } from "@/lib/server/with-guard";
-import { calculateGlobalKPIs, getTopProducts, getProfitabilityByCategory } from "@/lib/bi/aggregates";
+import { calculateGlobalKPIs, getTopProducts, getProfitabilityByCategory, getTopClients } from "@/lib/bi/aggregates";
 import { forecastCA } from "@/lib/bi/forecasting";
 import {
   analyzeBusinessData,
   fallbackRulesAnalysis,
   type BIDataContext,
 } from "@/lib/integrations/qwen/bi-advisor";
-import { prisma } from "@/lib/server/prisma";
+
+// ── Cache in-memory 5 minutes par tenant ────────────────────────────────────
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const cache = new Map<string, { data: unknown; expiresAt: number }>();
 
 export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardContext) => {
   try {
+    // ── Cache hit ? ──────────────────────────────────────────────────────────
+    const cacheKey = `ai-analysis:${tenantId}`;
+    const cached = cache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return NextResponse.json(cached.data);
+    }
+
     // ── 1. Récupérer toutes les données BI en parallèle ──────────────────────
-    const [kpis, topProducts, categories, forecast, sales] = await Promise.all([
+    const [kpis, topProducts, categories, forecast, topClients] = await Promise.all([
       calculateGlobalKPIs(tenantId).catch(() => ({
         ca: 0,
         margeBrute: 0,
@@ -32,23 +42,12 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
       getTopProducts(tenantId, 5).catch(() => []),
       getProfitabilityByCategory(tenantId).catch(() => []),
       forecastCA(tenantId, 30).catch(() => ({ projections: [], totalForecast: 0, mape: 5 })),
-      prisma.sale
-        .findMany({
-          where: { tenantId },
-          include: { client: true },
-        })
-        .catch(() => []),
+      // SQL agrégé — plus de findMany+include
+      getTopClients(tenantId, 1).catch(() => []),
     ]);
 
-    // ── 2. Calculer la concentration du 1er client ───────────────────────────
-    const clientTotals = new Map<string, number>();
-    for (const sale of sales) {
-      const code = sale.client?.code ?? "unknown";
-      clientTotals.set(code, (clientTotals.get(code) ?? 0) + sale.montantHT);
-    }
-    const topClientAmount = Math.max(...Array.from(clientTotals.values()), 0);
-    const topClientShare =
-      kpis.ca > 0 ? Math.round((topClientAmount / kpis.ca) * 100) : 0;
+    // ── 2. Concentration du 1er client (déjà calculé via SQL) ────────────────
+    const topClientShare = topClients[0]?.weight ?? 0;
 
     // ── 3. Estimer la tendance des ventes ─────────────────────────────────────
     let forecastTotal = 0;
@@ -96,7 +95,7 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
     }
 
     // ── 6. Retourner la réponse ───────────────────────────────────────────────
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: {
         healthScore: analysis.healthScore,
@@ -116,7 +115,12 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
           generatedAt: analysis.generatedAt,
         },
       },
-    });
+    };
+
+    // Stocker en cache
+    cache.set(cacheKey, { data: responseData, expiresAt: Date.now() + CACHE_TTL_MS });
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error("[BI] Erreur API ai-analysis:", error);
     return NextResponse.json(

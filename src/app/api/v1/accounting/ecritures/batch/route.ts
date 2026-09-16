@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { withGuard } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
+import crypto from "crypto";
 
 const LineSchema = z
   .object({
@@ -115,31 +116,46 @@ export const POST = withGuard(async (req: NextRequest, { tenantId, user }) => {
           });
         }
 
-        for (const entry of entries) {
-          await tx.ecriture.create({
-            data: {
-              tenantId,
-              journal: entry.journal,
-              date: entry.date,
-              piece: entry.piece,
-              libelle:
-                entry.libelle ||
-                entry.lines[0]?.libelle ||
-                `Écriture ${entry.piece}`,
-              status: "VALIDE",
-              lines: {
-                create: entry.lines.map((l) => ({
-                  accountCode: l.accountCode,
-                  libelle: l.libelle,
-                  debit: l.debit,
-                  credit: l.credit,
-                })),
-              },
-            },
-          });
-        }
+        // ── Optimisation : 2 createMany séparés (écritures puis lignes)
+        // Beaucoup plus rapide que create() en boucle sur gros volumes.
+
+        // 1. Créer toutes les écritures en bulk
+        const ecritureIds = entries.map(() => crypto.randomUUID());
+        const ecritureData = entries.map((entry, i) => ({
+          id: ecritureIds[i],
+          tenantId,
+          journal: entry.journal,
+          date: entry.date,
+          piece: entry.piece,
+          libelle:
+            entry.libelle ||
+            entry.lines[0]?.libelle ||
+            `Écriture ${entry.piece}`,
+          status: "VALIDE",
+        }));
+
+        await tx.ecriture.createMany({
+          data: ecritureData,
+          skipDuplicates: false,
+        });
+
+        // 2. Créer toutes les lignes en bulk
+        const allLines = entries.flatMap((entry, i) =>
+          entry.lines.map((l) => ({
+            ecritureId: ecritureIds[i],
+            accountCode: l.accountCode,
+            libelle: l.libelle,
+            debit: l.debit,
+            credit: l.credit,
+          }))
+        );
+
+        await tx.ecritureLine.createMany({
+          data: allLines,
+          skipDuplicates: false,
+        });
       },
-      { timeout: 30000 }
+      { timeout: 180000 }
     );
   } catch (err: any) {
     console.error("[BATCH_IMPORT_ERROR]", err);

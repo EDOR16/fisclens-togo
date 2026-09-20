@@ -65,19 +65,19 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
 
   // 1. Salaires bruts (Compte 661xxx)
   const brutLines = lines.filter((l) => l.accountCode.startsWith("661") || l.accountCode.startsWith("662") || l.accountCode.startsWith("663"));
-  const totalBrut = brutLines.reduce((s, l) => s + (l.debit - l.credit), 0);
+  const totalBrut = brutLines.reduce((s, l) => s + (Number(l.debit) - Number(l.credit)), 0);
 
   // 2. Charges patronales CNSS & AMU (Compte 664xxx)
   const patronalesLines = lines.filter((l) => l.accountCode.startsWith("664"));
-  const totalCnssPatronale = patronalesLines.reduce((s, l) => s + (l.debit - l.credit), 0);
+  const totalCnssPatronale = patronalesLines.reduce((s, l) => s + (Number(l.debit) - Number(l.credit)), 0);
 
   // 3. IRPP retenu à la source (Compte 4471xxx / 447xxx)
   const irppLines = lines.filter((l) => l.accountCode.startsWith("4471") || l.accountCode.startsWith("447"));
-  const totalIrpp = irppLines.reduce((s, l) => s + (l.credit - l.debit), 0);
+  const totalIrpp = irppLines.reduce((s, l) => s + (Number(l.credit) - Number(l.debit)), 0);
 
   // 4. Sécurité sociale CNSS globale (Compte 431xxx)
   const cnssLines = lines.filter((l) => l.accountCode.startsWith("431") || l.accountCode.startsWith("438"));
-  const totalCnss = cnssLines.reduce((s, l) => s + (l.credit - l.debit), 0);
+  const totalCnss = cnssLines.reduce((s, l) => s + (Number(l.credit) - Number(l.debit)), 0);
   // CNSS salariale estimée = Total CNSS due - CNSS patronale (ou estimation 4% sur brut)
   const totalCnssSalariale = Math.max(0, totalCnss - totalCnssPatronale) || Math.round(totalBrut * 0.04);
 
@@ -88,7 +88,7 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   // légitimement 0 (accrual et paiement soldés sur la même période), le fallback
   // Math.max(0, totalBrut - totalCnssSalariale - totalIrpp) écrasait ce résultat correct
   // par une estimation potentiellement fausse en cas de paiement partiel ou différé.
-  const totalNet = netLines.reduce((s, l) => s + l.debit, 0);
+  const totalNet = netLines.reduce((s, l) => s + Number(l.debit), 0);
 
   // Regroupement par mois pour l'historique
   const monthlyMap = new Map<string, {
@@ -112,16 +112,16 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
     };
 
     if (l.accountCode.startsWith("661") || l.accountCode.startsWith("662")) {
-      existing.brut += (l.debit - l.credit);
+      existing.brut += (Number(l.debit) - Number(l.credit));
     }
     if (l.accountCode.startsWith("664")) {
-      existing.cnssPatronale += (l.debit - l.credit);
+      existing.cnssPatronale += (Number(l.debit) - Number(l.credit));
     }
     if (l.accountCode.startsWith("4471") || l.accountCode.startsWith("447")) {
-      existing.irpp += (l.credit - l.debit);
+      existing.irpp += (Number(l.credit) - Number(l.debit));
     }
     if (l.accountCode.startsWith("421")) {
-      existing.net += l.debit;
+      existing.net += Number(l.debit);
     }
     existing.nbEcritures += 1;
     monthlyMap.set(mois, existing);

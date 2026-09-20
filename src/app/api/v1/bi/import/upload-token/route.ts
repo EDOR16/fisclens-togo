@@ -1,26 +1,28 @@
-﻿import { NextRequest, NextResponse } from "next/server";
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+﻿import { NextResponse } from "next/server";
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody;
+/**
+ * GET/POST /api/v1/bi/import/upload-token
+ * Endpoint legacy Vercel Blob — supprimé car Vercel Blob n'est plus configuré.
+ * L'import Excel se fait désormais directement via FormData sur /api/v1/bi/import/unified.
+ */
+export async function GET() {
+  return NextResponse.json(
+    {
+      error: "DEPRECATED",
+      message:
+        "L'upload via token Vercel Blob n'est plus supporté. Utilisez l'import Excel unifié via FormData sur /api/v1/bi/import/unified.",
+    },
+    { status: 410 }
+  );
+}
 
-  try {
-    const jsonResponse = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async () => {
-        return {
-          allowedContentTypes: [
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "application/vnd.ms-excel",
-          ],
-          maximumSizeInBytes: 50 * 1024 * 1024,
-        };
-      },
-      onUploadCompleted: async () => {},
-    });
-    return NextResponse.json(jsonResponse);
-  } catch (error) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
-  }
+export async function POST() {
+  return NextResponse.json(
+    {
+      error: "DEPRECATED",
+      message:
+        "L'upload via token Vercel Blob n'est plus supporté. Utilisez l'import Excel unifié via FormData sur /api/v1/bi/import/unified.",
+    },
+    { status: 410 }
+  );
 }

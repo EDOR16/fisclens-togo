@@ -96,7 +96,7 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
       const clientSales = await prisma.sale.findMany({
         where: { clientId: client.id, tenantId },
       });
-      const totalAmount = clientSales.reduce((sum, s) => sum + s.montantTTC, 0);
+      const totalAmount = clientSales.reduce((sum, s) => sum + Number(s.montantTTC), 0);
 
       if (totalAmount > client.encoursAutorise) {
         encourseAlerts.push({

@@ -124,11 +124,11 @@ export async function runCspEvaluation(
   let totalCreditGlobal = 0;
 
   for (const l of lines) {
-    totalDebitGlobal += l.debit;
-    totalCreditGlobal += l.credit;
+    totalDebitGlobal += Number(l.debit);
+    totalCreditGlobal += Number(l.credit);
     const current = balanceMap.get(l.accountCode) || { debit: 0, credit: 0, solde: 0 };
-    current.debit += l.debit;
-    current.credit += l.credit;
+    current.debit += Number(l.debit);
+    current.credit += Number(l.credit);
     current.solde = current.debit - current.credit;
     balanceMap.set(l.accountCode, current);
   }
@@ -145,7 +145,7 @@ export async function runCspEvaluation(
     .filter(([code]) => code.startsWith("6418") || code.startsWith("658"))
     .reduce((sum, [, val]) => sum + (val.debit - val.credit), 0);
 
-  const caTotal = Math.max(totalCaClasse7, sales.reduce((acc, s) => acc + s.montantHT, 0));
+  const caTotal = Math.max(totalCaClasse7, sales.reduce((acc, s) => acc + Number(s.montantHT), 0));
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PILIER 1 : ÉQUILIBRE ET INTÉGRITÉ COMPTABLE SYSCOHADA (Poids : 20 pts)
@@ -218,8 +218,8 @@ export async function runCspEvaluation(
   const p2Controles: CspCheckItem[] = [];
 
   const ventesTvaIncoherentes = sales.filter((s) => {
-    const expectedTva = Math.round((s.montantHT * s.tauxTVA) / 100);
-    return Math.abs(s.montantTVA - expectedTva) > 5;
+    const expectedTva = Math.round((Number(s.montantHT) * Number(s.tauxTVA)) / 100);
+    return Math.abs(Number(s.montantTVA) - expectedTva) > 5;
   });
   const isTvaCoherente = ventesTvaIncoherentes.length === 0;
   p2Controles.push({
@@ -230,7 +230,7 @@ export async function runCspEvaluation(
     statut: isTvaCoherente ? "CONFORME" : "NON_CONFORME",
     scoreObtenu: isTvaCoherente ? 8 : 2,
     scoreMax: 8,
-    impactFcfa: ventesTvaIncoherentes.length > 0 ? ventesTvaIncoherentes.reduce((a, b) => a + b.montantTVA, 0) : undefined,
+    impactFcfa: ventesTvaIncoherentes.length > 0 ? ventesTvaIncoherentes.reduce((a, b) => a + Number(b.montantTVA), 0) : undefined,
     recommandation: isTvaCoherente
       ? "La TVA collectée est parfaitement calculée à 18% sur l'ensemble des ventes."
       : `${ventesTvaIncoherentes.length} factures présentent une incohérence de calcul de TVA. Réajuster les bordereaux.`,

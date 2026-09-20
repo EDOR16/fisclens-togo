@@ -97,17 +97,17 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
     const classe = parseInt(code[0] || "0", 10);
     const existing = accountsMap.get(code);
     if (existing) {
-      existing.debit += line.debit;
-      existing.credit += line.credit;
+      existing.debit += Number(line.debit);
+      existing.credit += Number(line.credit);
       existing.solde = existing.debit - existing.credit;
     } else {
       accountsMap.set(code, {
         code,
         libelle: planMap.get(code) || getLabel(code, line.libelle),
         classe,
-        debit: line.debit,
-        credit: line.credit,
-        solde: line.debit - line.credit,
+        debit: Number(line.debit),
+        credit: Number(line.credit),
+        solde: Number(line.debit) - Number(line.credit),
       });
     }
   }
@@ -117,7 +117,7 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   );
 
   function toLine(a: AccountEntry, montant?: number): FinancialLine {
-    const m = montant ?? Math.abs(a.solde);
+    const m = montant ?? Math.abs(Number(a.solde));
     return { code: a.code, libelle: a.libelle, montantBrut: m, amortissement: 0, montantNet: m };
   }
 

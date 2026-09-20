@@ -27,15 +27,15 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
 
   // Calculs sur base des écritures réelles
   const ventesLines = lines.filter((l) => l.accountCode.startsWith("70"));
-  const ventesHt = ventesLines.reduce((s, l) => s + (l.credit - l.debit), 0);
+  const ventesHt = ventesLines.reduce((s, l) => s + (Number(l.credit) - Number(l.debit)), 0);
 
   // TVA Collectée (compte 4431 / 443x)
   const tvaColLines = lines.filter((l) => l.accountCode.startsWith("4431") || l.accountCode.startsWith("443"));
-  const tvaCollecteeComptabilisee = tvaColLines.reduce((s, l) => s + (l.credit - l.debit), 0);
+  const tvaCollecteeComptabilisee = tvaColLines.reduce((s, l) => s + (Number(l.credit) - Number(l.debit)), 0);
 
   // TVA Déductible sur immobilisations (compte 4451)
   const tvaImmoLines = lines.filter((l) => l.accountCode.startsWith("4451"));
-  const tvaImmo = tvaImmoLines.reduce((s, l) => s + (l.debit - l.credit), 0);
+  const tvaImmo = tvaImmoLines.reduce((s, l) => s + (Number(l.debit) - Number(l.credit)), 0);
 
   // TVA Déductible sur achats & services (comptes 4452, 4453, 4454 — exclusion stricte de 4456 TVA à décaisser)
   const tvaServicesLines = lines.filter(
@@ -44,7 +44,7 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
       l.accountCode.startsWith("4453") ||
       l.accountCode.startsWith("4454")
   );
-  const tvaServices = tvaServicesLines.reduce((s, l) => s + (l.debit - l.credit), 0);
+  const tvaServices = tvaServicesLines.reduce((s, l) => s + (Number(l.debit) - Number(l.credit)), 0);
 
   const ventesTaxablesHt = Math.max(0, ventesHt);
   const result = calculateTogoTva({

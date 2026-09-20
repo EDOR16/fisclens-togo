@@ -118,8 +118,8 @@ model EcritureLine {
   ecritureId  String
   accountCode String
   libelle     String
-  debit       Int      @default(0) // Montants entiers FCFA
-  credit      Int      @default(0) // Montants entiers FCFA
+  debit       BigInt   @default(0) // Montants entiers FCFA
+  credit      BigInt   @default(0) // Montants entiers FCFA
   createdAt   DateTime @default(now())
 
   ecriture Ecriture @relation(fields: [ecritureId], references: [id], onDelete: Cascade)
@@ -223,9 +223,9 @@ model ProductRef {
   code         String // Identifiant unique produit
   designation  String
   category     String // Catégorie produit (pour analyse)
-  priceVentHT  Int // Prix vente HT en FCFA entiers
-  costAchatHT  Int // Coût achat HT en FCFA entiers
-  margineCible Int // Marge cible % (ex 30 pour 30%)
+  priceVentHT  BigInt // Prix vente HT en FCFA entiers
+  costAchatHT  BigInt // Coût achat HT en FCFA entiers
+  margineCible Int    // Marge cible % (ex 30 pour 30%)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -245,7 +245,7 @@ model ClientRef {
   name            String
   segment         String // Segment client (VIP, Normal, Petits…)
   zoneGeo         String // Zone géographique (Lomé, Kara, Agoe…)
-  encoursAutorise Int // Encours autorisé en FCFA
+  encoursAutorise BigInt // Encours autorisé en FCFA
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -264,12 +264,12 @@ model Sale {
   refFacture String // Référence facture
   clientId   String // FK ClientRef
   productId  String // FK ProductRef
-  quantity   Int // Quantité vendue
-  puHT       Int // Prix unitaire HT (FCFA entiers)
-  montantHT  Int // Montant HT = quantity × puHT
-  tauxTVA    Int // Taux TVA % (ex 18)
-  montantTVA Int // Montant TVA
-  montantTTC Int // Total TTC = HT + TVA
+  quantity   Int    // Quantité vendue
+  puHT       BigInt // Prix unitaire HT (FCFA entiers)
+  montantHT  BigInt // Montant HT = quantity × puHT
+  tauxTVA    Int    // Taux TVA % (ex 18)
+  montantTVA BigInt // Montant TVA
+  montantTTC BigInt // Total TTC = HT + TVA
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -290,12 +290,12 @@ model Purchase {
   refCommande String // Référence commande
   supplierId  String // Identifiant fournisseur (texte libre, pas FK)
   productId   String // FK ProductRef
-  quantity    Int // Quantité achetée
-  puHT        Int // Prix unitaire HT (FCFA entiers)
-  montantHT   Int // Montant HT
-  tauxTVA     Int // Taux TVA %
-  montantTVA  Int // Montant TVA
-  montantTTC  Int // Total TTC
+  quantity    Int    // Quantité achetée
+  puHT        BigInt // Prix unitaire HT (FCFA entiers)
+  montantHT   BigInt // Montant HT
+  tauxTVA     Int    // Taux TVA %
+  montantTVA  BigInt // Montant TVA
+  montantTTC  BigInt // Total TTC
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -312,9 +312,9 @@ model Forecast {
   tenantId   String
   type       String // CA, TRESORERIE, VENTE_PRODUIT
   date       String // YYYY-MM-DD (date de la prévision)
-  value      Int // Valeur en FCFA
-  lowerBound Int // Intervalle de confiance bas
-  upperBound Int // Intervalle de confiance haut
+  value      BigInt // Valeur en FCFA
+  lowerBound BigInt // Intervalle de confiance bas
+  upperBound BigInt // Intervalle de confiance haut
   mape       Int // MAPE % (précision du modèle)
   metadata   String? // JSON: {"productId": "...", "horizon": 30} pour détails
   createdAt  DateTime @default(now())

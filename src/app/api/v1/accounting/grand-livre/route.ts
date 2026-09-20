@@ -65,21 +65,23 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   // Calcul du solde progressif
   let cumulative = 0;
   const computedLines = lines.map((l) => {
-    cumulative += l.debit - l.credit;
+    // ✅ Conversion explicite BigInt -> Number pour le calcul du solde progressif
+    cumulative += Number(l.debit) - Number(l.credit);
     return {
       id: l.id,
       date: l.ecriture.date,
       piece: l.ecriture.piece,
       journal: l.ecriture.journal,
       libelle: l.libelle,
-      debit: l.debit,
-      credit: l.credit,
+      debit: Number(l.debit),
+      credit: Number(l.credit),
       balance: cumulative,
     };
   });
 
-  const totalDebit = lines.reduce((s, l) => s + l.debit, 0);
-  const totalCredit = lines.reduce((s, l) => s + l.credit, 0);
+  // ✅ Conversion explicite BigInt -> Number pour les totaux
+  const totalDebit = lines.reduce((s, l) => s + Number(l.debit), 0);
+  const totalCredit = lines.reduce((s, l) => s + Number(l.credit), 0);
   const finalBalance = totalDebit - totalCredit;
 
   return NextResponse.json({

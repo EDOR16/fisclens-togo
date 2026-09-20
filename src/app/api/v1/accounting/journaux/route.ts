@@ -1,5 +1,4 @@
 export const dynamic = 'force-dynamic';
-
 import { NextRequest, NextResponse } from "next/server";
 import { withGuard } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
@@ -7,37 +6,47 @@ import { prisma } from "@/lib/server/prisma";
 export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   const url = new URL(req.url);
   const journal = url.searchParams.get("journal");
-  const periode = url.searchParams.get("periode"); // YYYY-MM
+  const periode = url.searchParams.get("periode");
 
   const whereClause: {
     tenantId: string;
     journal?: string;
     date?: { startsWith: string };
-  } = {
-    tenantId,
-  };
+  } = { tenantId };
 
   if (journal) {
     whereClause.journal = journal;
   }
-
   if (periode) {
     whereClause.date = { startsWith: periode };
   }
 
   const ecritures = await prisma.ecriture.findMany({
     where: whereClause,
-    include: {
-      lines: true,
-    },
-    orderBy: [
-      { date: "desc" },
-      { createdAt: "desc" },
-    ],
+    include: { lines: true },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
   });
 
-  // Aplatir pour affichage ligne par ligne dans les journaux
-  const flatRows = ecritures.flatMap((e) =>
+  // ✅ Conversion explicite BigInt → Number pour éviter "Do not know how to serialize a BigInt"
+  const safeEcritures = ecritures.map((e) => ({
+    id: e.id,
+    journal: e.journal,
+    date: e.date,
+    piece: e.piece,
+    libelle: e.libelle,
+    status: e.status,
+    documentUrl: e.documentUrl,
+    documentName: e.documentName,
+    lines: e.lines.map((l) => ({
+      id: l.id,
+      accountCode: l.accountCode,
+      libelle: l.libelle,
+      debit: Number(l.debit),
+      credit: Number(l.credit),
+    })),
+  }));
+
+  const flatRows = safeEcritures.flatMap((e) =>
     e.lines.map((l) => ({
       id: l.id,
       ecritureId: e.id,
@@ -59,11 +68,8 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   return NextResponse.json({
     journal: journal || "ALL",
     periode: periode || "ALL",
-    ecritures,
+    ecritures: safeEcritures,
     rows: flatRows,
-    totals: {
-      totalDebit,
-      totalCredit,
-    },
+    totals: { totalDebit, totalCredit },
   });
 });

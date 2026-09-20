@@ -31,7 +31,7 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
       }
       const evo = priceEvolution.get(productCode)!;
       evo.dates.push(purchase.date);
-      evo.prices.push(purchase.puHT);
+      evo.prices.push(Number(purchase.puHT));
     }
 
     const inflationTrends = Array.from(priceEvolution.entries())

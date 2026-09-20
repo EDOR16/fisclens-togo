@@ -72,8 +72,8 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   const creditTva = Math.max(0, tvaDeductible - tvaCollectee);
 
   const formattedRecent = recentEcritures.map((e) => {
-    const debit = e.lines.reduce((s: number, l: any) => s + l.debit, 0);
-    const credit = e.lines.reduce((s: number, l: any) => s + l.credit, 0);
+    const debit = e.lines.reduce((s: number, l: any) => s + Number(l.debit), 0);
+    const credit = e.lines.reduce((s: number, l: any) => s + Number(l.credit), 0);
     return {
       id: e.id,
       date: e.date,

@@ -1,60 +1,51 @@
 ﻿export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 1000;
 export const runtime = "nodejs";
 export const fetchCache = "force-no-store";
 
 /**
  * POST /api/v1/bi/import/unified
- * Recoit une URL de blob (upload direct navigateur -> Vercel Blob, hors
- * limite de 4,5 Mo des Vercel Functions), telecharge le fichier cote
- * serveur, puis le traite normalement.
+ * Reçoit un fichier Excel via FormData (upload direct navigateur → serveur),
+ * puis le traite normalement via processUnifiedExcel.
+ * Plus de dépendance Vercel Blob.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { withTenantGuard, GuardContext } from "@/lib/server/with-guard";
 import { processUnifiedExcel } from "@/lib/bi/unified-excel-import";
 
-interface UnifiedImportRequest {
-  blobUrl: string;
-  fileName: string;
-}
-
 export const POST = withTenantGuard(async (req: NextRequest, { tenantId }: GuardContext) => {
   try {
-    const body = (await req.json()) as UnifiedImportRequest;
-    const { blobUrl, fileName } = body;
+    console.log("[BI] Début réception FormData...");
+    const t0 = Date.now();
 
-    if (!blobUrl) {
-      return NextResponse.json(
-        { error: "URL du fichier manquante (blobUrl requis)" },
-        { status: 400 }
-      );
+    const formData = await req.formData();
+    console.log(`[BI] FormData reçu en ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+
+    const file = formData.get("file") as File | null;
+    if (!file) {
+      return NextResponse.json({ error: "Aucun fichier fourni. Champ attendu : 'file'" }, { status: 400 });
     }
 
-    const blobResponse = await fetch(blobUrl);
-    if (!blobResponse.ok) {
-      return NextResponse.json(
-        { error: `Impossible de telecharger le fichier depuis le stockage (${blobResponse.status})` },
-        { status: 400 }
-      );
+    console.log(`[BI] Fichier: ${file.name}, taille: ${(file.size / 1024 / 1024).toFixed(2)} Mo`);
+
+    const fileName = file.name;
+    if (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls")) {
+      return NextResponse.json({ error: "Format invalide." }, { status: 400 });
     }
 
-    const arrayBuffer = await blobResponse.arrayBuffer();
+    const t1 = Date.now();
+    const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    console.log(`[BI] Buffer prêt en ${((Date.now() - t1) / 1000).toFixed(1)}s, lancement processUnifiedExcel...`);
 
+    const t2 = Date.now();
     const result = await processUnifiedExcel(buffer, tenantId);
+    console.log(`[BI] Traitement terminé en ${((Date.now() - t2) / 1000).toFixed(1)}s — ${result.message}`);
 
-    return NextResponse.json({
-      success: true,
-      message: result.message,
-      counts: result.counts,
-      warnings: result.warnings,
-    });
+    return NextResponse.json({ success: true, message: result.message, counts: result.counts, warnings: result.warnings });
   } catch (error: any) {
-    console.error("[BI] Erreur lors de l'import unifie:", error);
-    return NextResponse.json(
-      { error: error?.message || "Erreur lors du traitement du fichier Excel" },
-      { status: 400 }
-    );
+    console.error("[BI] Erreur:", error);
+    return NextResponse.json({ error: error?.message || "Erreur traitement Excel" }, { status: 400 });
   }
 });

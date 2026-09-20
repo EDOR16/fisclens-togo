@@ -53,7 +53,7 @@ export async function loadInvoiceDetectionContext(
   for (const p of allPurchases) {
     if (!p.supplierId) continue;
     const list = historiqueParFournisseur.get(p.supplierId) ?? [];
-    list.push(p.montantHT);
+    list.push(Number(p.montantHT));
     historiqueParFournisseur.set(p.supplierId, list);
   }
 
@@ -61,7 +61,7 @@ export async function loadInvoiceDetectionContext(
     const key = s.client?.name;
     if (!key) continue;
     const list = historiqueParFournisseur.get(key) ?? [];
-    list.push(s.montantHT);
+    list.push(Number(s.montantHT));
     historiqueParFournisseur.set(key, list);
   }
 

@@ -211,8 +211,7 @@ export async function forecastTreasury(
   });
 
   const baseBalance =
-    (currentBalance._sum.montantTTC || 0) -
-    (currentPurchases._sum.montantTTC || 0);
+    Number(currentBalance._sum.montantTTC || 0) - Number(currentPurchases._sum.montantTTC || 0);
 
   let runningBalance = baseBalance;
   let breakEvenDate: string | undefined;
@@ -260,11 +259,11 @@ export async function simulateWhatIf(
   const baseCA = currentCA._sum.montantHT || 0;
 
   // Appliquer changements
-  const volumeImpact = (volumeChange / 100) * baseCA;
-  const priceImpact = (priceChange / 100) * baseCA;
-  const churnImpact = -(customerChurn / 100) * baseCA;
+  const volumeImpact = (volumeChange / 100) * Number(baseCA);
+  const priceImpact = (priceChange / 100) * Number(baseCA);
+  const churnImpact = -(customerChurn / 100) * Number(baseCA);
 
-  const projectedCA = baseCA + volumeImpact + priceImpact + churnImpact;
+  const projectedCA = Number(baseCA) + volumeImpact + priceImpact + churnImpact;
 
   // Vraie marge commerciale en SQL direct : (CA - Coût d'achat) / CA
   const purchaseAgg = await prisma.purchase.aggregate({
@@ -273,7 +272,7 @@ export async function simulateWhatIf(
   });
   const totalCoutAchat = purchaseAgg._sum.montantHT || 0;
   const avgMarginPercent =
-    baseCA > 0 ? Math.round(((baseCA - totalCoutAchat) / baseCA) * 100) : 20;
+    baseCA > 0 ? Math.round(((Number(baseCA) - Number(totalCoutAchat)) / Number(baseCA)) * 100) : 20;
 
   const projectedMargin = Math.round((projectedCA * avgMarginPercent) / 100);
 

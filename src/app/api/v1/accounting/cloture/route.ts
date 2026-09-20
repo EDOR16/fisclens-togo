@@ -1,17 +1,14 @@
 export const dynamic = "force-dynamic";
-
 import { NextRequest, NextResponse } from "next/server";
 import { withGuard } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
 
 export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
-  // Récupérer le tenant pour connaître l'état de l'exercice
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
     select: { name: true, exerciceOuvert: true, createdAt: true },
   });
 
-  // Récupérer toutes les écritures et leurs lignes
   const ecritures = await prisma.ecriture.findMany({
     where: { tenantId },
     include: { lines: true },
@@ -32,25 +29,24 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
       clotureesCount++;
     }
     for (const l of ec.lines) {
-      totalDebit += l.debit;
-      totalCredit += l.credit;
+      totalDebit += Number(l.debit);
+      totalCredit += Number(l.credit);
       if (l.accountCode.startsWith("471") || l.accountCode.startsWith("472")) {
         has471 = true;
-        solde471 += l.debit - l.credit;
+        solde471 += Number(l.debit) - Number(l.credit);
       }
     }
   }
 
   const isBalanced = totalDebit === totalCredit;
   const is471Clean = !has471 || solde471 === 0;
-
   const currentYear = new Date().getFullYear();
 
   const checks = [
     {
       id: "balance",
       title: "Équilibre strict de la balance générale (Σ Débit = Σ Crédit)",
-      description: `Débit: ${totalDebit.toLocaleString("fr-FR")} FCFA | Crédit: ${totalCredit.toLocaleString("fr-FR")} FCFA (Écart: ${Math.abs(totalDebit - totalCredit)} FCFA)`,
+      description: "Débit: " + totalDebit.toLocaleString("fr-FR") + " FCFA | Crédit: " + totalCredit.toLocaleString("fr-FR") + " FCFA (Écart: " + Math.abs(totalDebit - totalCredit) + " FCFA)",
       valid: isBalanced,
       severity: "CRITICAL",
     },
@@ -58,7 +54,7 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
       id: "attente",
       title: "Comptes d'attente (471/472) totalement soldés",
       description: has471
-        ? `Solde compte d'attente: ${solde471.toLocaleString("fr-FR")} FCFA`
+        ? "Solde compte d'attente: " + solde471.toLocaleString("fr-FR") + " FCFA"
         : "Aucune opération en attente détectée",
       valid: is471Clean,
       severity: "CRITICAL",
@@ -68,14 +64,14 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
       title: "Pièces justificatives et factures rattachées",
       description: missingDocsCount === 0
         ? "Toutes les écritures possèdent leur pièce justificative"
-        : `${ecritures.length - missingDocsCount}/${ecritures.length} écritures avec pièce justificative`,
-      valid: true, // Non bloquant mais informatif
+        : (ecritures.length - missingDocsCount) + "/" + ecritures.length + " écritures avec pièce justificative",
+      valid: true,
       severity: "WARNING",
     },
     {
       id: "coherence",
       title: "Traçabilité et cohérence chronologique des écritures",
-      description: `${ecritures.length} écritures enregistrées sur le dossier`,
+      description: ecritures.length + " écritures enregistrées sur le dossier",
       valid: ecritures.length > 0,
       severity: "CRITICAL",
     },
@@ -97,21 +93,17 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   });
 });
 
-// POST : Verrouiller et clôturer l'exercice
 export const POST = withGuard(async (req: NextRequest, { tenantId, userId }) => {
-  // Verrouiller le tenant
   await prisma.tenant.update({
     where: { id: tenantId },
     data: { exerciceOuvert: false },
   });
 
-  // Marquer toutes les écritures comme CLOTURE
   await prisma.ecriture.updateMany({
     where: { tenantId },
     data: { status: "CLOTURE" },
   });
 
-  // Tracer l'audit
   await prisma.auditLog.create({
     data: {
       tenantId,
@@ -133,7 +125,6 @@ export const POST = withGuard(async (req: NextRequest, { tenantId, userId }) => 
   });
 });
 
-// PATCH : Déverrouiller l'exercice (Réservé GÉRANT / ADMIN)
 export const PATCH = withGuard(async (req: NextRequest, { tenantId, userId }) => {
   await prisma.tenant.update({
     where: { id: tenantId },

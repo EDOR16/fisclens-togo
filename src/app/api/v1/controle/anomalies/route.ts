@@ -76,10 +76,10 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
       date: s.date,
       tiersNom: "Client",
       tiersNif: null,
-      montantHT: s.montantHT,
+      montantHT: Number(s.montantHT),
       tauxTVA: s.tauxTVA,
-      montantTVA: s.montantTVA,
-      montantTTC: s.montantTTC,
+      montantTVA: Number(s.montantTVA),
+      montantTTC: Number(s.montantTTC),
       imageHash: null,
       sourceOcr: false,
     })),
@@ -90,10 +90,10 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
       date: p.date,
       tiersNom: p.supplierId,
       tiersNif: null,
-      montantHT: p.montantHT,
+      montantHT: Number(p.montantHT),
       tauxTVA: p.tauxTVA,
-      montantTVA: p.montantTVA,
-      montantTTC: p.montantTTC,
+      montantTVA: Number(p.montantTVA),
+      montantTTC: Number(p.montantTTC),
       imageHash: null,
       sourceOcr: false,
     })),
@@ -177,7 +177,7 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
     pieceDocChecked.add(pKey);
 
     if (!ec.documentUrl) {
-      const montantTotal = ec.lines.reduce((s, l) => s + l.debit, 0);
+      const montantTotal = ec.lines.reduce((s, l) => s + Number(l.debit), 0);
       const docKey = `DOC_MANQUANT_${pKey}`;
       if (!seenKey.has(docKey)) {
         seenKey.add(docKey);
@@ -210,7 +210,7 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
             libelle: `Compte d'attente non soldé (${line.accountCode})`,
             piece: ec.piece,
             compte: line.accountCode,
-            montant: line.debit || line.credit,
+            montant: Number(line.debit) || Number(line.credit),
             date: ec.date,
             gravite: "HAUTE",
             statut: "OUVERT",

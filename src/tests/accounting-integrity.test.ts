@@ -25,8 +25,8 @@ describe("📦 LOT 1 — Tests d'Intégrité des Données SYSCOHADA (10 Tests)",
       // Manque 1 000 000 au crédit !
     ];
 
-    const totalDebit = lines.reduce((s, l) => s + l.debit, 0);
-    const totalCredit = lines.reduce((s, l) => s + l.credit, 0);
+    const totalDebit = lines.reduce((s, l) => s + Number(l.debit), 0);
+    const totalCredit = lines.reduce((s, l) => s + Number(l.credit), 0);
 
     const isBalanced = totalDebit > 0 && totalDebit === totalCredit;
     const diff = Math.abs(totalDebit - totalCredit);
@@ -43,8 +43,8 @@ describe("📦 LOT 1 — Tests d'Intégrité des Données SYSCOHADA (10 Tests)",
       { accountCode: "443100", libelle: "TVA facturée 18%", debit: 0, credit: 1_800_000 },
     ];
 
-    const totalDebit = lines.reduce((s, l) => s + l.debit, 0);
-    const totalCredit = lines.reduce((s, l) => s + l.credit, 0);
+    const totalDebit = lines.reduce((s, l) => s + Number(l.debit), 0);
+    const totalCredit = lines.reduce((s, l) => s + Number(l.credit), 0);
 
     expect(totalDebit).toBe(11_800_000);
     expect(totalCredit).toBe(11_800_000);
@@ -69,8 +69,8 @@ describe("📦 LOT 1 — Tests d'Intégrité des Données SYSCOHADA (10 Tests)",
 
     expect(lines.length).toBeGreaterThan(0);
 
-    const totalDebit = lines.reduce((s, l) => s + l.debit, 0);
-    const totalCredit = lines.reduce((s, l) => s + l.credit, 0);
+    const totalDebit = lines.reduce((s, l) => s + Number(l.debit), 0);
+    const totalCredit = lines.reduce((s, l) => s + Number(l.credit), 0);
 
     expect(totalDebit).toBeGreaterThan(0);
     expect(totalDebit).toBe(totalCredit);
@@ -85,8 +85,8 @@ describe("📦 LOT 1 — Tests d'Intégrité des Données SYSCOHADA (10 Tests)",
     const accountMap = new Map<string, { debit: number; credit: number }>();
     for (const l of lines) {
       const cur = accountMap.get(l.accountCode) || { debit: 0, credit: 0 };
-      cur.debit += l.debit;
-      cur.credit += l.credit;
+      cur.debit += Number(l.debit);
+      cur.credit += Number(l.credit);
       accountMap.set(l.accountCode, cur);
     }
 
@@ -110,7 +110,7 @@ describe("📦 LOT 1 — Tests d'Intégrité des Données SYSCOHADA (10 Tests)",
     });
 
     const caLines = lines.filter((l) => l.accountCode.startsWith("7"));
-    const chiffreAffaires = caLines.reduce((s, l) => s + (l.credit - l.debit), 0);
+    const chiffreAffaires = caLines.reduce((s, l) => s + (Number(l.credit) - Number(l.debit)), 0);
 
     // D'après le seed : 10 000 000 (701100) + 5 000 000 (706100) = 15 000 000 FCFA
     expect(chiffreAffaires).toBe(15_000_000);
@@ -123,7 +123,7 @@ describe("📦 LOT 1 — Tests d'Intégrité des Données SYSCOHADA (10 Tests)",
     });
 
     const chargeLines = lines.filter((l) => l.accountCode.startsWith("6"));
-    const totalCharges = chargeLines.reduce((s, l) => s + (l.debit - l.credit), 0);
+    const totalCharges = chargeLines.reduce((s, l) => s + (Number(l.debit) - Number(l.credit)), 0);
 
     // D'après le seed :
     // 601100 (6 000 000) + 628100 (500 000) + 661100 (3 000 000) + 664100 (525 000) + 664300 (150 000) = 10 175 000 FCFA
@@ -137,7 +137,7 @@ describe("📦 LOT 1 — Tests d'Intégrité des Données SYSCOHADA (10 Tests)",
     });
 
     const tresoLines = lines.filter((l) => l.accountCode.startsWith("5"));
-    const tresorerieNette = tresoLines.reduce((s, l) => s + (l.debit - l.credit), 0);
+    const tresorerieNette = tresoLines.reduce((s, l) => s + (Number(l.debit) - Number(l.credit)), 0);
 
     // D'après le seed :
     // 521100 Débit (8 000 000) - Crédit (5 000 000) = +3 000 000 FCFA
@@ -151,7 +151,7 @@ describe("📦 LOT 1 — Tests d'Intégrité des Données SYSCOHADA (10 Tests)",
     });
 
     const clientLines = lines.filter((l) => l.accountCode.startsWith("411"));
-    const encoursClients = clientLines.reduce((s, l) => s + (l.debit - l.credit), 0);
+    const encoursClients = clientLines.reduce((s, l) => s + (Number(l.debit) - Number(l.credit)), 0);
 
     // D'après le seed :
     // 411100 Débit (11 800 000 + 5 900 000 = 17 700 000) - Crédit (8 000 000) = 9 700 000 FCFA
@@ -165,12 +165,12 @@ describe("📦 LOT 1 — Tests d'Intégrité des Données SYSCOHADA (10 Tests)",
     });
 
     const tvaColLines = lines.filter((l) => l.accountCode.startsWith("4431"));
-    const tvaCollectee = tvaColLines.reduce((s, l) => s + (l.credit - l.debit), 0);
+    const tvaCollectee = tvaColLines.reduce((s, l) => s + (Number(l.credit) - Number(l.debit)), 0);
 
     const tvaDedLines = lines.filter(
       (l) => l.accountCode.startsWith("4451") || l.accountCode.startsWith("4452")
     );
-    const tvaDeductible = tvaDedLines.reduce((s, l) => s + (l.debit - l.credit), 0);
+    const tvaDeductible = tvaDedLines.reduce((s, l) => s + (Number(l.debit) - Number(l.credit)), 0);
 
     const tvaNette = tvaCollectee - tvaDeductible;
 

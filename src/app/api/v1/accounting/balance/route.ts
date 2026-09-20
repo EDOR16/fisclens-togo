@@ -1,5 +1,4 @@
 export const dynamic = 'force-dynamic';
-
 import { NextRequest, NextResponse } from "next/server";
 import { withGuard } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
@@ -70,7 +69,7 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   });
   const planMap = new Map(planComptes.map((c) => [c.code, c.libelle]));
 
-  // Agréger par compte
+  // Agréger par compte avec conversion explicite BigInt -> Number
   const accountsMap = new Map<
     string,
     {
@@ -87,9 +86,13 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
     const classe = parseInt(code[0] || "0", 10);
     const existing = accountsMap.get(code);
 
+    // ✅ Conversion explicite BigInt -> Number pour éviter les erreurs runtime et TS
+    const debitNum = Number(line.debit);
+    const creditNum = Number(line.credit);
+
     if (existing) {
-      existing.debitMouvements += line.debit;
-      existing.creditMouvements += line.credit;
+      existing.debitMouvements += debitNum;
+      existing.creditMouvements += creditNum;
     } else {
       const libelle =
         planMap.get(code) || DEFAULT_ACCOUNT_LABELS[code] || line.libelle || `Compte ${code}`;
@@ -97,8 +100,8 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
         code,
         libelle,
         classe,
-        debitMouvements: line.debit,
-        creditMouvements: line.credit,
+        debitMouvements: debitNum,
+        creditMouvements: creditNum,
       });
     }
   }

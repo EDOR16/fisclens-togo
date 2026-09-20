@@ -59,12 +59,12 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
     const account601Total = Number(comptaTotals[0]?.total601 || 0);
 
     // Écarts
-    const discrepancySales = Math.abs(salesBITotal - account701Total);
-    const discrepancyPurchases = Math.abs(purchasesBITotal - account601Total);
+    const discrepancySales = Math.abs(Number(salesBITotal) - account701Total);
+    const discrepancyPurchases = Math.abs(Number(purchasesBITotal) - account601Total);
 
     // Seuil absolu
-    const thresholdSales = (salesBITotal * thresholdPercent) / 100;
-    const thresholdPurchases = (purchasesBITotal * thresholdPercent) / 100;
+    const thresholdSales = (Number(salesBITotal) * thresholdPercent) / 100;
+    const thresholdPurchases = (Number(purchasesBITotal) * thresholdPercent) / 100;
 
     const alerts = [];
 
@@ -99,8 +99,8 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
     }
 
     const result: ReconciliationResult = {
-      salesBI: salesBITotal,
-      purchasesBI: purchasesBITotal,
+      salesBI: Number(salesBITotal),
+      purchasesBI: Number(purchasesBITotal),
       account701: account701Total,
       account601: account601Total,
       discrepancySales,

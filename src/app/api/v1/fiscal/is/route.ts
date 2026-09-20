@@ -20,13 +20,13 @@ async function computeExerciceBase(tenantId: string, exercice: string) {
   });
 
   const produitsLines = lines.filter((l) => l.accountCode.startsWith("7"));
-  const totalProduits = produitsLines.reduce((s, l) => s + (l.credit - l.debit), 0);
+  const totalProduits = produitsLines.reduce((s, l) => s + (Number(l.credit) - Number(l.debit)), 0);
 
   const ventesLines = lines.filter((l) => l.accountCode.startsWith("70"));
-  const chiffreAffaires = ventesLines.reduce((s, l) => s + (l.credit - l.debit), 0);
+  const chiffreAffaires = ventesLines.reduce((s, l) => s + (Number(l.credit) - Number(l.debit)), 0);
 
   const chargesLines = lines.filter((l) => l.accountCode.startsWith("6"));
-  const totalCharges = chargesLines.reduce((s, l) => s + (l.debit - l.credit), 0);
+  const totalCharges = chargesLines.reduce((s, l) => s + (Number(l.debit) - Number(l.credit)), 0);
 
   return {
     chiffreAffairesHt: Math.max(0, chiffreAffaires),

@@ -60,7 +60,7 @@ export type TrendPeriod =
   | { type: "all" }
   | { type: "custom"; from: string; to: string };
 
-const MOIS_COURTS = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
+const MOIS_COURTS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
 
 function dayKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -153,7 +153,7 @@ export async function getCaTrend(tenantId: string, period: TrendPeriod): Promise
     const toDate = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const fromStr = toDate(from);
-    const toStr   = toDate(to);
+    const toStr = toDate(to);
 
     if (granularity === "day") {
       [salesRows, purchasesRows] = await Promise.all([
@@ -200,7 +200,7 @@ export async function getCaTrend(tenantId: string, period: TrendPeriod): Promise
 
   const caByKey = new Map<string, number>();
   const achatsByKey = new Map<string, number>();
-  for (const row of salesRows)     caByKey.set(row.key, Number(row.total || 0));
+  for (const row of salesRows) caByKey.set(row.key, Number(row.total || 0));
   for (const row of purchasesRows) achatsByKey.set(row.key, Number(row.total || 0));
 
   // ── Génération des points continus (même si CA/achats = 0) ───────────────
@@ -232,7 +232,8 @@ export async function calculateGlobalKPIs(tenantId: string): Promise<DashboardKP
     where: { tenantId },
     _sum: { montantHT: true },
   });
-  const ca = salesAgg._sum.montantHT || 0;
+  // ✅ CORRECTION LIGNE ~245 : Conversion explicite en Number dès la source
+  const ca = Number(salesAgg._sum.montantHT || 0);
 
   // 1. Calcul du coût d'achat réel :
   // Priorité 1 : via product_refs.costAchatHT multiplié par les quantités vendues
@@ -257,9 +258,15 @@ export async function calculateGlobalKPIs(tenantId: string): Promise<DashboardKP
     costAchat = Number(purchaseCostRow[0]?.costAchat || 0);
   }
 
-  // Si costAchat = 0 (données d'achats non encore importées), utiliser une marge commerciale réaliste de 24.5%
-  const margeBrute = costAchat > 0 ? (ca > costAchat ? ca - costAchat : Math.round(ca * 0.245)) : Math.round(ca * 0.245);
-  const margePercent = ca > 0 ? Math.min(95, Math.max(5, Math.round((margeBrute / ca) * 100))) : 0;
+  // ✅ CORRECTION LIGNE 261 : Conversion explicite avec Number() pour éviter "Cannot mix BigInt and other types"
+  const margeBrute = costAchat > 0
+    ? (ca > costAchat ? Number(ca) - Number(costAchat) : Math.round(Number(ca) * 0.245))
+    : Math.round(Number(ca) * 0.245);
+
+  // ✅ CORRECTION LIGNE 262 : Conversion explicite pour la division
+  const margePercent = ca > 0
+    ? Math.min(95, Math.max(5, Math.round((Number(margeBrute) / Number(ca)) * 100)))
+    : 0;
 
   // 2. Clients actifs (comptage distinct direct)
   const clientsActifsAgg = await prisma.$queryRaw<Array<{ count: bigint }>>`
@@ -296,12 +303,13 @@ export async function calculateGlobalKPIs(tenantId: string): Promise<DashboardKP
     trésorerie = Math.round(margeBrute * 0.42);
   }
 
+  // ✅ CORRECTION LIGNE 300 : Retourne des nombres stricts
   return {
-    ca,
-    margeBrute,
-    margePercent,
-    clientsActifs,
-    trésorerie,
+    ca: Number(ca),
+    margeBrute: Number(margeBrute),
+    margePercent: Number(margePercent),
+    clientsActifs: Number(clientsActifs),
+    trésorerie: Number(trésorerie),
     tendanceVsN1: 0,
   };
 }
@@ -394,11 +402,11 @@ export async function getTopProducts(
   `;
 
   return rows.map((r) => ({
-    code:        r.code,
+    code: r.code,
     designation: r.designation,
-    volume:      Number(r.volume),
-    ca:          Number(r.ca),
-    marge:       Number(r.marge),
+    volume: Number(r.volume),
+    ca: Number(r.ca),
+    marge: Number(r.marge),
     margePercent: Number(r.margePercent),
   }));
 }
@@ -413,9 +421,9 @@ export async function getRFMSegmentation(
   const rows = await prisma.$queryRaw<Array<{
     clientCode: string;
     clientName: string;
-    lastDate:   string;
-    frequency:  bigint;
-    monetary:   bigint;
+    lastDate: string;
+    frequency: bigint;
+    monetary: bigint;
   }>>`
     SELECT
       c.code                               AS "clientCode",
@@ -433,14 +441,14 @@ export async function getRFMSegmentation(
   const today = new Date();
   return rows.map((agg) => {
     const lastDate = new Date(agg.lastDate);
-    const recency  = Math.floor((today.getTime() - lastDate.getTime()) / 86400000);
-    const freq     = Number(agg.frequency);
+    const recency = Math.floor((today.getTime() - lastDate.getTime()) / 86400000);
+    const freq = Number(agg.frequency);
     const monetary = Number(agg.monetary);
 
     let rfmScore = "Normal";
-    if (freq >= 10 && recency <= 30)  rfmScore = "VIP";
+    if (freq >= 10 && recency <= 30) rfmScore = "VIP";
     else if (freq < 3 && recency > 90) rfmScore = "At Risk";
-    else if (monetary > 10_000_000)    rfmScore = "High Value";
+    else if (monetary > 10_000_000) rfmScore = "High Value";
 
     return { clientCode: agg.clientCode, clientName: agg.clientName, recency, frequency: freq, monetary, rfmScore };
   });
@@ -479,7 +487,7 @@ export async function getTopClients(
   `;
 
   return rows.map((r) => {
-    const ca      = Number(r.ca);
+    const ca = Number(r.ca);
     const totalCA = Number(r.totalCA);
     return {
       clientCode: r.clientCode,
@@ -519,9 +527,9 @@ export async function getTopSuppliers(
   `;
 
   return rows.map((r) => ({
-    supplierId:  r.supplierId,
+    supplierId: r.supplierId,
     totalAmount: Number(r.totalAmount),
-    orderCount:  Number(r.orderCount),
+    orderCount: Number(r.orderCount),
   }));
 }
 
@@ -565,10 +573,10 @@ export async function getProfitabilityByCategory(
   `;
 
   return rows.map((r) => ({
-    category:    r.category,
-    ca:          Number(r.ca),
-    costAchat:   Number(r.costAchat),
-    marge:       Number(r.marge),
+    category: r.category,
+    ca: Number(r.ca),
+    costAchat: Number(r.costAchat),
+    marge: Number(r.marge),
     margePercent: Number(r.margePercent),
   }));
 }

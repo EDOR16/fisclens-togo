@@ -26,8 +26,8 @@ export interface RawEcritureForAudit {
     id?: string;
     accountCode: string;
     libelle: string;
-    debit: number;
-    credit: number;
+    debit: number | bigint;
+    credit: number | bigint;
   }>;
 }
 
@@ -35,10 +35,10 @@ export interface RawSaleForAudit {
   id: string;
   date: string;
   refFacture: string;
-  montantHT: number;
+  montantHT: number | bigint;
   tauxTVA: number;
-  montantTVA: number;
-  montantTTC: number;
+  montantTVA: number | bigint;
+  montantTTC: number | bigint;
   client?: {
     code: string;
     name: string;
@@ -146,8 +146,8 @@ const JOURNAL_ACCOUNT_RULES: Record<
  * Contrôle 1 : Équilibre strict de chaque écriture (Partie double SYSCOHADA)
  */
 export function checkEcritureBalance(ec: RawEcritureForAudit): AnomalyReportItem | null {
-  const totalDebit = ec.lines.reduce((s, l) => s + l.debit, 0);
-  const totalCredit = ec.lines.reduce((s, l) => s + l.credit, 0);
+  const totalDebit = ec.lines.reduce((s, l) => s + Number(l.debit), 0);
+  const totalCredit = ec.lines.reduce((s, l) => s + Number(l.credit), 0);
 
   if (totalDebit !== totalCredit || totalDebit <= 0) {
     const ecart = Math.abs(totalDebit - totalCredit);
@@ -185,7 +185,7 @@ export function checkJournalAccountMapping(ec: RawEcritureForAudit): AnomalyRepo
         ecritureId: ec.id,
         factureRef: ec.piece,
         compteConcerne: line.accountCode,
-        montantImpact: line.debit || line.credit,
+        montantImpact: Number(line.debit) || Number(line.credit),
         metadata: { accountCode: line.accountCode, journal: ec.journal },
       });
     }
@@ -232,7 +232,7 @@ export function checkDuplicatePieces(
     if (list.length > 1) {
       // Une anomalie synthétique avec référence vers la première écriture dupliquée
       const ecDup = list[1]!;
-      const totalDebit = ecDup.lines.reduce((s, l) => s + l.debit, 0);
+      const totalDebit = ecDup.lines.reduce((s, l) => s + Number(l.debit), 0);
       anomalies.push({
         type: TypeAnomalie.FACTURE_NUMERO_DUPLIQUE,
         severite: SeveriteAnomalie.BLOQUANT,
@@ -361,7 +361,7 @@ export function checkWeekendEntries(ecritures: RawEcritureForAudit[]): AnomalyRe
       const day = d.getDay(); // 0 = Dimanche, 6 = Samedi
       if (day === 0 || day === 6) {
         const jourNom = day === 0 ? "Dimanche" : "Samedi";
-        const montantTotal = ec.lines.reduce((s, l) => s + l.debit, 0);
+        const montantTotal = ec.lines.reduce((s, l) => s + Number(l.debit), 0);
         anomalies.push({
           type: TypeAnomalie.COMPTE_HORS_MAPPING_JOURNAL, // Catégorisé non-conformité opérationnelle
           severite: SeveriteAnomalie.INFO,
@@ -428,7 +428,7 @@ export function runFullAnomalyDetection(
 
   // 5. Rapprochement TVA si ventes disponibles
   if (sales && declaredTvaAmount !== undefined) {
-    const totalTvaSales = sales.reduce((s, x) => s + x.montantTVA, 0);
+    const totalTvaSales = sales.reduce((s, x) => s + Number(x.montantTVA), 0);
     const tvaGap = checkEcartTva(totalTvaSales, declaredTvaAmount);
     if (tvaGap) anomalies.push(tvaGap);
   }
@@ -710,7 +710,7 @@ export function checkComptesExistants(
           ecritureId: ec.id,
           factureRef: ec.piece,
           compteConcerne: code,
-          montantImpact: line.debit || line.credit,
+          montantImpact: Number(line.debit) || Number(line.credit),
           metadata: { accountCode: code, firstSeen: ec.piece },
         });
       }
@@ -750,11 +750,11 @@ export function checkTauxSocial(
       for (const line of ec.lines) {
         // Brut : comptes 661, 662
         if (line.accountCode.startsWith("661") || line.accountCode.startsWith("662")) {
-          totalBrut += line.debit - line.credit;
+          totalBrut += Number(line.debit) - Number(line.credit);
         }
         // Charges patronales : comptes 664, 663
         if (line.accountCode.startsWith("664") || line.accountCode.startsWith("663")) {
-          totalChargesPatronales += line.debit - line.credit;
+          totalChargesPatronales += Number(line.debit) - Number(line.credit);
         }
       }
     }
@@ -810,11 +810,11 @@ export function checkTauxRetenueLoyer(
       for (const line of ec.lines) {
         // Loyer : comptes 621, 622
         if (line.accountCode.startsWith("621") || line.accountCode.startsWith("622")) {
-          totalLoyer += line.debit - line.credit;
+          totalLoyer += Number(line.debit) - Number(line.credit);
         }
         // Retenue : compte 442100
         if (line.accountCode === "442100" || line.accountCode.startsWith("4421")) {
-          totalRetenue += line.credit - line.debit;
+          totalRetenue += Number(line.credit) - Number(line.debit);
           contientLoyer = true;
         }
       }

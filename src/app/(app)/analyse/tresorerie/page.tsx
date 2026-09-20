@@ -1,31 +1,101 @@
 "use client";
-
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Wallet } from "lucide-react";
+import { Wallet, TrendingUp, Calendar } from "lucide-react";
+import { formatFcfaSmart } from "@/lib/format-money";
+import { ForecastChart } from "@/components/bi/charts/forecast-chart";
 
 export default function TresoreriePrevisionPage() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const token = localStorage.getItem("fl_token");
+        const tenantId = localStorage.getItem("fl_tenant_id");
+        const res = await fetch("/api/v1/bi/dashboard/forecast", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "x-tenant-id": tenantId || "",
+          },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setData(json.data);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  const projections = data?.treasuryForecast?.projections || [];
+  const lastProjection = projections[projections.length - 1];
+  const breakEven = data?.treasuryForecast?.breakEvenDate;
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Wallet className="h-5 w-5 text-primary" /> Prévisionnel de Trésorerie & BFR
         </h2>
-        <p className="text-sm text-muted-foreground">Projection glissante sur 3 à 6 mois des encaissements / décaissements — Phase 4</p>
+        <p className="text-sm text-muted-foreground">Projection glissante sur 90 jours des encaissements / décaissements</p>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="text-xs uppercase">Trésorerie Projetée (90j)</CardDescription>
+            <CardTitle className="text-2xl font-mono text-emerald-700">
+              {formatFcfaSmart(lastProjection?.projectedBalance || 0)}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="text-xs uppercase">Point d'Équilibre</CardDescription>
+            <CardTitle className="text-xl font-mono flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              {breakEven || "N/A"}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="text-xs uppercase">Précision MAPE</CardDescription>
+            <CardTitle className="text-xl font-mono">{data?.caForecast?.mape || 0}%</CardTitle>
+          </CardHeader>
+        </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Plan de Trésorerie Prévisionnel</CardTitle>
-            <Badge variant="outline">Phase 4</Badge>
-          </div>
-          <CardDescription>Intégration des échéances fiscales (TVA, IS, CNSS) et factures non échues</CardDescription>
+          <CardTitle className="text-base flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-emerald-600" /> Projection Trésorerie 90 Jours
+          </CardTitle>
+          <CardDescription>Intervalle de confiance basé sur l'historique réel</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Ce module sera activé en Phase 4 avec les algorithmes d&apos;estimation statistique des dates d&apos;encaissement.
-          </p>
+          {loading ? (
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">Chargement...</div>
+          ) : projections.length === 0 ? (
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">Données insuffisantes pour projection</div>
+          ) : (
+            <ForecastChart
+              data={projections.map((p: any) => ({
+                date: p.date,
+                projectedCA: p.projectedBalance || p.value,
+                lowerBound: p.lowerBound,
+                upperBound: p.upperBound,
+              }))}
+              height={300}
+              mape={data?.caForecast?.mape}
+            />
+          )}
         </CardContent>
       </Card>
     </div>

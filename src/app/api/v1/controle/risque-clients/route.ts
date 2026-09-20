@@ -1,5 +1,4 @@
 export const dynamic = "force-dynamic";
-
 import { NextRequest, NextResponse } from "next/server";
 import { withGuard } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
@@ -22,12 +21,12 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
     },
   });
 
-  // Calcul du solde global 411
+  // Calcul du solde global 411 avec conversion BigInt → number
   let totalDebit = 0;
   let totalCredit = 0;
   for (const l of clientLines) {
-    totalDebit += l.debit;
-    totalCredit += l.credit;
+    totalDebit += Number(l.debit);
+    totalCredit += Number(l.credit);
   }
   const encoursTotal = Math.max(0, totalDebit - totalCredit);
 
@@ -40,8 +39,12 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   });
 
   const clients = clientRefs.map((c) => {
-    const totalVentes = c.sales.reduce((s, sale) => s + sale.montantTTC, 0);
-    const encours = Math.min(totalVentes, c.encoursAutorise);
+    const totalVentes = c.sales.reduce(
+      (s, sale) => s + Number(sale.montantTTC),
+      0
+    );
+    const encoursAutorise = Number(c.encoursAutorise);
+    const encours = Math.min(totalVentes, encoursAutorise);
     return {
       id: c.id,
       code: c.code,
@@ -49,9 +52,14 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
       compte: `411.${c.code}`,
       zone: c.zoneGeo,
       encoursTotal: encours,
-      encoursAutorise: c.encoursAutorise,
+      encoursAutorise: encoursAutorise,
       retardMoyenJours: 15,
-      score: encours > c.encoursAutorise ? "CRITIQUE" : encours > c.encoursAutorise * 0.8 ? "ELEVE" : "FAIBLE",
+      score:
+        encours > encoursAutorise
+          ? ("CRITIQUE" as const)
+          : encours > encoursAutorise * 0.8
+            ? ("ELEVE" as const)
+            : ("FAIBLE" as const),
       derniereFacture: c.sales[0]?.date || "—",
     };
   });
@@ -59,7 +67,7 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   return NextResponse.json({
     encoursTotal,
     encoursEchu: Math.round(encoursTotal * 0.15),
-    dsoMoyen: 32, // Délai moyen de paiement en jours
+    dsoMoyen: 32,
     clients,
   });
 });

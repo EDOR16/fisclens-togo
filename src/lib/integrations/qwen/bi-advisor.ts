@@ -55,8 +55,28 @@ interface AIProvider {
   model: string;
 }
 
+// Circuit breaker en mémoire : met en pause un provider 10 minutes en cas d'erreur de quota/droits (402/403)
+const disabledProviders = new Map<string, number>();
+
+function isProviderDisabled(name: string): boolean {
+  const until = disabledProviders.get(name);
+  if (!until) return false;
+  if (Date.now() > until) {
+    disabledProviders.delete(name);
+    return false;
+  }
+  return true;
+}
+
+function disableProvider(name: string, durationMs = 10 * 60 * 1000) {
+  disabledProviders.set(name, Date.now() + durationMs);
+}
+
 function getProviders(): AIProvider[] {
   const primary = process.env.BI_AI_PROVIDER ?? "deepseek";
+  if (primary === "local" || primary === "rules") {
+    return [];
+  }
 
   const deepseek: AIProvider = {
     name: "DeepSeek",
@@ -72,8 +92,8 @@ function getProviders(): AIProvider[] {
     model: process.env.QWEN_MODEL ?? "qwen-plus",
   };
 
-  // Ordre : provider primaire en premier, l'autre en fallback
-  return primary === "qwen" ? [qwen, deepseek] : [deepseek, qwen];
+  const list = primary === "qwen" ? [qwen, deepseek] : [deepseek, qwen];
+  return list.filter((p) => !isProviderDisabled(p.name));
 }
 
 // ─── Appel générique (OpenAI-compatible) ─────────────────────────────────────
@@ -86,10 +106,13 @@ async function callProvider(
   if (!provider.apiKey) {
     throw new Error(`Clé API ${provider.name} non configurée`);
   }
+  if (isProviderDisabled(provider.name)) {
+    throw new Error(`Provider ${provider.name} en pause suite à une erreur de quota ou droits`);
+  }
 
-  // Timeout 8s pour éviter les blocages si l'API externe est lente
+  // Timeout court 4s pour éviter de bloquer l'interface si l'API externe est lente
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
 
   let response: Response;
   try {
@@ -117,6 +140,10 @@ async function callProvider(
 
   if (!response.ok) {
     const err = await response.text();
+    // 402 (Insufficient Balance) ou 403 (Access Denied / Unpurchased model) -> mise en pause circuit breaker
+    if (response.status === 402 || response.status === 403) {
+      disableProvider(provider.name);
+    }
     throw new Error(`${provider.name} API ${response.status}: ${err.slice(0, 200)}`);
   }
 

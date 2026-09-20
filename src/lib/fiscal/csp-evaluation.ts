@@ -96,9 +96,18 @@ export async function runCspEvaluation(
   });
 
   // Audit d'anomalies en temps réel et vérification des anomalies bloquantes persistées
+  // Charger le plan comptable pour détecter les comptes inexistants
+  const comptesPlan = await prisma.comptePlan.findMany({
+    where: { tenantId },
+    select: { code: true },
+  });
+  const comptesValides = new Set(comptesPlan.map((c) => c.code));
+
   const auditResult = runFullAnomalyDetection(
     ecritures as RawEcritureForAudit[],
-    sales as RawSaleForAudit[]
+    sales as RawSaleForAudit[],
+    undefined,
+    comptesValides
   );
 
   const persistedBloquantes = await prisma.anomalieDetectee.count({

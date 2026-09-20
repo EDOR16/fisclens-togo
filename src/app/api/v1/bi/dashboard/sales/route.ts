@@ -17,42 +17,48 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
     // Top 10 produits par marge
     const topProducts = await getTopProducts(tenantId, 10);
 
-    // Ventes par zone géographique (normalisées sur les 5 régions officielles du Togo)
-    const salesByZone = await prisma.sale.findMany({
-      where: { tenantId },
-      include: { client: true },
-    });
+    // 2. Ventes par zone géographique calculées via agrégation SQL
+    const [rawZones, rawMonthly] = await Promise.all([
+      prisma.$queryRaw<Array<{ zone: string | null; ca: bigint }>>`
+        SELECT
+          c."zoneGeo" AS zone,
+          COALESCE(SUM(s."montantHT"), 0)::bigint AS ca
+        FROM sales s
+        LEFT JOIN client_refs c ON s."clientId" = c.id
+        WHERE s."tenantId" = ${tenantId}
+        GROUP BY c."zoneGeo"
+      `,
+      prisma.$queryRaw<Array<{ month: string; ca: bigint }>>`
+        SELECT
+          SUBSTRING(s.date, 1, 7) AS month,
+          COALESCE(SUM(s."montantHT"), 0)::bigint AS ca
+        FROM sales s
+        WHERE s."tenantId" = ${tenantId}
+        GROUP BY SUBSTRING(s.date, 1, 7)
+        ORDER BY month ASC
+      `,
+    ]);
 
     const zoneAgg = new Map<string, number>();
-    for (const sale of salesByZone) {
-      const region = normalizeTogoRegion(sale.client?.zoneGeo);
-      zoneAgg.set(region, (zoneAgg.get(region) || 0) + sale.montantHT);
+    for (const r of rawZones) {
+      const region = normalizeTogoRegion(r.zone);
+      zoneAgg.set(region, (zoneAgg.get(region) || 0) + Number(r.ca));
     }
 
     const zones = Array.from(zoneAgg.entries())
       .map(([zone, ca]) => ({ zone, ca }))
       .sort((a, b) => b.ca - a.ca);
 
-    // Saisonnalité (12 derniers mois)
-    const monthlySales = new Map<string, number>();
-    const today = new Date();
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(today);
-      date.setMonth(date.getMonth() - i);
-      const month = date.toISOString().substring(0, 7); // YYYY-MM
-      monthlySales.set(month, 0);
+    // 3. Saisonnalité (12 derniers mois ou mois historiques)
+    const monthlyMap = new Map<string, number>();
+    for (const r of rawMonthly) {
+      if (r.month) monthlyMap.set(r.month, Number(r.ca));
     }
 
-    for (const sale of salesByZone) {
-      const month = sale.date.substring(0, 7);
-      if (monthlySales.has(month)) {
-        monthlySales.set(month, (monthlySales.get(month) || 0) + sale.montantHT);
-      }
-    }
-
-    const seasonality = Array.from(monthlySales.entries())
-      .reverse()
-      .map(([month, ca]) => ({ month, ca }));
+    const seasonality = Array.from(monthlyMap.entries()).map(([month, ca]) => ({
+      month,
+      ca,
+    }));
 
     // Matrice BCG simple (volume vs marge)
     const bcgMatrix = topProducts.map((p) => ({

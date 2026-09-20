@@ -31,3 +31,4 @@ prisma/dev.db-journal
 
 # Excel sample data files
 *.xlsx
+.env*

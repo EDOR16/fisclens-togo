@@ -96,35 +96,37 @@ export async function forecastCA(
   const ninetyDaysAgo = new Date(today);
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-  let sales = await prisma.sale.findMany({
-    where: {
-      tenantId,
-      date: {
-        gte: ninetyDaysAgo.toISOString().split("T")[0] ?? "",
-      },
-    },
-    select: { date: true, montantHT: true },
-    orderBy: { date: "asc" },
-  });
+  const ninetyDaysStr = ninetyDaysAgo.toISOString().split("T")[0] ?? "";
+
+  let dailyRows = await prisma.$queryRaw<Array<{ date: string; total: bigint }>>`
+    SELECT date, COALESCE(SUM("montantHT"), 0)::bigint AS total
+    FROM sales
+    WHERE "tenantId" = ${tenantId} AND date >= ${ninetyDaysStr}
+    GROUP BY date
+    ORDER BY date ASC
+  `;
 
   // Si aucune vente dans les 90 derniers jours stricts (ex: données historiques ou démo),
   // prendre toutes les ventes disponibles pour avoir une base de prévision
-  if (sales.length === 0) {
-    sales = await prisma.sale.findMany({
-      where: { tenantId },
-      select: { date: true, montantHT: true },
-      orderBy: { date: "asc" },
-    });
+  if (dailyRows.length === 0) {
+    dailyRows = await prisma.$queryRaw<Array<{ date: string; total: bigint }>>`
+      SELECT date, COALESCE(SUM("montantHT"), 0)::bigint AS total
+      FROM sales
+      WHERE "tenantId" = ${tenantId}
+      GROUP BY date
+      ORDER BY date ASC
+    `;
   }
 
   // Agréger par jour
   const dailyCA = new Map<string, number>();
-  for (const sale of sales) {
-    const day = sale.date;
-    dailyCA.set(day, (dailyCA.get(day) || 0) + sale.montantHT);
+  let totalCA = 0;
+  for (const row of dailyRows) {
+    const val = Number(row.total);
+    dailyCA.set(row.date, val);
+    totalCA += val;
   }
 
-  const totalCA = sales.reduce((s, x) => s + x.montantHT, 0);
   const nonZeroDays = Array.from(dailyCA.values()).filter((v) => v > 0);
   const overallDailyAvg =
     totalCA > 0
@@ -257,12 +259,6 @@ export async function simulateWhatIf(
   });
   const baseCA = currentCA._sum.montantHT || 0;
 
-  // Nombre clients actuels
-  const clientCount = await prisma.sale.findMany({
-    where: { tenantId },
-    distinct: ["clientId"],
-  });
-
   // Appliquer changements
   const volumeImpact = (volumeChange / 100) * baseCA;
   const priceImpact = (priceChange / 100) * baseCA;
@@ -270,12 +266,12 @@ export async function simulateWhatIf(
 
   const projectedCA = baseCA + volumeImpact + priceImpact + churnImpact;
 
-  // Vraie marge commerciale : (CA - Coût d'achat) / CA
-  const purchases = await prisma.purchase.findMany({
+  // Vraie marge commerciale en SQL direct : (CA - Coût d'achat) / CA
+  const purchaseAgg = await prisma.purchase.aggregate({
     where: { tenantId },
-    select: { montantHT: true },
+    _sum: { montantHT: true },
   });
-  const totalCoutAchat = purchases.reduce((s, p) => s + p.montantHT, 0);
+  const totalCoutAchat = purchaseAgg._sum.montantHT || 0;
   const avgMarginPercent =
     baseCA > 0 ? Math.round(((baseCA - totalCoutAchat) / baseCA) * 100) : 20;
 

@@ -103,15 +103,25 @@ export function withGuard(
         });
       }
 
-      // 5. Tenant
-      const requestedTenantId =
-        req.headers.get("x-tenant-id") ||
-        req.nextUrl.searchParams.get("tenantId") ||
-        payload.tenantId ||
-        "";
+      // 5. Tenant — résolution du tenantId avec traçabilité de la source
+      // Ordre : header explicite > query param > JWT payload (fallback de dernier recours)
+      const tenantIdFromHeader = req.headers.get("x-tenant-id") || "";
+      const tenantIdFromQuery  = req.nextUrl.searchParams.get("tenantId") || "";
+      const tenantIdFromJwt    = payload.tenantId || "";
 
-      // IMPORTANT :
-      // /auth/me peut fonctionner sans tenant
+      const requestedTenantId = tenantIdFromHeader || tenantIdFromQuery || tenantIdFromJwt;
+
+      // Avertissement sécurité : si le tenantId provient uniquement du JWT
+      // (= le client n'a pas envoyé x-tenant-id), on le trace pour détecter
+      // les appels n'utilisant pas biFetch / api-client correctement.
+      if (!tenantIdFromHeader && !tenantIdFromQuery && tenantIdFromJwt) {
+        console.warn(
+          "[SECURITY] tenantId résolu depuis le JWT uniquement (pas de header x-tenant-id) — vérifier l'appelant",
+          { userId: payload.userId, path: req.nextUrl.pathname }
+        );
+      }
+
+      // IMPORTANT : /auth/me peut fonctionner sans tenant
       if (!requestedTenantId && options?.requireTenant !== false) {
         return NextResponse.json(
           {

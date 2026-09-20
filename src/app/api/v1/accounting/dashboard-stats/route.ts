@@ -5,64 +5,75 @@ import { withGuard } from "@/lib/server/with-guard";
 import { prisma } from "@/lib/server/prisma";
 
 export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
-  // 1. Récupérer toutes les lignes du tenant
-  const lines = await prisma.ecritureLine.findMany({
-    where: {
-      ecriture: { tenantId, status: { in: ["VALIDE", "CLOTURE"] } },
-    },
-    include: {
-      ecriture: true,
-    },
-  });
+  // Exécuter l'agrégation comptable, les écritures récentes et le comptage en parallèle
+  const [aggRows, recentEcritures, totalEcrituresCount]: [any[], any[], number] = await Promise.all([
+    prisma.$queryRaw<Array<{
+      chiffreAffaires: number;
+      totalCharges: number;
+      tresorerie: number;
+      encoursClientsRaw: number;
+      encoursFournisseursRaw: number;
+      tvaCollecteeRaw: number;
+      tvaDeductibleRaw: number;
+      achatsDirects: number;
+      chargesStructure: number;
+      chargesFinancieres: number;
+      amortissements: number;
+    }>>`
+      SELECT
+        COALESCE(SUM(CASE WHEN l."accountCode" LIKE '7%' THEN l.credit - l.debit ELSE 0 END), 0)::float AS "chiffreAffaires",
+        COALESCE(SUM(CASE WHEN l."accountCode" LIKE '6%' THEN l.debit - l.credit ELSE 0 END), 0)::float AS "totalCharges",
+        COALESCE(SUM(CASE WHEN l."accountCode" LIKE '5%' THEN l.debit - l.credit ELSE 0 END), 0)::float AS "tresorerie",
+        COALESCE(SUM(CASE WHEN l."accountCode" LIKE '411%' THEN l.debit - l.credit ELSE 0 END), 0)::float AS "encoursClientsRaw",
+        COALESCE(SUM(CASE WHEN l."accountCode" LIKE '401%' THEN l.credit - l.debit ELSE 0 END), 0)::float AS "encoursFournisseursRaw",
+        COALESCE(SUM(CASE WHEN l."accountCode" LIKE '443%' THEN l.credit - l.debit ELSE 0 END), 0)::float AS "tvaCollecteeRaw",
+        COALESCE(SUM(CASE WHEN (l."accountCode" LIKE '4451%' OR l."accountCode" LIKE '4452%' OR l."accountCode" LIKE '4453%' OR l."accountCode" LIKE '4454%') THEN l.debit - l.credit ELSE 0 END), 0)::float AS "tvaDeductibleRaw",
+        COALESCE(SUM(CASE WHEN l."accountCode" LIKE '60%' THEN l.debit - l.credit ELSE 0 END), 0)::float AS "achatsDirects",
+        COALESCE(SUM(CASE WHEN l."accountCode" ~ '^(61|62|63|64|65|66)' THEN l.debit - l.credit ELSE 0 END), 0)::float AS "chargesStructure",
+        COALESCE(SUM(CASE WHEN l."accountCode" LIKE '67%' THEN l.debit - l.credit ELSE 0 END), 0)::float AS "chargesFinancieres",
+        COALESCE(SUM(CASE WHEN l."accountCode" LIKE '68%' THEN l.debit - l.credit ELSE 0 END), 0)::float AS "amortissements"
+      FROM ecriture_lines l
+      JOIN ecritures e ON l."ecritureId" = e.id
+      WHERE e."tenantId" = ${tenantId}
+        AND e.status IN ('VALIDE', 'CLOTURE')
+    `,
+    prisma.ecriture.findMany({
+      where: { tenantId },
+      include: {
+        lines: true,
+      },
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      take: 10,
+    }),
+    prisma.ecriture.count({
+      where: { tenantId },
+    }),
+  ]);
 
-  // 2. Chiffre d'affaires (Comptes Classe 7 : Crédit - Débit)
-  const caLines = lines.filter((l) => l.accountCode.startsWith("7"));
-  const chiffreAffaires = caLines.reduce((s, l) => s + (l.credit - l.debit), 0);
+  const agg = aggRows[0] || {};
+  const chiffreAffaires = Number(agg.chiffreAffaires || 0);
+  const totalCharges = Number(agg.totalCharges || 0);
+  const achatsDirects = Number(agg.achatsDirects || 0);
+  const chargesStructure = Number(agg.chargesStructure || 0);
+  const chargesFinancieres = Number(agg.chargesFinancieres || 0);
+  const amortissements = Number(agg.amortissements || 0);
 
-  // 3. Charges d'exploitation (Comptes Classe 6 : Débit - Crédit)
-  const chargeLines = lines.filter((l) => l.accountCode.startsWith("6"));
-  const totalCharges = chargeLines.reduce((s, l) => s + (l.debit - l.credit), 0);
+  // ── Résultat net RÉEL = CA − Achats − Charges structure − Amortissements − Charges financières
+  const margeBrute = chiffreAffaires - achatsDirects;
+  const resultatNet = chiffreAffaires - achatsDirects - chargesStructure - amortissements - chargesFinancieres;
+  const tauxMargeNette = chiffreAffaires > 0 ? (resultatNet / chiffreAffaires) * 100 : 0;
 
-  // 4. Trésorerie nette (Comptes Classe 5 : 521 Banque + 571 Caisse)
-  const tresorerieLines = lines.filter((l) => l.accountCode.startsWith("5"));
-  const tresorerie = tresorerieLines.reduce((s, l) => s + (l.debit - l.credit), 0);
-
-  // 5. Encours Clients (Compte 411 : Débit - Crédit)
-  const clientLines = lines.filter((l) => l.accountCode.startsWith("411"));
-  const encoursClients = Math.max(0, clientLines.reduce((s, l) => s + (l.debit - l.credit), 0));
-
-  // 6. Encours Fournisseurs (Compte 401 : Crédit - Débit)
-  const fournisseurLines = lines.filter((l) => l.accountCode.startsWith("401"));
-  const encoursFournisseurs = Math.max(0, fournisseurLines.reduce((s, l) => s + (l.credit - l.debit), 0));
-
-  // 7. TVA Collectée (4431, 443) & TVA Déductible (4451, 4452, 4453, 4454 — exclusion stricte de 4456)
-  const tvaColLines = lines.filter((l) => l.accountCode.startsWith("4431") || l.accountCode.startsWith("443"));
-  const tvaCollectee = Math.max(0, tvaColLines.reduce((s, l) => s + (l.credit - l.debit), 0));
-
-  const tvaDedLines = lines.filter(
-    (l) =>
-      l.accountCode.startsWith("4451") ||
-      l.accountCode.startsWith("4452") ||
-      l.accountCode.startsWith("4453") ||
-      l.accountCode.startsWith("4454")
-  );
-  const tvaDeductible = Math.max(0, tvaDedLines.reduce((s, l) => s + (l.debit - l.credit), 0));
+  const tresorerie = Number(agg.tresorerie || 0);
+  const encoursClients = Math.max(0, Number(agg.encoursClientsRaw || 0));
+  const encoursFournisseurs = Math.max(0, Number(agg.encoursFournisseursRaw || 0));
+  const tvaCollectee = Math.max(0, Number(agg.tvaCollecteeRaw || 0));
+  const tvaDeductible = Math.max(0, Number(agg.tvaDeductibleRaw || 0));
   const tvaADeclarer = Math.max(0, tvaCollectee - tvaDeductible);
   const creditTva = Math.max(0, tvaDeductible - tvaCollectee);
 
-  // 8. Dernières écritures enregistrées
-  const recentEcritures = await prisma.ecriture.findMany({
-    where: { tenantId },
-    include: {
-      lines: true,
-    },
-    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-    take: 10,
-  });
-
   const formattedRecent = recentEcritures.map((e) => {
-    const debit = e.lines.reduce((s, l) => s + l.debit, 0);
-    const credit = e.lines.reduce((s, l) => s + l.credit, 0);
+    const debit = e.lines.reduce((s: number, l: any) => s + l.debit, 0);
+    const credit = e.lines.reduce((s: number, l: any) => s + l.credit, 0);
     return {
       id: e.id,
       date: e.date,
@@ -75,15 +86,16 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
     };
   });
 
-  // Total des écritures
-  const totalEcrituresCount = await prisma.ecriture.count({
-    where: { tenantId },
-  });
-
   return NextResponse.json({
     chiffreAffaires,
     totalCharges,
-    resultatNet: chiffreAffaires - totalCharges,
+    achatsDirects,
+    chargesStructure,
+    chargesFinancieres,
+    amortissements,
+    margeBrute,
+    resultatNet,
+    tauxMargeNette,
     tresorerie,
     encoursClients,
     encoursFournisseurs,

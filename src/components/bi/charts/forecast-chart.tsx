@@ -31,12 +31,9 @@ interface ForecastChartProps {
   mape?: number;
 }
 
-const formatFCFA = (v: number) =>
-  v >= 1_000_000
-    ? `${(v / 1_000_000).toFixed(2)}M`
-    : v >= 1_000
-    ? `${(v / 1_000).toFixed(0)}k`
-    : `${v}`;
+import { formatFcfaCompact } from "@/lib/format-money";
+
+const formatFCFA = (v: number) => formatFcfaCompact(v);
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;

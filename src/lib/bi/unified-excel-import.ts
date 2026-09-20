@@ -159,6 +159,9 @@ export async function processUnifiedExcel(
 
   // ── 1. TRAITEMENT PRODUITS ───────────────────────────────────────────────
   const productRows = getRowsForSheet([
+    "catalogue_vehicules",
+    "cataloguevehicules",
+    "vehicules",
     "catalogue_produits",
     "catalogueproduits",
     "produits",
@@ -170,14 +173,14 @@ export async function processUnifiedExcel(
   ]);
   if (productRows && productRows.length) {
     for (const r of productRows) {
-      const code = String(r.code || r.codeproduit || r.ref || r.reference || "").trim().toUpperCase();
+      const code = String(r.code || r.codevehicule || r.codeproduit || r.ref || r.reference || "").trim().toUpperCase();
       if (!code) continue;
 
-      const designation = String(r.designation || r.nom || r.libelle || code).trim();
+      const designation = String(r.modele ? `${r.marque || ""} ${r.modele}`.trim() : (r.designation || r.nom || r.libelle || code)).trim();
       const category = String(r.categorie || r.category || r.famille || "Général").trim();
       const priceVentHT = parseNumber(r.prixventeht || r.prixvente || r.puht || r.prix, 1000);
       const costAchatHT = parseNumber(r.coutachatht || r.coutachat || r.prixachat || r.cout, Math.round(priceVentHT * 0.7));
-      const margineCible = parseNumber(r.margecible || r.marge, 25);
+      const margineCible = parseNumber(r.margecible || r.margepct || r.marge, 25);
 
       const p = await prisma.productRef.upsert({
         where: { tenantId_code: { tenantId, code } },
@@ -222,6 +225,10 @@ export async function processUnifiedExcel(
 
   // ── 3. TRAITEMENT ACHATS ─────────────────────────────────────────────────
   const purchaseRows = getRowsForSheet([
+    "achats_vehicules",
+    "achatsvehicules",
+    "achats_pieces",
+    "achatspieces",
     "achats",
     "achat",
     "purchases",
@@ -232,7 +239,7 @@ export async function processUnifiedExcel(
     // Passe 1 : résolution des produits manquants (création en lot)
     const newProductCodes = new Set<string>();
     for (const r of purchaseRows) {
-      const productCode = String(r.codearticle || r.codeproduit || r.produit || r.code || "PRD-GEN").trim().toUpperCase();
+      const productCode = String(r.codevehicule || r.codearticle || r.codeproduit || r.produit || r.code || "PRD-GEN").trim().toUpperCase();
       if (!productMap.has(productCode)) newProductCodes.add(productCode);
     }
     if (newProductCodes.size > 0) {
@@ -263,10 +270,10 @@ export async function processUnifiedExcel(
     const purchaseBatch: PurchaseData[] = [];
 
     for (const [idx, r] of purchaseRows.entries()) {
-      const date = parseDate(r.date);
-      const refCommande = String(r.refcommande || r.ref || r.numerocommande || `CMD-${idx + 1}`).trim();
+      const date = parseDate(r.date || r.datecommande || r.dateachat || r.dateoperation);
+      const refCommande = String(r.refcommande || r.ref || r.numerocommande || r.numcommande || `CMD-${idx + 1}`).trim();
       const supplierId = String(r.codefournisseur || r.fournisseur || r.supplier || "FOUR-DIVERS").trim();
-      const productCode = String(r.codearticle || r.codeproduit || r.produit || r.code || "PRD-GEN").trim().toUpperCase();
+      const productCode = String(r.codevehicule || r.codearticle || r.codeproduit || r.produit || r.code || "PRD-GEN").trim().toUpperCase();
       const productId = productMap.get(productCode)!;
 
       const quantity = Math.max(1, parseNumber(r.quantite || r.qte || r.nombre, 1));
@@ -311,12 +318,12 @@ export async function processUnifiedExcel(
     const zoneByClientCode = new Map<string, string>();
 
     for (const r of saleRows) {
-      const clientCode = String(r.codeClient || r.codeclient || r.client || r.code || "CLI-DIVERS").trim().toUpperCase();
-      const productCode = String(r.codeproduit || r.produit || r.article || "PRD-GEN").trim().toUpperCase();
+      const clientCode = String(r.codeclient || r.codeClient || r.client || r.code || "CLI-DIVERS").trim().toUpperCase();
+      const productCode = String(r.codevehicule || r.codeproduit || r.produit || r.article || r.code || "PRD-GEN").trim().toUpperCase();
       if (!clientMap.has(clientCode)) {
         newClientCodes.add(clientCode);
         if (!zoneByClientCode.has(clientCode)) {
-          const saleZone = String(r.zonegeo || r.zone || r.ville || r.region || "").trim();
+          const saleZone = String(r.regionclient || r.zonegeo || r.zone || r.ville || r.region || "").trim();
           zoneByClientCode.set(clientCode, saleZone ? normalizeTogoRegion(saleZone) : "Maritime");
         }
       }
@@ -369,16 +376,17 @@ export async function processUnifiedExcel(
     const saleBatch: SaleData[] = [];
 
     for (const [idx, r] of saleRows.entries()) {
-      const date = parseDate(r.date);
-      const refFacture = String(r.reffacture || r.ref || r.numerofacture || `FAC-${idx + 1}`).trim();
-      const clientCode = String(r.codeClient || r.codeclient || r.client || r.code || "CLI-DIVERS").trim().toUpperCase();
-      const productCode = String(r.codeproduit || r.produit || r.article || "PRD-GEN").trim().toUpperCase();
+      const date = parseDate(r.date || r.datevente || r.datefacture || r.datecommande || r.dateoperation);
+      const refFacture = String(r.reffacture || r.ref || r.numerofacture || r.numfacture || r.facture || `FAC-${idx + 1}`).trim();
+      const clientCode = String(r.codeclient || r.codeClient || r.client || r.code || "CLI-DIVERS").trim().toUpperCase();
+      const productCode = String(r.codevehicule || r.codeproduit || r.produit || r.article || r.code || "PRD-GEN").trim().toUpperCase();
       const clientId = clientMap.get(clientCode)!;
       const productId = productMap.get(productCode)!;
 
       const quantity = Math.max(1, parseNumber(r.quantite || r.qte || r.nombre, 1));
-      const puHT = parseNumber(r.puht || r.prixunitaire || r.prix, 10000);
-      const montantHT = parseNumber(r.montantht || r.totalht, quantity * puHT);
+      const montantHTRaw = parseNumber(r.montantht || r.totalht, 0);
+      const puHT = parseNumber(r.puht || r.prixunitaireht || r.prixunitaire || r.prix, montantHTRaw > 0 && quantity > 0 ? Math.round(montantHTRaw / quantity) : 10000);
+      const montantHT = montantHTRaw > 0 ? montantHTRaw : quantity * puHT;
       const tauxTVA = parseNumber(r.tauxtva || r.tva, 18);
       const montantTVA = parseNumber(r.montanttva, Math.round((montantHT * tauxTVA) / 100));
       const montantTTC = parseNumber(r.montantttc || r.totalttc, montantHT + montantTVA);

@@ -7,13 +7,14 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { withTenantGuard, GuardContext } from "@/lib/server/with-guard";
-import { calculateGlobalKPIs, getRealCaTrend } from "@/lib/bi/aggregates";
+import { calculateGlobalKPIs, getRealCaTrend, getDatasetSqlIntegrity } from "@/lib/bi/aggregates";
 
 export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardContext) => {
   try {
-    const [kpis, trendCA] = await Promise.all([
+    const [kpis, trendCA, sqlIntegrity] = await Promise.all([
       calculateGlobalKPIs(tenantId),
       getRealCaTrend(tenantId),
+      getDatasetSqlIntegrity(tenantId),
     ]);
 
     return NextResponse.json({
@@ -26,6 +27,7 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
         clientsActifs: kpis.clientsActifs,
         tendanceVsN1: kpis.tendanceVsN1,
         trendCA,
+        sqlIntegrity,
       },
     });
   } catch (error) {

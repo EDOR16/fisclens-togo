@@ -44,25 +44,19 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
     });
     const purchasesBITotal = purchasesData._sum.montantTTC || 0;
 
-    // Calculs depuis la comptabilité (comptes 701/701100 et 601/601100)
-    const account701Lines = await prisma.ecritureLine.findMany({
-      where: {
-        accountCode: { startsWith: "701" }, // Ventes
-        ecriture: { tenantId },
-      },
-      include: { ecriture: true },
-    });
+    // Calculs directs en SQL depuis la comptabilité (comptes 701 et 601)
+    const comptaTotals = await prisma.$queryRaw<Array<{ total701: bigint; total601: bigint }>>`
+      SELECT
+        COALESCE(SUM(CASE WHEN el."accountCode" LIKE '701%' THEN el.credit ELSE 0 END), 0)::bigint AS "total701",
+        COALESCE(SUM(CASE WHEN el."accountCode" LIKE '601%' THEN el.debit ELSE 0 END), 0)::bigint AS "total601"
+      FROM ecriture_lines el
+      JOIN ecritures e ON el."ecritureId" = e.id
+      WHERE e."tenantId" = ${tenantId}
+        AND e.status IN ('VALIDE', 'CLOTURE')
+    `;
 
-    const account601Lines = await prisma.ecritureLine.findMany({
-      where: {
-        accountCode: { startsWith: "601" }, // Achats
-        ecriture: { tenantId },
-      },
-      include: { ecriture: true },
-    });
-
-    const account701Total = account701Lines.reduce((sum, line) => sum + line.credit, 0);
-    const account601Total = account601Lines.reduce((sum, line) => sum + line.debit, 0);
+    const account701Total = Number(comptaTotals[0]?.total701 || 0);
+    const account601Total = Number(comptaTotals[0]?.total601 || 0);
 
     // Écarts
     const discrepancySales = Math.abs(salesBITotal - account701Total);

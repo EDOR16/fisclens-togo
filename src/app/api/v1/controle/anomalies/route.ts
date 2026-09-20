@@ -225,13 +225,23 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   const moyenne = formatted.filter((a) => a.gravite === "MOYENNE" && a.statut !== "RESOLU").length;
   const basse = formatted.filter((a) => a.gravite === "BASSE" && a.statut !== "RESOLU").length;
 
+  // ── OPTIM : limiter le payload à 200 anomalies les plus graves
+  //            (évite 9+ Mo quand il y a 10 000+ écritures)
+  const sortedAnomalies = [...formatted].sort((a, b) => {
+    const rank: Record<string, number> = { HAUTE: 0, MOYENNE: 1, BASSE: 2 };
+    return (rank[a.gravite] ?? 3) - (rank[b.gravite] ?? 3);
+  });
+  const limitedAnomalies = sortedAnomalies.slice(0, 200);
+
   return NextResponse.json({
     total: formatted.length,
     haute,
     moyenne,
     basse,
     scoreConformite: auditResult.scoreConformite,
-    anomalies: formatted,
+    anomalies: limitedAnomalies,
+    tronque: formatted.length > 200,
+    totalAvantTroncature: formatted.length,
   });
 });
 

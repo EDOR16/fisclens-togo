@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
+import { upload } from "@vercel/blob/client";
 
 /**
- * Workspace BI & Data Analyse — FiscLens Togo
+ * Workspace BI & Data Analyse �?" FiscLens Togo
  * Analyse opérationnelle, Prévisions prédictives, Rentabilité, Zones géographiques & Moteur IA (Qwen)
  */
 
@@ -35,6 +36,8 @@ import {
   TrendingDown,
   Lightbulb,
   Trash2,
+  FileText,
+  Database,
 } from "lucide-react";
 
 // Charts
@@ -43,13 +46,13 @@ import { MarginBarChart } from "@/components/bi/charts/margin-bar-chart";
 import { ForecastChart } from "@/components/bi/charts/forecast-chart";
 import { HealthScoreGauge } from "@/components/bi/charts/health-score-gauge";
 import { CategoryPieChart } from "@/components/bi/charts/category-pie-chart";
+import { formatFcfaSmart } from "@/lib/format-money";
+import { RapportIntegreView } from "@/components/bi/rapport-integre-view";
 
-// ─── Utilitaires ──────────────────────────────────────────────────────────────
+// �"?�"?�"? Utilitaires �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
 
-const formatCFA = (val: number | undefined) => {
-  if (val === undefined || val === null || isNaN(val)) return "0 FCFA";
-  if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(2)}M FCFA`;
-  return `${Math.round(val).toLocaleString("fr-FR")} FCFA`;
+const formatCFA = (val: number | undefined | null) => {
+  return formatFcfaSmart(val);
 };
 
 const insightIcon = (type: string) => {
@@ -84,7 +87,7 @@ const priorityBadge = (priority: string) => {
   );
 };
 
-// ─── Composant Principal ──────────────────────────────────────────────────────
+// �"?�"?�"? Composant Principal �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
 
 export default function WorkspaceBIPage() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -110,7 +113,27 @@ export default function WorkspaceBIPage() {
   const [simPriceChange, setSimPriceChange] = useState(0);
   const [simVolumeChange, setSimVolumeChange] = useState(0);
 
-  // ── Chargement des données ─────────────────────────────────────────────────
+  // �"?�"? Helper fetch sécurisé : injecte le token + tenant de l'utilisateur connecté �"?�"?
+  // S�?CURIT�? CRITIQUE : tous les appels BI DOIVENT passer par biFetch() pour
+  // garantir que chaque requête est strictement isolée au tenant de la session.
+  // Un appel fetch() brut n'envoie PAS x-tenant-id �?' le serveur peut alors
+  // lire le tenantId du JWT, qui peut référencer un autre dossier.
+  const biFetch = useCallback((url: string, init: RequestInit = {}): Promise<Response> => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("fl_token") : null;
+    const tenantId = typeof window !== "undefined" ? localStorage.getItem("fl_tenant_id") : null;
+    const extraHeaders: Record<string, string> = {};
+    if (token) extraHeaders["Authorization"] = `Bearer ${token}`;
+    if (tenantId) extraHeaders["x-tenant-id"] = tenantId;
+    return fetch(url, {
+      ...init,
+      headers: {
+        ...(init.headers || {}),
+        ...extraHeaders,
+      },
+    });
+  }, []);
+
+  // �"?�"? Chargement des données �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
   const fetchTrend = useCallback(async (period: string, from?: string, to?: string) => {
     try {
       const params = new URLSearchParams({ period });
@@ -118,13 +141,13 @@ export default function WorkspaceBIPage() {
         params.set("from", from);
         params.set("to", to);
       }
-      const r = await fetch(`/api/v1/bi/dashboard/trend?${params.toString()}`);
+      const r = await biFetch(`/api/v1/bi/dashboard/trend?${params.toString()}`);
       const json = r.ok ? await r.json() : null;
       if (json?.data?.trendCA) setTrendCA(json.data.trendCA);
     } catch {
       // Silencieux : la carte affiche "Aucune donnée disponible" par défaut, jamais une valeur inventée.
     }
-  }, []);
+  }, [biFetch]);
 
   useEffect(() => {
     if (caPeriod === "custom" && (!customFrom || !customTo)) return;
@@ -138,40 +161,40 @@ export default function WorkspaceBIPage() {
 
       if (tab === "overview" || tab === "all") {
         fetches.push(
-          fetch("/api/v1/bi/dashboard/overview")
+          biFetch("/api/v1/bi/dashboard/overview")
             .then((r) => r.ok ? r.json() : null)
             .then((json) => json && setOverviewData(json.data))
         );
-        fetches.push(
-          fetch("/api/v1/bi/dashboard/ai-analysis")
-            .then((r) => r.ok ? r.json() : null)
-            .then((json) => json && setAiData(json.data))
-        );
+        // Exécution de l'IA en tâche de fond non bloquante
+        biFetch("/api/v1/bi/dashboard/ai-analysis")
+          .then((r) => r.ok ? r.json() : null)
+          .then((json) => json && setAiData(json.data))
+          .catch(() => {});
       }
       if (tab === "profitability" || tab === "all") {
         fetches.push(
-          fetch("/api/v1/bi/dashboard/profitability")
+          biFetch("/api/v1/bi/dashboard/profitability")
             .then((r) => r.ok ? r.json() : null)
             .then((json) => json && setProfitabilityData(json.data))
         );
       }
       if (tab === "forecast" || tab === "all") {
         fetches.push(
-          fetch("/api/v1/bi/dashboard/forecast")
+          biFetch("/api/v1/bi/dashboard/forecast")
             .then((r) => r.ok ? r.json() : null)
             .then((json) => json && setForecastData(json.data))
         );
       }
       if (tab === "zones" || tab === "all") {
         fetches.push(
-          fetch("/api/v1/bi/dashboard/sales")
+          biFetch("/api/v1/bi/dashboard/sales")
             .then((r) => r.ok ? r.json() : null)
             .then((json) => json && setSalesData(json.data))
         );
       }
       if (tab === "ai" || tab === "all") {
         fetches.push(
-          fetch("/api/v1/bi/dashboard/ai-analysis")
+          biFetch("/api/v1/bi/dashboard/ai-analysis")
             .then((r) => r.ok ? r.json() : null)
             .then((json) => json && setAiData(json.data))
         );
@@ -183,13 +206,13 @@ export default function WorkspaceBIPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [biFetch]);
 
   useEffect(() => {
     fetchTabMetrics(activeTab);
   }, [activeTab, fetchTabMetrics]);
 
-  // ── Import Excel Unifié (Un seul bouton pour tout le classeur) ────────────
+  // �"?�"? Import Excel Unifié (Un seul bouton pour tout le classeur) �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
   async function handleUnifiedFileImport(file: File) {
     if (!file) return;
     const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
@@ -200,30 +223,34 @@ export default function WorkspaceBIPage() {
 
     setIsImporting(true);
     const sizeMo = (file.size / 1024 / 1024).toFixed(2);
-    setImportProgress(`📖 Lecture de ${file.name} (${sizeMo} Mo)...`);
+    setImportProgress(`�Y"- Lecture de ${file.name} (${sizeMo} Mo)...`);
 
     const t0 = Date.now();
     try {
-      setImportProgress(`📤 Envoi du fichier (${sizeMo} Mo) au serveur...`);
+      setImportProgress(`�Y"� Envoi du fichier (${sizeMo} Mo) au serveur...`);
 
       const t1 = Date.now();
-      const formData = new FormData();
-      formData.append("file", file);
 
-      const res = await fetch("/api/v1/bi/import/unified", {
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/v1/bi/import/upload-token",
+      });
+
+      const res = await biFetch("/api/v1/bi/import/unified", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blobUrl: blob.url, fileName: file.name }),
       });
 
       const tServer = ((Date.now() - t1) / 1000).toFixed(1);
-      setImportProgress(`⚙️ Traitement serveur terminé (${tServer}s)...`);
+      setImportProgress(`�sT️ Traitement serveur terminé (${tServer}s)...`);
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || data.error || "Échec de l'import");
+      if (!res.ok) throw new Error(data.message || data.error || "�?chec de l'import");
 
       const tTotal = ((Date.now() - t0) / 1000).toFixed(1);
       toast.success(`Import réussi en ${tTotal}s`, { description: data.message });
-      setImportProgress(`✅ Import réussi en ${tTotal}s — ${data.message}`);
+      setImportProgress(`�o. Import réussi en ${tTotal}s �?" ${data.message}`);
       await fetchTabMetrics("all");
       setTimeout(() => {
         setImportProgress(null);
@@ -231,22 +258,22 @@ export default function WorkspaceBIPage() {
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Erreur lors de l'import";
       const tTotal = ((Date.now() - t0) / 1000).toFixed(1);
-      toast.error(`Échec après ${tTotal}s : ${msg}`);
-      setImportProgress(`❌ Échec après ${tTotal}s : ${msg}`);
+      toast.error(`�?chec après ${tTotal}s : ${msg}`);
+      setImportProgress(`�O �?chec après ${tTotal}s : ${msg}`);
     } finally {
       setIsImporting(false);
     }
   }
 
-  // ── Réinitialisation des données BI ──────────────────────────────────────
+  // �"?�"? Réinitialisation des données BI �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
   async function handleResetBI() {
     if (!window.confirm("Réinitialiser toutes les données BI (ventes, achats, clients, produits) ? Cette action est irréversible.")) return;
     setIsResetting(true);
     try {
-      const res = await fetch("/api/v1/bi/reset", { method: "DELETE" });
+      const res = await biFetch("/api/v1/bi/reset", { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erreur réinitialisation");
-      toast.success(`Données réinitialisées — ${data.deleted.sales} ventes, ${data.deleted.clients} clients supprimés.`);
+      toast.success(`Données réinitialisées �?" ${data.deleted.sales} ventes, ${data.deleted.clients} clients supprimés.`);
       // Recharger les métriques (toutes à zéro)
       await fetchTabMetrics("all");
     } catch (error) {
@@ -257,7 +284,7 @@ export default function WorkspaceBIPage() {
     }
   }
 
-  // ── Données pour les charts ────────────────────────────────────────────────
+  // �"?�"? Données pour les charts �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
   const caTrendData = trendCA;
 
   const now = new Date();
@@ -299,7 +326,7 @@ export default function WorkspaceBIPage() {
   }));
 
 
-  // ── Téléchargement direct du Classeur Complet Tout-en-un ──────────────────
+  // �"?�"? Téléchargement direct du Classeur Complet Tout-en-un �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
   async function handleDownloadMasterWorkbook() {
     try {
       const XLSX = await import("xlsx");
@@ -330,20 +357,20 @@ export default function WorkspaceBIPage() {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(TEST_ECRITURES_1MOIS), "Ecritures_Comptables");
 
       // Feuille 6: Fiche Entreprise & Synthèse Fiscale
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(FICHE_SOCIETE), "Fiche_Societe_AFRIQ_TECH");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(FICHE_SOCIETE), "Fiche_Societe");
 
-      XLSX.writeFile(wb, "FiscLens_Test_AFRIQ_TECH_1Mois.xlsx");
-      toast.success("Classeur Excel complet (AFRIQ-TECH DISTRIB SARL — 1 Mois) téléchargé !");
+      XLSX.writeFile(wb, "FiscLens_Modele_Activite.xlsx");
+      toast.success("Modèle de classeur Excel téléchargé avec succès !");
     } catch (err: any) {
       console.error("Erreur téléchargement classeur:", err);
       toast.error("Erreur lors de la génération du fichier Excel");
     }
   }
 
-  // ── Rendu ──────────────────────────────────────────────────────────────────
+  // �"?�"? Rendu �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
   return (
     <div className="space-y-6 pb-12">
-      {/* ─── En-tête ─── */}
+      {/* �"?�"?�"? En-tête �"?�"?�"? */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b pb-5">
         <div>
           <div className="flex items-center gap-2">
@@ -355,9 +382,9 @@ export default function WorkspaceBIPage() {
             </h1>
             <Badge
               variant="outline"
-              className="ml-2 border-emerald-600 text-emerald-800 bg-emerald-50 text-[11px] flex items-center gap-1"
+              className="ml-2 border-emerald-600 text-emerald-800 bg-emerald-50 text-[11px] flex items-center gap-1 font-mono"
             >
-              <Brain className="h-3 w-3" /> Qwen IA
+              <Database className="h-3 w-3 text-emerald-600" /> Moteur SQL Backend
             </Badge>
           </div>
           <p className="text-sm md:text-base text-muted-foreground mt-1">
@@ -367,6 +394,14 @@ export default function WorkspaceBIPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => setActiveTab("rapport-integre")}
+            className="bg-[#0B3D2E] hover:bg-[#0B3D2E]/90 text-white flex items-center gap-1.5 text-xs font-semibold shadow-sm cursor-pointer"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            <span>Rapport 360° Dirigeant</span>
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -420,9 +455,12 @@ export default function WorkspaceBIPage() {
         </div>
       </div>
 
-      {/* ─── Onglets ─── */}
+      {/* �"?�"?�"? Onglets �"?�"?�"? */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 h-auto p-1 bg-muted/60 rounded-xl">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 h-auto p-1 bg-muted/60 rounded-xl">
+          <TabsTrigger value="rapport-integre" className="flex items-center gap-2 py-2.5 text-xs font-semibold text-emerald-800 dark:text-emerald-400">
+            <FileText className="h-4 w-4" /><span>Rapport 360°</span>
+          </TabsTrigger>
           <TabsTrigger value="overview" className="flex items-center gap-2 py-2.5 text-xs font-medium">
             <BarChart3 className="h-4 w-4" /><span>Vue d&apos;ensemble</span>
           </TabsTrigger>
@@ -446,8 +484,35 @@ export default function WorkspaceBIPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* ─── 1. VUE D'ENSEMBLE ─── */}
+        {/* �"?�"?�"? 1. VUE D'ENSEMBLE �"?�"?�"? */}
         <TabsContent value="overview" className="space-y-6">
+          {/* Bannière Intégrité SQL & Réconciliation */}
+          {overviewData?.sqlIntegrity && (
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 text-xs shadow-xs">
+              <div className="flex flex-wrap items-center gap-2 text-emerald-950 font-medium">
+                <span className="flex items-center gap-1 text-emerald-800 font-semibold">
+                  <Database className="h-4 w-4 text-emerald-700" />
+                  Consolidation SQL Certifiée :
+                </span>
+                <span className="font-mono font-bold text-emerald-800">
+                  {overviewData.sqlIntegrity.salesCount.toLocaleString()} lignes de ventes
+                </span>
+                <span className="text-emerald-400">·</span>
+                <span className="font-mono text-emerald-800">
+                  {overviewData.sqlIntegrity.productsCount} articles
+                </span>
+                <span className="text-emerald-400">·</span>
+                <span className="font-mono text-emerald-800">
+                  {overviewData.sqlIntegrity.clientsCount} clients
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-emerald-800 font-mono">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Exactitude Mathématique 100% (SQL Natif)</span>
+              </div>
+            </div>
+          )}
+
           {/* KPI Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card className="border shadow-sm">
@@ -552,7 +617,7 @@ export default function WorkspaceBIPage() {
                       onChange={(e) => setCustomFrom(e.target.value)}
                       className="p-2 rounded-md border text-xs"
                     />
-                    <span className="text-xs text-muted-foreground">→</span>
+                    <span className="text-xs text-muted-foreground">�?'</span>
                     <input
                       type="date"
                       value={customTo}
@@ -596,7 +661,7 @@ export default function WorkspaceBIPage() {
                           : "bg-emerald-50 border-emerald-200 text-emerald-900"
                       }`}
                     >
-                      <strong>État de santé commerciale :</strong>{" "}
+                      <strong>�?tat de santé commerciale :</strong>{" "}
                       {aiData?.summary ?? defaultSummary}
                     </div>
                     <div className="flex items-center justify-between text-xs pt-2 border-t text-muted-foreground">
@@ -644,7 +709,7 @@ export default function WorkspaceBIPage() {
           </div>
         </TabsContent>
 
-        {/* ─── 2. RENTABILITÉ ─── */}
+        {/* �"?�"?�"? 2. RENTABILIT�? �"?�"?�"? */}
         <TabsContent value="profitability" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-3">
             {/* Point Mort */}
@@ -700,7 +765,7 @@ export default function WorkspaceBIPage() {
               );
             })()}
 
-            {/* Marges par produit — BarChart */}
+            {/* Marges par produit �?" BarChart */}
             <Card className="md:col-span-2">
               <CardHeader>
                 <CardTitle className="text-base font-semibold">Top Produits par Marge Nette</CardTitle>
@@ -712,7 +777,7 @@ export default function WorkspaceBIPage() {
             </Card>
           </div>
 
-          {/* Répartition catégories — PieChart */}
+          {/* Répartition catégories �?" PieChart */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base font-semibold">Répartition du CA par Catégorie</CardTitle>
@@ -724,7 +789,7 @@ export default function WorkspaceBIPage() {
           </Card>
         </TabsContent>
 
-        {/* ─── 3. PRÉVISIONS & SIMULATION ─── */}
+        {/* �"?�"?�"? 3. PR�?VISIONS & SIMULATION �"?�"?�"? */}
         <TabsContent value="forecast" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Chart prévisions */}
@@ -848,7 +913,7 @@ export default function WorkspaceBIPage() {
           </div>
         </TabsContent>
 
-        {/* ─── 4. ZONES GÉOGRAPHIQUES ─── */}
+        {/* �"?�"?�"? 4. ZONES G�?OGRAPHIQUES �"?�"?�"? */}
         <TabsContent value="zones" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
@@ -899,7 +964,7 @@ export default function WorkspaceBIPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-blue-600" /> Pôles Économiques (Togo)
+                  <Building2 className="h-4 w-4 text-blue-600" /> Pôles �?conomiques (Togo)
                 </CardTitle>
                 <CardDescription>Recommandations d&apos;implantation et logistique</CardDescription>
               </CardHeader>
@@ -934,7 +999,7 @@ export default function WorkspaceBIPage() {
           </div>
         </TabsContent>
 
-        {/* ─── 5. ANALYSE IA (QWEN) ─── */}
+        {/* �"?�"?�"? 5. ANALYSE IA (QWEN) �"?�"?�"? */}
         <TabsContent value="ai" className="space-y-6">
           <Card className="border-emerald-300 bg-gradient-to-br from-emerald-50/60 via-white to-emerald-50/20 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-3 border-b">
@@ -977,7 +1042,7 @@ export default function WorkspaceBIPage() {
                   <ul className="space-y-1">
                     {aiData.fiscalAlerts.map((alert: string, i: number) => (
                       <li key={i} className="text-xs text-amber-900 flex items-start gap-2">
-                        <span className="text-amber-500 mt-0.5">•</span> {alert}
+                        <span className="text-amber-500 mt-0.5">·</span> {alert}
                       </li>
                     ))}
                   </ul>
@@ -1045,7 +1110,7 @@ export default function WorkspaceBIPage() {
           </Card>
         </TabsContent>
 
-        {/* ─── 6. CHARGEMENT DES DONNÉES ─── */}
+        {/* �"?�"?�"? 6. CHARGEMENT DES DONN�?ES �"?�"?�"? */}
         <TabsContent value="import" className="space-y-6">
           {/* Import unique avec 1 seul bouton */}
           <Card className="p-6 bg-white border border-border shadow-sm space-y-6">
@@ -1140,7 +1205,16 @@ export default function WorkspaceBIPage() {
             )}
           </Card>
         </TabsContent>
+
+        {/* �"?�"?�"? 7. RAPPORT 360° DIRIGEANT & CONFORMIT�? �"?�"?�"? */}
+        <TabsContent value="rapport-integre" className="space-y-6">
+          <RapportIntegreView />
+        </TabsContent>
       </Tabs>
     </div>
   );
 }
+
+
+
+

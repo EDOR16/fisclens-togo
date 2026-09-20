@@ -18,7 +18,72 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
     const exercice = searchParams.get("exercice") || String(new Date().getFullYear());
 
     // Calcul en temps réel de l'auto-évaluation CSP
-    const evaluation = await runCspEvaluation(tenantId, exercice);
+    // ── CACHE CSP : vérifier si une évaluation récente existe (< 5 min)
+    const CACHE_TTL_MIN = 5;
+    const cacheLimit = new Date(Date.now() - CACHE_TTL_MIN * 60 * 1000);
+
+    let evaluation: any = null;
+    const cachedCsp = await prisma.cspEvaluation.findFirst({
+      where: {
+        tenantId,
+        exercice,
+        generatedAt: { gte: cacheLimit },
+      },
+      orderBy: { generatedAt: "desc" },
+    });
+
+    if (cachedCsp && cachedCsp.detailsJson) {
+      // Reconstruire l'objet depuis le cache DB
+      try {
+        const parsedDetails = JSON.parse(cachedCsp.detailsJson);
+        evaluation = {
+          tenantId,
+          exercice,
+          scoreGlobal: cachedCsp.score,
+          grade: cachedCsp.grade,
+          statutGlobal: cachedCsp.statut,
+          hashCertificat: cachedCsp.hashCertificat,
+          piliers: parsedDetails.piliers || parsedDetails,
+          alertesBloquantes: parsedDetails.alertesBloquantes || [],
+          pointsForts: parsedDetails.pointsForts || [],
+          recommandationsPrioritaires: JSON.parse(cachedCsp.recommendations || "[]"),
+          generatedAt: cachedCsp.generatedAt,
+          fromCache: true,
+        };
+        console.log(`[CSP] Cache hit (${cachedCsp.generatedAt.toISOString()})`);
+      } catch (err) {
+        evaluation = null;
+      }
+    }
+
+    if (!evaluation) {
+      // Cache miss → recalcul complet (lent)
+      console.log("[CSP] Cache miss — recalcul complet (20-25s)...");
+      evaluation = await runCspEvaluation(tenantId, exercice);
+
+      // Sauvegarder automatiquement en cache
+      try {
+        await prisma.cspEvaluation.create({
+          data: {
+            tenantId,
+            exercice,
+            score: evaluation.scoreGlobal,
+            grade: evaluation.grade,
+            statut: evaluation.statutGlobal,
+            hashCertificat: evaluation.hashCertificat,
+            detailsJson: JSON.stringify({
+              piliers: evaluation.piliers,
+              alertesBloquantes: evaluation.alertesBloquantes,
+              pointsForts: evaluation.pointsForts,
+            }),
+            recommendations: JSON.stringify(evaluation.recommandationsPrioritaires || []),
+          },
+        });
+        console.log("[CSP] Évaluation mise en cache pour 5 min");
+      } catch (err) {
+        console.warn("[CSP] Impossible de mettre en cache:", err);
+      }
+    }
 
     // Récupération des pièces justificatives annexées par le contribuable
     const attachments = await prisma.cspAttachment.findMany({

@@ -2,8 +2,9 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/v1/bi/dashboard/ai-analysis
- * Analyse IA des données BI via Qwen API (Alibaba DashScope)
- * Fallback sur le moteur de règles local si la clé Qwen n'est pas configurée
+ * Analyse des données BI via le moteur de règles SQL déterministe.
+ * (Anciens providers IA Qwen/DeepSeek retirés — 100% échec en production,
+ * 5-15s perdus par appel sans bénéfice, cf. logs.)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -11,7 +12,6 @@ import { withTenantGuard, GuardContext } from "@/lib/server/with-guard";
 import { calculateGlobalKPIs, getTopProducts, getProfitabilityByCategory, getTopClients } from "@/lib/bi/aggregates";
 import { forecastCA } from "@/lib/bi/forecasting";
 import {
-  analyzeBusinessData,
   fallbackRulesAnalysis,
   type BIDataContext,
 } from "@/lib/integrations/qwen/bi-advisor";
@@ -58,8 +58,8 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
       forecastTotal > kpis.ca * 0.05
         ? "hausse"
         : forecastTotal < -kpis.ca * 0.05
-        ? "baisse"
-        : "stable";
+          ? "baisse"
+          : "stable";
 
     // ── 4. Construire le contexte BI ─────────────────────────────────────────
     const biContext: BIDataContext = {
@@ -85,14 +85,8 @@ export const GET = withTenantGuard(async (req: NextRequest, { tenantId }: GuardC
       })),
     };
 
-    // ── 5. Appel Qwen API (avec fallback local) ───────────────────────────────
-    let analysis;
-    try {
-      analysis = await analyzeBusinessData(biContext);
-    } catch (qwenError) {
-      console.warn("[BI] Qwen API indisponible, fallback moteur de règles:", qwenError);
-      analysis = fallbackRulesAnalysis(biContext);
-    }
+    // ── 5. Analyse via moteur de règles SQL déterministe (pas d'appel API externe) ──
+    const analysis = fallbackRulesAnalysis(biContext);
 
     // ── 6. Retourner la réponse ───────────────────────────────────────────────
     const responseData = {

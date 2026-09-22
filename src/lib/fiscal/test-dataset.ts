@@ -372,7 +372,7 @@ export const TEST_ECRITURES_1MOIS: TestEcritureLine[] = [
   { Journal: "PAIE", Date: "2026-08-30", Piece: "PAIE-2026-0801", Compte: "663100", Libelle: "Charges patronales CNSS Togo (15%) et AMU Togo (5%)", Debit: 700000, Credit: 0 },
   { Journal: "PAIE", Date: "2026-08-30", Piece: "PAIE-2026-0801", Compte: "431100", Libelle: "CNSS Togo cotisations globales dues (19% : ouvrière 4% + patronale 15%)", Debit: 0, Credit: 665000 },
   { Journal: "PAIE", Date: "2026-08-30", Piece: "PAIE-2026-0801", Compte: "438100", Libelle: "AMU Togo cotisations globales dues (10% : salariale 5% + patronale 5%)", Debit: 0, Credit: 350000 },
-  { Journal: "PAIE", Date: "2026-08-30", Piece: "PAIE-2026-0801", Compte: "442100", Libelle: "État Togo - Retenues IRPP s/salaires selon barème officiel CGI Togo", Debit: 0, Credit: 245000 },
+  { Journal: "PAIE", Date: "2026-08-30", Piece: "PAIE-2026-0801", Compte: "447100", Libelle: "État Togo - Retenues IRPP s/salaires selon barème officiel CGI Togo", Debit: 0, Credit: 245000 },
   { Journal: "PAIE", Date: "2026-08-30", Piece: "PAIE-2026-0801", Compte: "421100", Libelle: "Personnel AFRIQ-TECH, Rémunérations nettes dues à payer", Debit: 0, Credit: 2940000 },
 
   // ── 30/08 (après-midi) : Virement bancaire groupé des salaires nets ──

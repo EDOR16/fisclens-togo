@@ -71,8 +71,12 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   const patronalesLines = lines.filter((l) => l.accountCode.startsWith("664"));
   const totalCnssPatronale = patronalesLines.reduce((s, l) => s + (Number(l.debit) - Number(l.credit)), 0);
 
-  // 3. IRPP retenu à la source (Compte 4471xxx / 447xxx)
-  const irppLines = lines.filter((l) => l.accountCode.startsWith("4471") || l.accountCode.startsWith("447"));
+  // ✅ IRPP retenu à la source (Compte 447100 spécifiquement + fallback 4471xx)
+  const irppLines = lines.filter((l) =>
+    l.accountCode === "447100" ||
+    l.accountCode.startsWith("4471") ||
+    l.accountCode === "442100" // Fallback temporaire pour les anciennes écritures mal mappées
+  );
   const totalIrpp = irppLines.reduce((s, l) => s + (Number(l.credit) - Number(l.debit)), 0);
 
   // 4. Sécurité sociale CNSS globale (Compte 431xxx)
@@ -88,7 +92,7 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   // légitimement 0 (accrual et paiement soldés sur la même période), le fallback
   // Math.max(0, totalBrut - totalCnssSalariale - totalIrpp) écrasait ce résultat correct
   // par une estimation potentiellement fausse en cas de paiement partiel ou différé.
-  const totalNet = netLines.reduce((s, l) => s + Number(l.debit), 0);
+  const totalNet = netLines.reduce((s, l) => s + (Number(l.credit) - Number(l.debit)), 0);
 
   // Regroupement par mois pour l'historique
   const monthlyMap = new Map<string, {
@@ -117,11 +121,11 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
     if (l.accountCode.startsWith("664")) {
       existing.cnssPatronale += (Number(l.debit) - Number(l.credit));
     }
-    if (l.accountCode.startsWith("4471") || l.accountCode.startsWith("447")) {
+    if (l.accountCode === "447100" || l.accountCode.startsWith("4471") || l.accountCode === "442100") {
       existing.irpp += (Number(l.credit) - Number(l.debit));
     }
     if (l.accountCode.startsWith("421")) {
-      existing.net += Number(l.debit);
+      existing.net += (Number(l.credit) - Number(l.debit));
     }
     existing.nbEcritures += 1;
     monthlyMap.set(mois, existing);

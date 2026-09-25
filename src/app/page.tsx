@@ -23,6 +23,9 @@ import {
   Briefcase,
   Sliders,
   CheckCircle2,
+  TrendingUp,
+  BarChart3,
+  PieChart,
 } from "lucide-react";
 import { formatFcfa } from "@/lib/utils";
 
@@ -683,6 +686,108 @@ export default function GrandLivreLandingPage() {
       </section>
 
       {/* ========================================================================= */}
+      {/* 6-TER. WORKSPACE BI & RÉSULTATS D'ANALYSE DÉCISIONNELLE                    */}
+      {/* ========================================================================= */}
+      <section className="py-16 px-4 sm:px-6 max-w-7xl mx-auto space-y-10">
+        <div className="text-center space-y-3 max-w-2xl mx-auto">
+          <Stamp color="#157A46">PILOTAGE &amp; DÉCISIONNEL BI</Stamp>
+          <h2 className="font-hand text-5xl sm:text-6xl text-[#0B3D2E]">
+            Vos chiffres parlent clair.
+          </h2>
+          <p className="text-xs sm:text-sm text-[#33604C]">
+            Comptabilité SYSCOHADA, rentabilité commerciale, santé de trésorerie et segmentation clients : visualisez immédiatement vos résultats d&apos;analyse.
+          </p>
+        </div>
+
+        {/* Grille de 4 résultats d'analyse concrets */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 font-mono text-xs">
+          {/* Résultat 1 : Rentabilité & Marge Brute */}
+          <div className="p-6 rounded-2xl border-2 border-[#157A46] bg-white shadow-md flex flex-col justify-between space-y-4 hover:translate-y-[-2px] transition-transform">
+            <div>
+              <div className="flex items-center justify-between text-muted-foreground pb-2 border-b border-dashed border-[#E2D9C2]">
+                <span className="uppercase text-[10px] tracking-wider text-[#157A46] font-bold">Marge Commerciale</span>
+                <TrendingUp className="h-4 w-4 text-[#157A46]" />
+              </div>
+              <div className="pt-3">
+                <span className="text-2xl font-extrabold text-[#0B3D2E]">29.5 %</span>
+                <span className="text-[10px] text-emerald-700 block font-bold mt-0.5">+4.2 pts vs N-1</span>
+              </div>
+              <p className="text-[11px] text-[#33604C] mt-3 leading-relaxed">
+                CA brut : <strong>14 625 000 FCFA</strong>. Coût d&apos;achat : <strong>10 300 000 FCFA</strong>. Marge brute dégagée : <strong>4 325 000 FCFA</strong>.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-dashed border-[#E2D9C2] flex items-center justify-between text-[10px] text-[#33604C]">
+              <span>SYSCOHADA Classe 6 &amp; 7</span>
+              <CheckCircle2 className="h-3.5 w-3.5 text-[#157A46]" />
+            </div>
+          </div>
+
+          {/* Résultat 2 : Analyse RFM Clients */}
+          <div className="p-6 rounded-2xl border-2 border-[#0B3D2E]/20 bg-white shadow-md flex flex-col justify-between space-y-4 hover:translate-y-[-2px] transition-transform">
+            <div>
+              <div className="flex items-center justify-between text-muted-foreground pb-2 border-b border-dashed border-[#E2D9C2]">
+                <span className="uppercase text-[10px] tracking-wider text-[#0B3D2E] font-bold">Segmentation RFM</span>
+                <Users className="h-4 w-4 text-[#0B3D2E]" />
+              </div>
+              <div className="pt-3">
+                <span className="text-2xl font-extrabold text-[#0B3D2E]">45 % Champions</span>
+                <span className="text-[10px] text-blue-700 block font-bold mt-0.5">35% Fidèles · 20% À risque</span>
+              </div>
+              <p className="text-[11px] text-[#33604C] mt-3 leading-relaxed">
+                Scoring automatique Récence / Fréquence / Montant sur l&apos;ensemble de votre portefeuille clients avec actions de relance ciblées.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-dashed border-[#E2D9C2] flex items-center justify-between text-[10px] text-[#33604C]">
+              <span>Récence moyenne : 12j</span>
+              <CheckCircle2 className="h-3.5 w-3.5 text-[#157A46]" />
+            </div>
+          </div>
+
+          {/* Résultat 3 : Risque & Concentration */}
+          <div className="p-6 rounded-2xl border-2 border-[#0B3D2E]/20 bg-white shadow-md flex flex-col justify-between space-y-4 hover:translate-y-[-2px] transition-transform">
+            <div>
+              <div className="flex items-center justify-between text-muted-foreground pb-2 border-b border-dashed border-[#E2D9C2]">
+                <span className="uppercase text-[10px] tracking-wider text-amber-700 font-bold">Concentration &amp; Risque</span>
+                <PieChart className="h-4 w-4 text-amber-600" />
+              </div>
+              <div className="pt-3">
+                <span className="text-2xl font-extrabold text-[#0B3D2E]">Indice HHI 1 240</span>
+                <span className="text-[10px] text-amber-700 block font-bold mt-0.5">Diversification saine</span>
+              </div>
+              <p className="text-[11px] text-[#33604C] mt-3 leading-relaxed">
+                Le Top 5 clients représente 62% des recettes. Surveillance en temps réel du dépassement des plafonds d&apos;encours autorisés.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-dashed border-[#E2D9C2] flex items-center justify-between text-[10px] text-[#33604C]">
+              <span>Plafond crédit sécurisé</span>
+              <CheckCircle2 className="h-3.5 w-3.5 text-[#157A46]" />
+            </div>
+          </div>
+
+          {/* Résultat 4 : Trésorerie & BFR Prévisionnel */}
+          <div className="p-6 rounded-2xl border-2 border-[#157A46] bg-white shadow-md flex flex-col justify-between space-y-4 hover:translate-y-[-2px] transition-transform">
+            <div>
+              <div className="flex items-center justify-between text-muted-foreground pb-2 border-b border-dashed border-[#E2D9C2]">
+                <span className="uppercase text-[10px] tracking-wider text-[#157A46] font-bold">Trésorerie &amp; Prévisions</span>
+                <BarChart3 className="h-4 w-4 text-[#157A46]" />
+              </div>
+              <div className="pt-3">
+                <span className="text-2xl font-extrabold text-emerald-700">+ 3 450 000 F</span>
+                <span className="text-[10px] text-emerald-800 block font-bold mt-0.5">Solde prévisionnel fin de mois</span>
+              </div>
+              <p className="text-[11px] text-[#33604C] mt-3 leading-relaxed">
+                Projection des décaissements fournisseurs, salaires nets (421) et acomptes OTR. Anticipation exacte du BFR sur 90 jours.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-dashed border-[#E2D9C2] flex items-center justify-between text-[10px] text-[#33604C]">
+              <span>Comptes 521 / 571 rapprochés</span>
+              <CheckCircle2 className="h-3.5 w-3.5 text-[#157A46]" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
       {/* 7. TARIFS EN 3 REÇUS PERFORÉS (MOCKUP 2 EXACT)                           */}
       {/* ========================================================================= */}
       <section id="tarifs" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto space-y-12">
@@ -779,6 +884,15 @@ export default function GrandLivreLandingPage() {
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-[#157A46]" /> Balance 6 colonnes & Grand Livre
                 </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Fiscalité complète OTR (IS, IRPP, Patente, Foncier, Retenues)
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Workspace BI décisionnel (Rentabilité, Prévisions & Trésorerie)
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Résultats d&apos;analyse avancés (Segmentation RFM & Concentration client)
+                </div>
               </div>
             </div>
 
@@ -813,7 +927,10 @@ export default function GrandLivreLandingPage() {
 
               <div className="border-t border-dashed border-[#0B3D2E]/20 pt-4 space-y-2 text-xs">
                 <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-[#157A46]" /> Portefeuille Multi-Dossiers illimité
+                  <Check className="h-4 w-4 text-[#157A46]" /> Toutes les fonctionnalités Pro incluses
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#157A46]" /> Portefeuille Multi-Dossiers illimité (Hub Cabinet)
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-[#157A46]" /> Sécurité 2FA Obligatoire & Audit

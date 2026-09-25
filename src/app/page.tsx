@@ -698,7 +698,7 @@ export default function GrandLivreLandingPage() {
 
         {/* Grille des 3 reçus (Mockup 2) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-5xl mx-auto">
-          {/* REÇU 1 : ACTIVE (10 000 F /mois) */}
+          {/* REÇU 1 : ACTIVE (45 000 F /mois) */}
           <div className="receipt-perforated p-6 sm:p-8 rounded-lg font-mono flex flex-col justify-between hover:translate-y-[-4px] transition-transform shadow-xl">
             <div>
               <div className="border-b-2 border-dashed border-[#0B3D2E]/30 pb-4">
@@ -708,7 +708,7 @@ export default function GrandLivreLandingPage() {
 
               <div className="py-6">
                 <p className="text-3xl font-extrabold text-[#0B3D2E]">
-                  10 000 F <span className="text-xs font-normal text-[#33604C]">/mois</span>
+                  45 000 F <span className="text-xs font-normal text-[#33604C]">/mois</span>
                 </p>
                 <p className="text-[11px] text-[#33604C] mt-2">
                   Idéal pour indépendants, artisans et micro-entreprises assujettis à la TPU ou au RSI.
@@ -741,7 +741,7 @@ export default function GrandLivreLandingPage() {
             </div>
           </div>
 
-          {/* REÇU 2 : PRO (25 000 F /mois) — TAMPON "MEILLEUR CHOIX" */}
+          {/* REÇU 2 : PRO (75 000 F /mois) — TAMPON "MEILLEUR CHOIX" */}
           <div className="receipt-perforated p-6 sm:p-8 rounded-lg font-mono flex flex-col justify-between hover:translate-y-[-4px] transition-transform shadow-2xl border-2 border-[#157A46] relative">
             <div className="absolute top-4 right-4">
               <Stamp color="#D4AF37" variant="circle">
@@ -759,7 +759,7 @@ export default function GrandLivreLandingPage() {
 
               <div className="py-6">
                 <p className="text-3xl font-extrabold text-[#0B3D2E]">
-                  25 000 F <span className="text-xs font-normal text-[#33604C]">/mois</span>
+                  75 000 F <span className="text-xs font-normal text-[#33604C]">/mois</span>
                 </p>
                 <p className="text-[11px] text-[#33604C] mt-2">
                   La solution complète pour entreprises au Réel Normal : comptabilité SYSCOHADA et déclarations OTR.

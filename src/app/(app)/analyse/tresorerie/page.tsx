@@ -8,24 +8,34 @@ import { ForecastChart } from "@/components/bi/charts/forecast-chart";
 export default function TresoreriePrevisionPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       try {
         const token = localStorage.getItem("fl_token");
         const tenantId = localStorage.getItem("fl_tenant_id");
+        if (!token || !tenantId) {
+          setError("Session expirée ou dossier non sélectionné. Reconnectez-vous.");
+          setLoading(false);
+          return;
+        }
         const res = await fetch("/api/v1/bi/dashboard/forecast", {
           headers: {
             Authorization: `Bearer ${token}`,
-            "x-tenant-id": tenantId || "",
+            "x-tenant-id": tenantId,
           },
         });
-        if (res.ok) {
-          const json = await res.json();
-          setData(json.data);
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          setError(json?.error || `Erreur ${res.status}`);
+          return;
         }
+        const json = await res.json();
+        setData(json.data);
       } catch (e) {
         console.error(e);
+        setError("Impossible de charger les prévisions de trésorerie.");
       } finally {
         setLoading(false);
       }
@@ -82,6 +92,8 @@ export default function TresoreriePrevisionPage() {
         <CardContent>
           {loading ? (
             <div className="h-[300px] flex items-center justify-center text-muted-foreground">Chargement...</div>
+          ) : error ? (
+            <div className="h-[300px] flex items-center justify-center text-destructive text-sm">{error}</div>
           ) : projections.length === 0 ? (
             <div className="h-[300px] flex items-center justify-center text-muted-foreground">Données insuffisantes pour projection</div>
           ) : (

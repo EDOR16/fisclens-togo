@@ -8,24 +8,34 @@ import { cn } from "@/lib/utils";
 export default function ConcentrationPage() {
   const [zones, setZones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       try {
         const token = localStorage.getItem("fl_token");
         const tenantId = localStorage.getItem("fl_tenant_id");
+        if (!token || !tenantId) {
+          setError("Session expirée ou dossier non sélectionné. Reconnectez-vous.");
+          setLoading(false);
+          return;
+        }
         const res = await fetch("/api/v1/bi/dashboard/sales", {
           headers: {
             Authorization: `Bearer ${token}`,
-            "x-tenant-id": tenantId || "",
+            "x-tenant-id": tenantId,
           },
         });
-        if (res.ok) {
-          const json = await res.json();
-          setZones(json.data?.zones || []);
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          setError(json?.error || `Erreur ${res.status}`);
+          return;
         }
+        const json = await res.json();
+        setZones(json.data?.zones || []);
       } catch (e) {
         console.error(e);
+        setError("Impossible de charger les données de concentration.");
       } finally {
         setLoading(false);
       }
@@ -48,30 +58,38 @@ export default function ConcentrationPage() {
       </div>
 
       <div className="grid md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase">CA Total</CardDescription>
-            <CardTitle className="text-2xl font-mono">{formatFcfaSmart(totalCA)}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className={cn(isConcentrated ? "border-amber-300 bg-amber-50/30" : "border-emerald-200")}>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase">Zone Dominante</CardDescription>
-            <CardTitle className="text-xl font-mono flex items-center gap-2">
-              {isConcentrated && <AlertTriangle className="h-4 w-4 text-amber-600" />}
-              {topZone?.zone || "N/A"} ({topZonePct}%)
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase">Indice HHI</CardDescription>
-            <CardTitle className="text-xl font-mono">
-              {totalCA > 0 ? Math.round(zones.reduce((s, z) => s + Math.pow((z.ca / totalCA) * 100, 2), 0)) : 0}
-            </CardTitle>
-            <CardDescription className="text-[10px]">Herfindahl-Hirschman Index</CardDescription>
-          </CardHeader>
-        </Card>
+        {loading ? (
+          <div className="col-span-3 p-8 text-center text-muted-foreground">Chargement...</div>
+        ) : error ? (
+          <div className="col-span-3 p-8 text-center text-destructive text-sm">{error}</div>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription className="text-xs uppercase">CA Total</CardDescription>
+                <CardTitle className="text-2xl font-mono">{formatFcfaSmart(totalCA)}</CardTitle>
+              </CardHeader>
+            </Card>
+            <Card className={cn(isConcentrated ? "border-amber-300 bg-amber-50/30" : "border-emerald-200")}>
+              <CardHeader className="pb-2">
+                <CardDescription className="text-xs uppercase">Zone Dominante</CardDescription>
+                <CardTitle className="text-xl font-mono flex items-center gap-2">
+                  {isConcentrated && <AlertTriangle className="h-4 w-4 text-amber-600" />}
+                  {topZone?.zone || "N/A"} ({topZonePct}%)
+                </CardTitle>
+              </CardHeader>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription className="text-xs uppercase">Indice HHI</CardDescription>
+                <CardTitle className="text-xl font-mono">
+                  {totalCA > 0 ? Math.round(zones.reduce((s, z) => s + Math.pow((z.ca / totalCA) * 100, 2), 0)) : 0}
+                </CardTitle>
+                <CardDescription className="text-[10px]">Herfindahl-Hirschman Index</CardDescription>
+              </CardHeader>
+            </Card>
+          </>
+        )}
       </div>
 
       <Card>

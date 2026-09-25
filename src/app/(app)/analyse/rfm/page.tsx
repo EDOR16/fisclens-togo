@@ -19,24 +19,33 @@ type RFMSegment = {
 export default function RfmPage() {
   const [data, setData] = useState<RFMSegment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       try {
         const token = localStorage.getItem("fl_token");
         const tenantId = localStorage.getItem("fl_tenant_id");
+        if (!token || !tenantId) {
+          setError("Session expirée ou dossier non sélectionné. Reconnectez-vous.");
+          return;
+        }
         const res = await fetch("/api/v1/bi/dashboard/clients", {
           headers: {
             Authorization: `Bearer ${token}`,
-            "x-tenant-id": tenantId || "",
+            "x-tenant-id": tenantId,
           },
         });
-        if (res.ok) {
-          const json = await res.json();
-          setData(json.data?.rfmSegmentation || []);
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          setError(json?.error || `Erreur ${res.status}`);
+          return;
         }
+        const json = await res.json();
+        setData(json.data?.rfmSegmentation || []);
       } catch (e) {
         console.error(e);
+        setError("Impossible de charger les données clients.");
       } finally {
         setLoading(false);
       }
@@ -72,6 +81,8 @@ export default function RfmPage() {
         <CardContent className="p-0">
           {loading ? (
             <div className="p-8 text-center text-muted-foreground">Chargement...</div>
+          ) : error ? (
+            <div className="p-8 text-center text-destructive text-sm">{error}</div>
           ) : data.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">Aucune donnée client disponible</div>
           ) : (

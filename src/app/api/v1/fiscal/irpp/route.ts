@@ -86,13 +86,23 @@ export const GET = withGuard(async (req: NextRequest, { tenantId }) => {
   const totalCnssSalariale = Math.max(0, totalCnss - totalCnssPatronale) || Math.round(totalBrut * 0.04);
 
   // 5. Salaires nets versés (Compte 421xxx)
+  // Le compte 421 est crédité lors de la constatation du salaire dû,
+  // et débité lors du paiement effectif. Quand les deux écritures sont
+  // enregistrées dans la même période, le solde net (crédit − débit) = 0,
+  // ce qui rendait "totalNet" à 0 à l'affichage.
+  //
+  // Stratégie corrigée :
+  //   1. Priorité : débit brut du 421 (= montants réellement mis en paiement)
+  //   2. Fallback : calcul théorique brut − cotisations salariales − IRPP
   const netLines = lines.filter((l) => l.accountCode.startsWith("421"));
-  // Paiements réels effectués (débit du compte 421 = sorties de trésorerie vers le personnel).
-  // Ne pas utiliser (credit - debit) ni l'opérateur || : si le solde net du compte est
-  // légitimement 0 (accrual et paiement soldés sur la même période), le fallback
-  // Math.max(0, totalBrut - totalCnssSalariale - totalIrpp) écrasait ce résultat correct
-  // par une estimation potentiellement fausse en cas de paiement partiel ou différé.
-  const totalNet = netLines.reduce((s, l) => s + (Number(l.credit) - Number(l.debit)), 0);
+  const net421Debit  = netLines.reduce((s, l) => s + Number(l.debit),  0); // paiements sortants
+  const net421Credit = netLines.reduce((s, l) => s + Number(l.credit), 0); // constatations
+  // Si le 421 a été débité (= salaires payés), on prend ce montant.
+  // Sinon (écritures non encore soldées), on prend la constatation brute.
+  const net421 = net421Debit > 0 ? net421Debit : net421Credit;
+  // Fallback théorique : brut − cotisations salariales (9%) − IRPP retenu
+  const netTheorique = Math.max(0, totalBrut - Math.round(totalBrut * 0.09) - totalIrpp);
+  const totalNet = net421 > 0 ? net421 : netTheorique;
 
   // Regroupement par mois pour l'historique
   const monthlyMap = new Map<string, {

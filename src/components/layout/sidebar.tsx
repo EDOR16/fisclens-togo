@@ -8,6 +8,7 @@ import {
   BarChart3, CalendarDays, Settings, LogOut, ChevronsUpDown,
   Users, ChevronRight, Building2, Sun, Moon, Calculator,
   Menu, X, ShieldCheck, CreditCard, Activity, Sparkles, ChevronDown,
+  Briefcase, ExternalLink,
 } from "lucide-react";
 import { useAuth, useHasRole, type Role } from "@/lib/auth-context";
 import { useAppTheme } from "@/components/theme/theme-provider";
@@ -83,6 +84,12 @@ const NAV_ITEMS: NavItem[] = [
     label: "Tableau de bord",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    label: "Portefeuille Clients",
+    href: "/cabinet/portefeuille",
+    icon: Briefcase,
+    roles: ["CABINET", "ADMIN_SYS"],
   },
   {
     label: "Comptabilité",
@@ -274,9 +281,18 @@ function DossierSelector() {
 
   return (
     <div className="px-3 py-2 border-b border-[#E6DEC8] dark:border-[rgba(251,247,236,.12)]">
-      <p className="text-[10px] font-mono font-medium text-muted-foreground mb-1 uppercase tracking-wider">
-        {isAdmin ? "Dossier sous audit" : "Dossier client"}
-      </p>
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-[10px] font-mono font-medium text-muted-foreground uppercase tracking-wider">
+          {isAdmin ? "Dossier sous audit" : "Dossier client"}
+        </p>
+        <Link
+          href="/cabinet/portefeuille"
+          className="text-[10px] font-mono text-[#157A46] hover:underline flex items-center gap-0.5"
+          title="Ouvrir le hub portefeuille"
+        >
+          Hub <ExternalLink className="h-2.5 w-2.5" />
+        </Link>
+      </div>
       <div className="relative">
         <select
           value={currentTenantId ?? ""}
